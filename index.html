@@ -182,6 +182,17 @@ tr.total td{font-weight:700;border-bottom:0}
       </div>
       <button class="btn sec" onclick="loadList()">Refresh</button>
     </div>
+
+    <div class="card">
+      <h2>Download Nota CA per Periode</h2>
+      <div class="hint">Semua foto / file nota pemakaian CA bertanggal 1 sampai akhir bulan pada periode yang dipilih, dikemas dalam satu file ZIP beserta daftar nota (CSV).</div>
+      <div class="row3">
+        <div><label>Periode</label><select id="z-periode"></select></div>
+        <div><label>Grup</label><select id="z-grup"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-zip" onclick="downloadNota()">Download Nota</button></div>
+      </div>
+      <div class="muted" id="z-info" style="margin-top:8px"></div>
+    </div>
   </section>
 
   <!-- BUAT CA -->
@@ -738,6 +749,13 @@ function fillPeriodeFilter() {
   const list = [...new Set(LIST.map(r => r.Periode).filter(Boolean))].sort().reverse();
   el.innerHTML = '<option value="">Semua periode</option>' + list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('');
   if (list.includes(keep)) el.value = keep;
+
+  // Periode download nota: 12 bulan terakhir + periode yang ada di data CA
+  const z = $('z-periode');
+  const keepZ = z.value || thisMonth();
+  const zl = [...new Set(monthOptions(11, 0).concat(list))].sort().reverse();
+  z.innerHTML = zl.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('');
+  z.value = zl.includes(keepZ) ? keepZ : thisMonth();
 }
 
 // ---------- INIT ----------
@@ -746,6 +764,7 @@ async function init() {
   setupMoneyInputs();
   fillPeriodeNew();
   $('n-tanggal').value = today();
+  fillPeriodeFilter();
   $('t-tanggal').value = today();
   $('i-tanggal').value = today();
   $('p-tanggal').value = today();
@@ -760,6 +779,7 @@ async function init() {
   try {
     MASTER = await apiGet({ action: 'master' });
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
+    fillSelect($('z-grup'), MASTER.grup || [], 'Semua grup');
     fillSelect($('n-grup'), MASTER.grup || [], 'Pilih grup');
     fillSelect($('u-kategori'), MASTER.kategori || [], 'Pilih kategori');
     fillSelect($('u-unit'), MASTER.unit || [], '- Tidak terkait unit -');
@@ -1612,6 +1632,20 @@ function fmtPeriodeEn(p) {
 }
 const printedAt = () => new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+// Nama file PDF saat "Save as PDF" mengikuti judul halaman, jadi judul diganti sementara saat cetak
+const safeName = (s, max) => String(s ?? '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max || 80).trim();
+
+function printAs(title) {
+  const old = document.title;
+  document.title = safeName(title, 150);
+  const restore = () => {
+    document.title = old;
+    window.removeEventListener('afterprint', restore);
+  };
+  window.addEventListener('afterprint', restore);
+  window.print();
+}
+
 // Ukuran kertas cetak: laporan CA portrait, invoice landscape
 function setPageSize(size) {
   $('page-size').textContent = `@media print{@page{size:${size};margin:12mm}}`;
@@ -1686,7 +1720,7 @@ async function printInvoice(id, comp) {
 
     await waitImages();
     setPageSize('A4 landscape');
-    window.print();
+    printAs(`Invoice ${billTo} - ${fmtPeriodeEn(all.periode)}`);
   } catch (e) {
     toast('Gagal menyiapkan invoice: ' + e.message);
   } finally {
@@ -1927,6 +1961,124 @@ async function loadSummary() {
   }
 }
 
+// ---------- DOWNLOAD NOTA CA PER PERIODE ----------
+const JSZIP_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+
+function loadJSZip() {
+  if (window.JSZip) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = JSZIP_URL;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Gagal memuat library ZIP, cek koneksi internet'));
+    document.head.appendChild(s);
+  });
+}
+
+function extOf(f) {
+  const m = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'image/heic': 'heic', 'application/pdf': 'pdf' };
+  if (m[f.mime]) return m[f.mime];
+  const x = String(f.name || '').match(/\.(\w{2,5})$/);
+  return x ? x[1].toLowerCase() : 'bin';
+}
+
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+const csvCell = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+
+async function downloadNota() {
+  const p = $('z-periode').value, g = $('z-grup').value;
+  if (!p) return toast('Pilih periode');
+  const btn = $('btn-zip');
+  btn.disabled = true; btn.textContent = 'Memuat daftar nota...';
+  $('z-info').textContent = '';
+  try {
+    const all = (await apiGet({ action: 'notaPeriode', periode: p })).filter(r => !g || r.Grup === g);
+    const withFile = all.filter(r => r.Nota_URL);
+    const tanpa = all.length - withFile.length;
+    const label = `${fmtPeriode(p)}${g ? ' grup ' + g : ''}`;
+    if (!withFile.length) {
+      $('z-info').textContent = all.length ? `${all.length} pemakaian di ${label}, belum ada yang dilampiri nota.` : `Tidak ada pemakaian CA di ${label}.`;
+      return;
+    }
+    const range = periodeRange(p);
+    let msg = `Download ${withFile.length} nota CA ${label}\n(tanggal ${fmtTgl(range.min)} - ${fmtTgl(range.max)})?`;
+    if (tanpa) msg += `\n\n${tanpa} pemakaian belum ada notanya (tetap tercatat di daftar CSV).`;
+    if (!confirm(msg)) return;
+
+    await loadJSZip();
+
+    // Ambil file nota (maks 4 bersamaan)
+    const ids = [...new Set(withFile.map(r => fileIdOf(r.Nota_URL)).filter(Boolean))];
+    const files = {};
+    let next = 0, done = 0;
+    const worker = async () => {
+      while (next < ids.length) {
+        const id = ids[next++];
+        try {
+          files[id] = await apiGet({ action: 'file', id, full: '1' });
+        } catch (e) {
+          files[id] = { error: e.message };
+        }
+        done++;
+        btn.textContent = `Mengunduh nota ${done}/${ids.length}...`;
+      }
+    };
+    await Promise.all([1, 2, 3, 4].map(worker));
+
+    // Susun ZIP: nomor file sama dengan nomor di Daftar Nota.csv
+    const zip = new JSZip();
+    const csv = [['No', 'Tanggal', 'No CA', 'Grup', 'Divisi', 'Kategori', 'Unit', 'Keterangan', 'Nominal', 'File nota', 'Catatan'].map(csvCell).join(',')];
+    let ok = 0, gagal = 0, total = 0;
+    all.forEach((r, i) => {
+      const no = String(i + 1).padStart(3, '0');
+      let fname = '', note = '';
+      total += Number(r.Nominal || 0);
+      if (!r.Nota_URL) {
+        note = 'Tidak ada nota';
+      } else {
+        const f = files[fileIdOf(r.Nota_URL)] || {};
+        if (f.base64) {
+          fname = [no, r.Tanggal, safeName(r.Divisi, 25), safeName(r.Kategori, 25), safeName(r.Keterangan, 40), 'Rp' + Number(r.Nominal || 0)]
+            .filter(Boolean).join('_') + '.' + extOf(f);
+          zip.file(fname, b64ToBytes(f.base64));
+          ok++;
+        } else {
+          note = 'Gagal diambil: ' + (f.error || 'file tidak bisa dibaca');
+          gagal++;
+        }
+      }
+      csv.push([no, r.Tanggal, r.CA_ID, r.Grup, r.Divisi, r.Kategori, r.Unit, r.Keterangan, Number(r.Nominal || 0), fname, note].map(csvCell).join(','));
+    });
+    csv.push(['', '', '', '', '', '', '', 'TOTAL', total, '', ''].map(csvCell).join(','));
+    zip.file('Daftar Nota.csv', '\ufeff' + csv.join('\r\n'));
+
+    btn.textContent = 'Membuat file ZIP...';
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const zipName = safeName(`Nota CA ${g ? g + ' ' : ''}${fmtPeriodeEn(p)}`, 120) + '.zip';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = zipName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+
+    $('z-info').textContent = `${zipName}: ${ok} nota` + (gagal ? `, ${gagal} gagal diambil (lihat CSV)` : '') + (tanpa ? `, ${tanpa} pemakaian tanpa nota` : '') + '.';
+    toast('Download nota selesai');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Download Nota';
+  }
+}
+
 // ---------- CETAK LAPORAN CLEARING ----------
 function lampiranItem(no, caption, url, files, label) {
   const f = files[url] || {};
@@ -2042,7 +2194,7 @@ async function printReport() {
     await waitImages();
 
     setPageSize('A4');
-    window.print();
+    printAs(`CA Clearing Report ${h.CA_ID} - ${h.Grup} - ${fmtPeriodeEn(h.Periode)}`);
   } catch (e) {
     toast('Gagal menyiapkan laporan: ' + e.message);
   } finally {
