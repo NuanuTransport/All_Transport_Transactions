@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cash Advance Transport</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--bad:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+header{background:#111827;color:#fff;padding:14px 16px}
+header h1{margin:0;font-size:17px}
+header p{margin:2px 0 0;font-size:12px;color:#9ca3af}
+nav{display:flex;gap:4px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted)}
+nav button.active{background:#e0e7ff;color:var(--pri);font-weight:600}
+main{max-width:960px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 6px;font-size:15px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat .l{font-size:12px;color:var(--muted)}
+.stat .v{font-size:18px;font-weight:700;margin-top:4px}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:inherit;background:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{background:var(--pri);color:#fff;border:0;padding:10px 16px;border-radius:7px;font-size:14px;cursor:pointer;margin-top:14px}
+.btn.sec{background:#fff;color:var(--text);border:1px solid var(--line)}
+.btn.ok{background:var(--ok)}
+.btn.sm{margin:0;padding:4px 8px;font-size:12px}
+.btn:disabled{opacity:.6;cursor:default}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}
+.num{text-align:right;white-space:nowrap}
+tr.click{cursor:pointer}
+tr.click:hover{background:#f9fafb}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
+.tag.open{background:#dbeafe;color:var(--pri)}
+.tag.settled{background:#dcfce7;color:var(--ok)}
+.tag.over{background:#fee2e2;color:var(--bad)}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 10px}
+.kv>div:nth-child(odd){color:var(--muted)}
+.muted{color:var(--muted);font-size:12px}
+.hidden{display:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:9;max-width:90%}
+@media(max-width:600px){.row{grid-template-columns:1fr}.kv{grid-template-columns:120px 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cash Advance - Transport</h1>
+  <p>Pengajuan, pemakaian, dan settlement CA</p>
+</header>
+
+<nav>
+  <button data-v="list" class="active" onclick="show('list')">Daftar CA</button>
+  <button data-v="new" onclick="show('new')">Buat CA</button>
+</nav>
+
+<main>
+
+  <!-- DAFTAR -->
+  <section id="view-list">
+    <div class="stats">
+      <div class="stat"><div class="l">CA Open</div><div class="v" id="s-open">-</div></div>
+      <div class="stat"><div class="l">Nominal Open</div><div class="v" id="s-open-nom">-</div></div>
+      <div class="stat"><div class="l">Overdue (&gt;7 hari)</div><div class="v" id="s-over">-</div></div>
+      <div class="stat"><div class="l">Terpakai (sesuai filter)</div><div class="v" id="s-used">-</div></div>
+    </div>
+    <div class="card">
+      <div class="filters">
+        <select id="f-divisi" onchange="renderList()"></select>
+        <select id="f-status" onchange="renderList()">
+          <option value="">Semua status</option>
+          <option>Open</option>
+          <option>Overdue</option>
+          <option>Settled</option>
+        </select>
+        <input type="month" id="f-bulan" onchange="renderList()">
+        <input type="text" id="f-cari" placeholder="Cari no CA / pemohon" oninput="renderList()">
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>No CA</th><th>Tanggal</th><th>Divisi</th><th>Pemohon / Keperluan</th><th class="num">Nominal</th><th class="num">Terpakai</th><th>Status</th></tr></thead>
+          <tbody id="list-body"></tbody>
+        </table>
+      </div>
+      <button class="btn sec" onclick="loadList()">Refresh</button>
+    </div>
+  </section>
+
+  <!-- BUAT CA -->
+  <section id="view-new" class="hidden">
+    <div class="card">
+      <h2>Pengajuan CA Baru</h2>
+      <div class="row">
+        <div><label>Tanggal</label><input type="date" id="n-tanggal"></div>
+        <div><label>Divisi</label><select id="n-divisi"></select></div>
+      </div>
+      <label>Pemohon</label>
+      <input type="text" id="n-pemohon" list="pemohon-list" placeholder="Nama pemohon">
+      <datalist id="pemohon-list"></datalist>
+      <label>Keperluan</label>
+      <textarea id="n-keperluan" rows="2" placeholder="Contoh: BBM dan tol trip airport minggu ini"></textarea>
+      <label>Nominal CA (Rp)</label>
+      <input type="number" id="n-nominal" min="0" inputmode="numeric">
+      <button class="btn" id="btn-new" onclick="createCA()">Simpan CA</button>
+    </div>
+  </section>
+
+  <!-- DETAIL -->
+  <section id="view-detail" class="hidden">
+    <button class="btn sec" style="margin:0 0 12px" onclick="show('list')">&larr; Kembali</button>
+    <div class="card">
+      <h2 id="d-title">-</h2>
+      <div id="d-info"></div>
+    </div>
+
+    <div class="card">
+      <h2>Rincian Pemakaian</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Kategori / Unit</th><th>Keterangan</th><th class="num">Nominal</th><th>Nota</th><th></th></tr></thead>
+          <tbody id="d-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="usage-form">
+      <h2>Tambah Pemakaian</h2>
+      <div class="row">
+        <div><label>Tanggal</label><input type="date" id="u-tanggal"></div>
+        <div><label>Kategori</label><select id="u-kategori"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Unit kendaraan</label><select id="u-unit"></select></div>
+        <div><label>Nominal (Rp)</label><input type="number" id="u-nominal" min="0" inputmode="numeric"></div>
+      </div>
+      <label>Keterangan</label>
+      <input type="text" id="u-ket" placeholder="Contoh: Pertalite 30 liter">
+      <label>Foto / file nota</label>
+      <input type="file" id="u-nota" accept="image/*,application/pdf">
+      <button class="btn" id="btn-usage" onclick="addUsage()">Tambah Pemakaian</button>
+    </div>
+
+    <div class="card" id="settle-form">
+      <h2>Settlement</h2>
+      <label>Catatan (opsional)</label>
+      <input type="text" id="s-catatan" placeholder="Contoh: Sisa sudah dikembalikan ke kas">
+      <button class="btn ok" id="btn-settle" onclick="settle()">Settle CA</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'PASTE_URL_WEB_APP_DI_SINI';
+
+let MASTER = { divisi: [], kategori: [], pemohon: [], unit: [] };
+let LIST = [];
+let CURRENT = null;
+
+const $ = id => document.getElementById(id);
+const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function today() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.style.display = 'none', 3000);
+}
+
+async function apiGet(params) {
+  const r = await fetch(API + '?' + new URLSearchParams(params).toString());
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.data;
+}
+
+async function apiPost(action, data) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, data }) });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.data;
+}
+
+function show(view) {
+  ['list', 'new', 'detail'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === view));
+  window.scrollTo(0, 0);
+}
+
+function fillSelect(el, items, placeholder) {
+  el.innerHTML = `<option value="">${esc(placeholder)}</option>` + items.map(i => `<option>${esc(i)}</option>`).join('');
+}
+
+function statusTag(r) {
+  if (r.Status === 'Settled') return '<span class="tag settled">Settled</span>';
+  return r.Overdue ? `<span class="tag over">Open ${r.Umur} hari</span>` : '<span class="tag open">Open</span>';
+}
+
+// ---------- INIT ----------
+async function init() {
+  $('n-tanggal').value = today();
+  $('u-tanggal').value = today();
+  try {
+    MASTER = await apiGet({ action: 'master' });
+    fillSelect($('f-divisi'), MASTER.divisi, 'Semua divisi');
+    fillSelect($('n-divisi'), MASTER.divisi, 'Pilih divisi');
+    fillSelect($('u-kategori'), MASTER.kategori, 'Pilih kategori');
+    fillSelect($('u-unit'), MASTER.unit, '- Tidak terkait unit -');
+    $('pemohon-list').innerHTML = MASTER.pemohon.map(p => `<option value="${esc(p)}">`).join('');
+    await loadList();
+  } catch (e) {
+    toast('Gagal memuat: ' + e.message);
+  }
+}
+
+// ---------- DAFTAR ----------
+async function loadList() {
+  $('list-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  try {
+    LIST = await apiGet({ action: 'list' });
+    renderList();
+  } catch (e) {
+    $('list-body').innerHTML = '<tr><td colspan="7" class="muted">Gagal memuat data</td></tr>';
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function renderList() {
+  const fd = $('f-divisi').value, fs = $('f-status').value, fm = $('f-bulan').value, fq = $('f-cari').value.toLowerCase();
+  const rows = LIST.filter(r =>
+    (!fd || r.Divisi === fd) &&
+    (!fs || (fs === 'Overdue' ? r.Overdue : r.Status === fs)) &&
+    (!fm || String(r.Tanggal).slice(0, 7) === fm) &&
+    (!fq || (r.CA_ID + ' ' + r.Pemohon + ' ' + r.Keperluan).toLowerCase().includes(fq))
+  );
+
+  const open = LIST.filter(r => r.Status === 'Open');
+  $('s-open').textContent = open.length;
+  $('s-open-nom').textContent = rp(open.reduce((a, r) => a + Number(r.Nominal || 0), 0));
+  $('s-over').textContent = LIST.filter(r => r.Overdue).length;
+  $('s-used').textContent = rp(rows.reduce((a, r) => a + Number(r.Terpakai || 0), 0));
+
+  $('list-body').innerHTML = rows.length ? rows.map(r => `
+    <tr class="click" onclick="openDetail('${esc(r.CA_ID)}')">
+      <td>${esc(r.CA_ID)}</td>
+      <td>${esc(r.Tanggal)}</td>
+      <td>${esc(r.Divisi)}</td>
+      <td>${esc(r.Pemohon)}<div class="muted">${esc(r.Keperluan)}</div></td>
+      <td class="num">${rp(r.Nominal)}</td>
+      <td class="num">${rp(r.Terpakai)}</td>
+      <td>${statusTag(r)}</td>
+    </tr>`).join('') : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
+}
+
+// ---------- BUAT CA ----------
+async function createCA() {
+  const d = {
+    Tanggal: $('n-tanggal').value,
+    Divisi: $('n-divisi').value,
+    Pemohon: $('n-pemohon').value.trim(),
+    Keperluan: $('n-keperluan').value.trim(),
+    Nominal: Number($('n-nominal').value)
+  };
+  if (!d.Tanggal || !d.Divisi || !d.Pemohon || !d.Keperluan || !(d.Nominal > 0)) return toast('Lengkapi semua field');
+
+  const b = $('btn-new');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const res = await apiPost('createCA', d);
+    toast('CA tersimpan: ' + res.CA_ID);
+    ['n-pemohon', 'n-keperluan', 'n-nominal'].forEach(i => $(i).value = '');
+    loadList();
+    openDetail(res.CA_ID);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan CA';
+  }
+}
+
+// ---------- DETAIL ----------
+async function openDetail(id) {
+  show('detail');
+  $('d-title').textContent = id;
+  $('d-info').innerHTML = '<span class="muted">Memuat...</span>';
+  $('d-body').innerHTML = '';
+  $('usage-form').classList.add('hidden');
+  $('settle-form').classList.add('hidden');
+  try {
+    CURRENT = await apiGet({ action: 'detail', id });
+    renderDetail();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function renderDetail() {
+  const h = CURRENT.header, items = CURRENT.items;
+  const isOpen = h.Status === 'Open';
+  const sisa = Number(h.Nominal) - Number(h.Terpakai);
+
+  $('d-title').textContent = h.CA_ID;
+  $('d-info').innerHTML = `
+    <div class="kv">
+      <div>Tanggal</div><div>${esc(h.Tanggal)}</div>
+      <div>Divisi</div><div>${esc(h.Divisi)}</div>
+      <div>Pemohon</div><div>${esc(h.Pemohon)}</div>
+      <div>Keperluan</div><div>${esc(h.Keperluan)}</div>
+      <div>Nominal CA</div><div><b>${rp(h.Nominal)}</b></div>
+      <div>Terpakai</div><div>${rp(h.Terpakai)}</div>
+      <div>${sisa >= 0 ? 'Sisa dikembalikan' : 'Kurang, diganti'}</div><div><b>${rp(Math.abs(sisa))}</b></div>
+      <div>Status</div><div>${statusTag(h)} ${h.Tgl_Settlement ? '<span class="muted">' + esc(h.Tgl_Settlement) + '</span>' : ''}</div>
+      ${h.Catatan_Settlement ? `<div>Catatan</div><div>${esc(h.Catatan_Settlement)}</div>` : ''}
+    </div>`;
+
+  $('d-body').innerHTML = items.length ? items.map(i => `
+    <tr>
+      <td>${esc(i.Tanggal)}</td>
+      <td>${esc(i.Kategori)}${i.Unit ? '<div class="muted">' + esc(i.Unit) + '</div>' : ''}</td>
+      <td>${esc(i.Keterangan)}</td>
+      <td class="num">${rp(i.Nominal)}</td>
+      <td>${i.Nota_URL ? `<a href="${esc(i.Nota_URL)}" target="_blank" rel="noopener">Lihat</a>` : '<span class="muted">-</span>'}</td>
+      <td>${isOpen ? `<button class="btn sec sm" onclick="delUsage('${esc(i.Detail_ID)}')">Hapus</button>` : ''}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="muted">Belum ada pemakaian</td></tr>';
+
+  $('usage-form').classList.toggle('hidden', !isOpen);
+  $('settle-form').classList.toggle('hidden', !isOpen);
+}
+
+// ---------- PEMAKAIAN ----------
+function readFile(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Gagal membaca file'));
+    fr.onload = () => {
+      if (!file.type.startsWith('image/')) {
+        if (file.size > 5 * 1024 * 1024) return reject(new Error('File maksimal 5 MB'));
+        return resolve({ name: file.name, mimeType: file.type || 'application/pdf', base64: fr.result.split(',')[1] });
+      }
+      const img = new Image();
+      img.onload = () => {
+        const max = 1280, s = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * s);
+        c.height = Math.round(img.height * s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve({ name: file.name.replace(/\.\w+$/, '') + '.jpg', mimeType: 'image/jpeg', base64: c.toDataURL('image/jpeg', 0.75).split(',')[1] });
+      };
+      img.onerror = () => reject(new Error('Gambar tidak valid'));
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+async function addUsage() {
+  const d = {
+    CA_ID: CURRENT.header.CA_ID,
+    Tanggal: $('u-tanggal').value,
+    Kategori: $('u-kategori').value,
+    Unit: $('u-unit').value,
+    Keterangan: $('u-ket').value.trim(),
+    Nominal: Number($('u-nominal').value)
+  };
+  if (!d.Tanggal || !d.Kategori || !d.Keterangan || !(d.Nominal > 0)) return toast('Lengkapi data pemakaian');
+
+  const b = $('btn-usage');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('u-nota').files[0];
+    if (f) d.Nota = await readFile(f);
+    CURRENT = await apiPost('addUsage', d);
+    ['u-ket', 'u-nominal', 'u-nota'].forEach(i => $(i).value = '');
+    renderDetail();
+    loadList();
+    toast('Pemakaian tersimpan');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Tambah Pemakaian';
+  }
+}
+
+async function delUsage(detailId) {
+  if (!confirm('Hapus baris pemakaian ini?')) return;
+  try {
+    CURRENT = await apiPost('deleteUsage', { Detail_ID: detailId });
+    renderDetail();
+    loadList();
+    toast('Pemakaian dihapus');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- SETTLEMENT ----------
+async function settle() {
+  const h = CURRENT.header, items = CURRENT.items;
+  const sisa = Number(h.Nominal) - Number(h.Terpakai);
+  const tanpaNota = items.filter(i => !i.Nota_URL).length;
+
+  let msg = `Settle ${h.CA_ID}?\n\nNominal: ${rp(h.Nominal)}\nTerpakai: ${rp(h.Terpakai)}\n`;
+  msg += sisa >= 0 ? `Sisa dikembalikan: ${rp(sisa)}` : `Kurang, diganti ke pemohon: ${rp(-sisa)}`;
+  if (!items.length) msg += '\n\nPerhatian: belum ada rincian pemakaian.';
+  if (tanpaNota) msg += `\n\nPerhatian: ${tanpaNota} baris belum ada nota.`;
+  if (!confirm(msg)) return;
+
+  const b = $('btn-settle');
+  b.disabled = true; b.textContent = 'Memproses...';
+  try {
+    CURRENT = await apiPost('settle', { CA_ID: h.CA_ID, Catatan: $('s-catatan').value.trim() });
+    $('s-catatan').value = '';
+    renderDetail();
+    loadList();
+    toast('CA sudah settled');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Settle CA';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
