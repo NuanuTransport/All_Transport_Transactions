@@ -37,6 +37,7 @@ th{font-size:12px;color:var(--muted);font-weight:600}
 .num{text-align:right;white-space:nowrap}
 tr.click{cursor:pointer}
 tr.click:hover{background:#f9fafb}
+tr.total td{font-weight:700;border-bottom:0}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag.open{background:#dbeafe;color:var(--pri)}
 .tag.settled{background:#dcfce7;color:var(--ok)}
@@ -73,7 +74,7 @@ tr.click:hover{background:#f9fafb}
     </div>
     <div class="card">
       <div class="filters">
-        <select id="f-divisi" onchange="renderList()"></select>
+        <select id="f-grup" onchange="renderList()"></select>
         <select id="f-status" onchange="renderList()">
           <option value="">Semua status</option>
           <option>Open</option>
@@ -85,7 +86,7 @@ tr.click:hover{background:#f9fafb}
       </div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>No CA</th><th>Tanggal</th><th>Divisi</th><th>Pemohon / Keperluan</th><th class="num">Nominal</th><th class="num">Terpakai</th><th>Status</th></tr></thead>
+          <thead><tr><th>No CA</th><th>Tanggal</th><th>Grup</th><th>Pemohon / Keperluan</th><th class="num">Nominal</th><th class="num">Terpakai</th><th>Status</th></tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -99,13 +100,14 @@ tr.click:hover{background:#f9fafb}
       <h2>Pengajuan CA Baru</h2>
       <div class="row">
         <div><label>Tanggal</label><input type="date" id="n-tanggal"></div>
-        <div><label>Divisi</label><select id="n-divisi"></select></div>
+        <div><label>Grup</label><select id="n-grup"></select></div>
       </div>
+      <div class="muted" id="n-grup-info"></div>
       <label>Pemohon</label>
       <input type="text" id="n-pemohon" list="pemohon-list" placeholder="Nama pemohon">
       <datalist id="pemohon-list"></datalist>
       <label>Keperluan</label>
-      <textarea id="n-keperluan" rows="2" placeholder="Contoh: BBM dan tol trip airport minggu ini"></textarea>
+      <textarea id="n-keperluan" rows="2" placeholder="Contoh: Kebutuhan operasional minggu 1 November"></textarea>
       <label>Nominal CA (Rp)</label>
       <input type="number" id="n-nominal" min="0" inputmode="numeric">
       <button class="btn" id="btn-new" onclick="createCA()">Simpan CA</button>
@@ -121,10 +123,20 @@ tr.click:hover{background:#f9fafb}
     </div>
 
     <div class="card">
+      <h2>Rekap per Divisi</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Divisi</th><th class="num">Jumlah baris</th><th class="num">Terpakai</th></tr></thead>
+          <tbody id="d-rekap"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Rincian Pemakaian</h2>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Tanggal</th><th>Kategori / Unit</th><th>Keterangan</th><th class="num">Nominal</th><th>Nota</th><th></th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Kategori / Unit</th><th>Keterangan</th><th class="num">Nominal</th><th>Nota</th><th></th></tr></thead>
           <tbody id="d-body"></tbody>
         </table>
       </div>
@@ -134,14 +146,16 @@ tr.click:hover{background:#f9fafb}
       <h2>Tambah Pemakaian</h2>
       <div class="row">
         <div><label>Tanggal</label><input type="date" id="u-tanggal"></div>
-        <div><label>Kategori</label><select id="u-kategori"></select></div>
+        <div><label>Divisi</label><select id="u-divisi"></select></div>
       </div>
       <div class="row">
+        <div><label>Kategori</label><select id="u-kategori"></select></div>
         <div><label>Unit kendaraan</label><select id="u-unit"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Keterangan</label><input type="text" id="u-ket" placeholder="Contoh: Pertalite 30 liter"></div>
         <div><label>Nominal (Rp)</label><input type="number" id="u-nominal" min="0" inputmode="numeric"></div>
       </div>
-      <label>Keterangan</label>
-      <input type="text" id="u-ket" placeholder="Contoh: Pertalite 30 liter">
       <label>Foto / file nota</label>
       <input type="file" id="u-nota" accept="image/*,application/pdf">
       <button class="btn" id="btn-usage" onclick="addUsage()">Tambah Pemakaian</button>
@@ -162,7 +176,7 @@ tr.click:hover{background:#f9fafb}
 <script>
 const API = 'PASTE_URL_WEB_APP_DI_SINI';
 
-let MASTER = { divisi: [], kategori: [], pemohon: [], unit: [] };
+let MASTER = { grup: [], divisiMap: {}, kategori: [], pemohon: [], unit: [] };
 let LIST = [];
 let CURRENT = null;
 
@@ -217,10 +231,14 @@ function statusTag(r) {
 async function init() {
   $('n-tanggal').value = today();
   $('u-tanggal').value = today();
+  $('n-grup').addEventListener('change', () => {
+    const list = MASTER.divisiMap[$('n-grup').value] || [];
+    $('n-grup-info').textContent = list.length ? 'Divisi: ' + list.join(', ') : '';
+  });
   try {
     MASTER = await apiGet({ action: 'master' });
-    fillSelect($('f-divisi'), MASTER.divisi, 'Semua divisi');
-    fillSelect($('n-divisi'), MASTER.divisi, 'Pilih divisi');
+    fillSelect($('f-grup'), MASTER.grup, 'Semua grup');
+    fillSelect($('n-grup'), MASTER.grup, 'Pilih grup');
     fillSelect($('u-kategori'), MASTER.kategori, 'Pilih kategori');
     fillSelect($('u-unit'), MASTER.unit, '- Tidak terkait unit -');
     $('pemohon-list').innerHTML = MASTER.pemohon.map(p => `<option value="${esc(p)}">`).join('');
@@ -243,9 +261,9 @@ async function loadList() {
 }
 
 function renderList() {
-  const fd = $('f-divisi').value, fs = $('f-status').value, fm = $('f-bulan').value, fq = $('f-cari').value.toLowerCase();
+  const fg = $('f-grup').value, fs = $('f-status').value, fm = $('f-bulan').value, fq = $('f-cari').value.toLowerCase();
   const rows = LIST.filter(r =>
-    (!fd || r.Divisi === fd) &&
+    (!fg || r.Grup === fg) &&
     (!fs || (fs === 'Overdue' ? r.Overdue : r.Status === fs)) &&
     (!fm || String(r.Tanggal).slice(0, 7) === fm) &&
     (!fq || (r.CA_ID + ' ' + r.Pemohon + ' ' + r.Keperluan).toLowerCase().includes(fq))
@@ -261,7 +279,7 @@ function renderList() {
     <tr class="click" onclick="openDetail('${esc(r.CA_ID)}')">
       <td>${esc(r.CA_ID)}</td>
       <td>${esc(r.Tanggal)}</td>
-      <td>${esc(r.Divisi)}</td>
+      <td>${esc(r.Grup)}</td>
       <td>${esc(r.Pemohon)}<div class="muted">${esc(r.Keperluan)}</div></td>
       <td class="num">${rp(r.Nominal)}</td>
       <td class="num">${rp(r.Terpakai)}</td>
@@ -273,12 +291,12 @@ function renderList() {
 async function createCA() {
   const d = {
     Tanggal: $('n-tanggal').value,
-    Divisi: $('n-divisi').value,
+    Grup: $('n-grup').value,
     Pemohon: $('n-pemohon').value.trim(),
     Keperluan: $('n-keperluan').value.trim(),
     Nominal: Number($('n-nominal').value)
   };
-  if (!d.Tanggal || !d.Divisi || !d.Pemohon || !d.Keperluan || !(d.Nominal > 0)) return toast('Lengkapi semua field');
+  if (!d.Tanggal || !d.Grup || !d.Pemohon || !d.Keperluan || !(d.Nominal > 0)) return toast('Lengkapi semua field');
 
   const b = $('btn-new');
   b.disabled = true; b.textContent = 'Menyimpan...';
@@ -301,6 +319,7 @@ async function openDetail(id) {
   $('d-title').textContent = id;
   $('d-info').innerHTML = '<span class="muted">Memuat...</span>';
   $('d-body').innerHTML = '';
+  $('d-rekap').innerHTML = '';
   $('usage-form').classList.add('hidden');
   $('settle-form').classList.add('hidden');
   try {
@@ -315,12 +334,13 @@ function renderDetail() {
   const h = CURRENT.header, items = CURRENT.items;
   const isOpen = h.Status === 'Open';
   const sisa = Number(h.Nominal) - Number(h.Terpakai);
+  const divisiList = MASTER.divisiMap[h.Grup] || [];
 
   $('d-title').textContent = h.CA_ID;
   $('d-info').innerHTML = `
     <div class="kv">
       <div>Tanggal</div><div>${esc(h.Tanggal)}</div>
-      <div>Divisi</div><div>${esc(h.Divisi)}</div>
+      <div>Grup</div><div>${esc(h.Grup)}</div>
       <div>Pemohon</div><div>${esc(h.Pemohon)}</div>
       <div>Keperluan</div><div>${esc(h.Keperluan)}</div>
       <div>Nominal CA</div><div><b>${rp(h.Nominal)}</b></div>
@@ -330,16 +350,32 @@ function renderDetail() {
       ${h.Catatan_Settlement ? `<div>Catatan</div><div>${esc(h.Catatan_Settlement)}</div>` : ''}
     </div>`;
 
+  // Rekap per divisi
+  const rekap = {};
+  divisiList.forEach(dv => rekap[dv] = { n: 0, total: 0 });
+  items.forEach(i => {
+    const k = i.Divisi || '(tanpa divisi)';
+    rekap[k] = rekap[k] || { n: 0, total: 0 };
+    rekap[k].n++;
+    rekap[k].total += Number(i.Nominal || 0);
+  });
+  $('d-rekap').innerHTML = Object.keys(rekap).map(k => `
+    <tr><td>${esc(k)}</td><td class="num">${rekap[k].n}</td><td class="num">${rp(rekap[k].total)}</td></tr>`).join('') +
+    `<tr class="total"><td>Total</td><td class="num">${items.length}</td><td class="num">${rp(h.Terpakai)}</td></tr>`;
+
+  // Rincian
   $('d-body').innerHTML = items.length ? items.map(i => `
     <tr>
       <td>${esc(i.Tanggal)}</td>
+      <td>${esc(i.Divisi)}</td>
       <td>${esc(i.Kategori)}${i.Unit ? '<div class="muted">' + esc(i.Unit) + '</div>' : ''}</td>
       <td>${esc(i.Keterangan)}</td>
       <td class="num">${rp(i.Nominal)}</td>
       <td>${i.Nota_URL ? `<a href="${esc(i.Nota_URL)}" target="_blank" rel="noopener">Lihat</a>` : '<span class="muted">-</span>'}</td>
       <td>${isOpen ? `<button class="btn sec sm" onclick="delUsage('${esc(i.Detail_ID)}')">Hapus</button>` : ''}</td>
-    </tr>`).join('') : '<tr><td colspan="6" class="muted">Belum ada pemakaian</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada pemakaian</td></tr>';
 
+  fillSelect($('u-divisi'), divisiList, 'Pilih divisi');
   $('usage-form').classList.toggle('hidden', !isOpen);
   $('settle-form').classList.toggle('hidden', !isOpen);
 }
@@ -374,21 +410,24 @@ async function addUsage() {
   const d = {
     CA_ID: CURRENT.header.CA_ID,
     Tanggal: $('u-tanggal').value,
+    Divisi: $('u-divisi').value,
     Kategori: $('u-kategori').value,
     Unit: $('u-unit').value,
     Keterangan: $('u-ket').value.trim(),
     Nominal: Number($('u-nominal').value)
   };
-  if (!d.Tanggal || !d.Kategori || !d.Keterangan || !(d.Nominal > 0)) return toast('Lengkapi data pemakaian');
+  if (!d.Tanggal || !d.Divisi || !d.Kategori || !d.Keterangan || !(d.Nominal > 0)) return toast('Lengkapi data pemakaian');
 
   const b = $('btn-usage');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     const f = $('u-nota').files[0];
     if (f) d.Nota = await readFile(f);
+    const keepDivisi = d.Divisi;
     CURRENT = await apiPost('addUsage', d);
     ['u-ket', 'u-nominal', 'u-nota'].forEach(i => $(i).value = '');
     renderDetail();
+    $('u-divisi').value = keepDivisi;
     loadList();
     toast('Pemakaian tersimpan');
   } catch (e) {
