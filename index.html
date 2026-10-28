@@ -14,7 +14,7 @@ header p{margin:2px 0 0;font-size:12px;color:#9ca3af}
 nav{display:flex;gap:4px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line)}
 nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted)}
 nav button.active{background:#e0e7ff;color:var(--pri);font-weight:600}
-main{max-width:960px;margin:0 auto;padding:16px}
+main{max-width:1000px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
 .card h2{margin:0 0 6px;font-size:15px}
 .card h3{margin:16px 0 4px;font-size:13px}
@@ -38,6 +38,7 @@ table{width:100%;border-collapse:collapse}
 th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 th{font-size:12px;color:var(--muted);font-weight:600}
 .num{text-align:right;white-space:nowrap}
+.neg{color:var(--bad);font-weight:600}
 tr.click{cursor:pointer}
 tr.click:hover{background:#f9fafb}
 tr.total td{font-weight:700;border-bottom:0}
@@ -45,9 +46,11 @@ tr.total td{font-weight:700;border-bottom:0}
 .tag.open{background:#dbeafe;color:var(--pri)}
 .tag.cleared{background:#dcfce7;color:var(--ok)}
 .tag.over{background:#fee2e2;color:var(--bad)}
-.kv{display:grid;grid-template-columns:150px 1fr;gap:6px 10px}
+.kv{display:grid;grid-template-columns:170px 1fr;gap:6px 10px}
 .kv>div:nth-child(odd){color:var(--muted)}
-.bar{height:10px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:14px 0 4px}
+.kv .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}
+.bar-label{font-size:12px;color:var(--muted);margin-top:14px}
+.bar{height:10px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:6px 0 4px}
 .bar>div{height:100%;background:var(--pri)}
 .bar.warn>div{background:var(--warn)}
 .bar.bad>div{background:var(--bad)}
@@ -56,7 +59,7 @@ tr.total td{font-weight:700;border-bottom:0}
 .hidden{display:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:9;max-width:90%}
 #print-area{display:none}
-@media(max-width:700px){.row,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:120px 1fr}}
+@media(max-width:700px){.row,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
 @media print{
   @page{size:A4;margin:14mm}
   body{background:#fff}
@@ -78,7 +81,7 @@ tr.total td{font-weight:700;border-bottom:0}
 
 <header>
   <h1>Cash Advance - Transport</h1>
-  <p>CA bulanan, top up, pencatatan pemakaian, dan clearing akhir bulan</p>
+  <p>CA dipegang manager, top up bertahap ke admin, pemakaian, dan clearing akhir bulan</p>
 </header>
 
 <nav>
@@ -92,7 +95,8 @@ tr.total td{font-weight:700;border-bottom:0}
   <section id="view-list">
     <div class="stats">
       <div class="stat"><div class="l">CA aktif</div><div class="v" id="s-open">-</div></div>
-      <div class="stat"><div class="l">Sisa saldo CA aktif</div><div class="v" id="s-saldo">-</div></div>
+      <div class="stat"><div class="l">Saldo di manager</div><div class="v" id="s-mgr">-</div></div>
+      <div class="stat"><div class="l">Saldo di admin</div><div class="v" id="s-adm">-</div></div>
       <div class="stat"><div class="l">Belum clearing</div><div class="v" id="s-over">-</div></div>
       <div class="stat"><div class="l">Terpakai (sesuai filter)</div><div class="v" id="s-used">-</div></div>
     </div>
@@ -106,11 +110,11 @@ tr.total td{font-weight:700;border-bottom:0}
           <option value="Cleared">Cleared</option>
         </select>
         <select id="f-periode" onchange="renderList()"><option value="">Semua periode</option></select>
-        <input type="text" id="f-cari" placeholder="Cari no CA / PIC" oninput="renderList()">
+        <input type="text" id="f-cari" placeholder="Cari no CA / manager" oninput="renderList()">
       </div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>No CA</th><th>Periode</th><th>Grup</th><th>PIC</th><th class="num">Total Dana</th><th class="num">Terpakai</th><th class="num">Sisa</th><th>Status</th></tr></thead>
+          <thead><tr><th>No CA</th><th>Periode</th><th>Grup</th><th>Manager</th><th class="num">Nominal CA</th><th class="num">Top up</th><th class="num">Terpakai</th><th class="num">Saldo admin</th><th>Status</th></tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -122,17 +126,18 @@ tr.total td{font-weight:700;border-bottom:0}
   <section id="view-new" class="hidden">
     <div class="card">
       <h2>CA Bulanan Baru</h2>
+      <div class="muted">Dana CA dipegang manager. Admin menerima dana lewat Top Up di halaman detail CA.</div>
       <div class="row">
         <div><label>Periode</label><select id="n-periode"></select></div>
-        <div><label>Tanggal terima uang</label><input type="date" id="n-tanggal"></div>
+        <div><label>Tanggal CA cair</label><input type="date" id="n-tanggal"></div>
       </div>
       <div class="row">
         <div><label>Grup</label><select id="n-grup"></select></div>
-        <div><label>PIC / pemegang CA</label><input type="text" id="n-pic" list="pic-list" placeholder="Nama PIC"></div>
+        <div><label>Manager pemegang CA</label><input type="text" id="n-pic" list="pic-list" placeholder="Nama manager"></div>
       </div>
       <datalist id="pic-list"></datalist>
       <div class="muted" id="n-grup-info" style="margin-top:6px"></div>
-      <label>Nominal CA awal (Rp)</label>
+      <label>Nominal CA (Rp)</label>
       <input type="text" id="n-nominal" class="money" inputmode="numeric" placeholder="20.000.000" autocomplete="off">
       <label>Keterangan (opsional)</label>
       <input type="text" id="n-ket" placeholder="Contoh: CA operasional November">
@@ -150,12 +155,16 @@ tr.total td{font-weight:700;border-bottom:0}
     <div class="card">
       <h2 id="d-title">-</h2>
       <div id="d-info"></div>
-      <div class="bar" id="d-bar"><div></div></div>
-      <div class="muted" id="d-bar-text"></div>
+      <div class="bar-label">Pencairan CA ke admin</div>
+      <div class="bar" id="d-bar1"><div></div></div>
+      <div class="muted" id="d-bar1-text"></div>
+      <div class="bar-label">Pemakaian dari top up</div>
+      <div class="bar" id="d-bar2"><div></div></div>
+      <div class="muted" id="d-bar2-text"></div>
     </div>
 
     <div class="card">
-      <h2>Top Up Dana</h2>
+      <h2>Top Up dari Manager ke Admin</h2>
       <div class="tablewrap">
         <table>
           <thead><tr><th>Tanggal</th><th>Dari</th><th>Keterangan</th><th class="num">Nominal</th><th>Bukti</th><th></th></tr></thead>
@@ -166,11 +175,11 @@ tr.total td{font-weight:700;border-bottom:0}
         <h3>Tambah Top Up</h3>
         <div class="row">
           <div><label>Tanggal transfer</label><input type="date" id="t-tanggal"></div>
-          <div><label>Dari (pemberi dana)</label><input type="text" id="t-dari" list="pic-list" placeholder="Nama manager"></div>
+          <div><label>Dari (manager)</label><input type="text" id="t-dari" list="pic-list" placeholder="Nama manager"></div>
         </div>
         <div class="row">
           <div><label>Nominal (Rp)</label><input type="text" id="t-nominal" class="money" inputmode="numeric" placeholder="5.000.000" autocomplete="off"></div>
-          <div><label>Keterangan (opsional)</label><input type="text" id="t-ket" placeholder="Contoh: Tambahan BBM akhir bulan"></div>
+          <div><label>Keterangan (opsional)</label><input type="text" id="t-ket" placeholder="Contoh: Top up minggu ke-2"></div>
         </div>
         <label>Bukti transfer (opsional)</label>
         <input type="file" id="t-bukti" accept="image/*,application/pdf">
@@ -201,6 +210,7 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card" id="usage-form">
       <h2>Tambah Pemakaian</h2>
+      <div class="muted" id="u-saldo"></div>
       <div class="row">
         <div><label>Tanggal</label><input type="date" id="u-tanggal"></div>
         <div><label>Divisi</label><select id="u-divisi"></select></div>
@@ -232,7 +242,7 @@ tr.total td{font-weight:700;border-bottom:0}
       <h2>Clearing Akhir Bulan</h2>
       <div class="muted" id="c-info"></div>
       <label>Catatan (opsional)</label>
-      <input type="text" id="c-catatan" placeholder="Contoh: Sisa dikembalikan ke kas / dilanjut ke CA bulan berikutnya">
+      <input type="text" id="c-catatan" placeholder="Contoh: Sisa saldo admin dikembalikan ke manager">
       <button class="btn ok" id="btn-clear" onclick="doClearing()">Clearing CA</button>
     </div>
   </section>
@@ -250,7 +260,8 @@ let LIST = [];
 let CURRENT = null;
 
 const $ = id => document.getElementById(id);
-const rp = n => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+const rp = n => (Number(n) < 0 ? '-Rp ' : 'Rp ') + Math.abs(Number(n || 0)).toLocaleString('id-ID');
+const rpCls = n => `<span class="${Number(n) < 0 ? 'neg' : ''}">${rp(n)}</span>`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toNum = v => Number(String(v || '').replace(/\D/g, ''));
 
@@ -282,7 +293,7 @@ function toast(msg) {
   t.textContent = msg;
   t.style.display = 'block';
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.style.display = 'none', 3500);
+  t._h = setTimeout(() => t.style.display = 'none', 4000);
 }
 
 async function parseRes(r) {
@@ -316,6 +327,21 @@ function fillSelect(el, items, placeholder) {
 function statusTag(r) {
   if (r.Status === 'Cleared') return '<span class="tag cleared">Cleared</span>';
   return r.Overdue ? '<span class="tag over">Belum clearing</span>' : '<span class="tag open">Aktif</span>';
+}
+
+function setBar(barId, textId, pct, text) {
+  const bar = $(barId);
+  bar.className = 'bar' + (pct > 100 ? ' bad' : pct >= 80 ? ' warn' : '');
+  bar.firstElementChild.style.width = Math.max(0, Math.min(pct, 100)) + '%';
+  $(textId).textContent = text;
+}
+
+// Hitung saldo dari header
+function saldo(h) {
+  const nominal = Number(h.Nominal || 0);
+  const topup = Number(h.Topup || 0);
+  const used = Number(h.Terpakai || 0);
+  return { nominal, topup, used, mgr: nominal - topup, adm: topup - used, sisa: nominal - used };
 }
 
 function groupSum(items, key, base) {
@@ -390,13 +416,13 @@ async function init() {
 
 // ---------- DAFTAR ----------
 async function loadList() {
-  $('list-body').innerHTML = '<tr><td colspan="8" class="muted">Memuat...</td></tr>';
+  $('list-body').innerHTML = '<tr><td colspan="9" class="muted">Memuat...</td></tr>';
   try {
     LIST = await apiGet({ action: 'list' });
     fillPeriodeFilter();
     renderList();
   } catch (e) {
-    $('list-body').innerHTML = '<tr><td colspan="8" class="muted">Gagal memuat data</td></tr>';
+    $('list-body').innerHTML = '<tr><td colspan="9" class="muted">Gagal memuat data</td></tr>';
     toast('Gagal: ' + e.message);
   }
 }
@@ -412,7 +438,8 @@ function renderList() {
 
   const open = LIST.filter(r => r.Status === 'Open');
   $('s-open').textContent = open.length;
-  $('s-saldo').textContent = rp(open.reduce((a, r) => a + Number(r.Sisa || 0), 0));
+  $('s-mgr').textContent = rp(open.reduce((a, r) => a + Number(r.Saldo_Manager || 0), 0));
+  $('s-adm').innerHTML = rpCls(open.reduce((a, r) => a + Number(r.Saldo_Admin || 0), 0));
   $('s-over').textContent = LIST.filter(r => r.Overdue).length;
   $('s-used').textContent = rp(rows.reduce((a, r) => a + Number(r.Terpakai || 0), 0));
 
@@ -422,11 +449,12 @@ function renderList() {
       <td>${esc(fmtPeriode(r.Periode))}</td>
       <td>${esc(r.Grup)}</td>
       <td>${esc(r.PIC)}</td>
-      <td class="num">${rp(r.Total_Dana)}${r.Topup ? '<div class="muted">incl. top up ' + rp(r.Topup) + '</div>' : ''}</td>
+      <td class="num">${rp(r.Nominal)}</td>
+      <td class="num">${rp(r.Topup)}</td>
       <td class="num">${rp(r.Terpakai)}</td>
-      <td class="num">${rp(r.Sisa)}</td>
+      <td class="num">${rpCls(r.Saldo_Admin)}</td>
       <td>${statusTag(r)}</td>
-    </tr>`).join('') : '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
 }
 
 // ---------- BUAT CA ----------
@@ -442,14 +470,14 @@ async function createCA() {
 
   const miss = [];
   if (!d.Periode) miss.push('periode');
-  if (!d.Tanggal_Terima) miss.push('tanggal terima');
+  if (!d.Tanggal_Terima) miss.push('tanggal CA cair');
   if (!d.Grup) miss.push('grup');
-  if (!d.PIC) miss.push('PIC');
+  if (!d.PIC) miss.push('manager');
   if (!(d.Nominal > 0)) miss.push('nominal');
   if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
 
   const dup = LIST.find(r => r.Status === 'Open' && r.Grup === d.Grup && r.Periode === d.Periode);
-  if (dup && !confirm(`Sudah ada CA aktif ${dup.CA_ID} untuk ${d.Grup} periode ${fmtPeriode(d.Periode)}.\nKalau ini tambahan dana, gunakan Top Up di CA tersebut.\n\nTetap buat CA baru?`)) return;
+  if (dup && !confirm(`Sudah ada CA aktif ${dup.CA_ID} untuk ${d.Grup} periode ${fmtPeriode(d.Periode)}.\nUntuk pencairan dana ke admin, gunakan Top Up di CA tersebut.\n\nTetap buat CA baru?`)) return;
 
   const b = $('btn-new');
   b.disabled = true; b.textContent = 'Menyimpan...';
@@ -471,7 +499,7 @@ async function openDetail(id) {
   show('detail');
   $('d-title').textContent = id;
   $('d-info').innerHTML = '<span class="muted">Memuat...</span>';
-  ['d-body', 'd-topup', 'd-rekap-div', 'd-rekap-kat', 'd-bar-text'].forEach(i => $(i).innerHTML = '');
+  ['d-body', 'd-topup', 'd-rekap-div', 'd-rekap-kat', 'd-bar1-text', 'd-bar2-text'].forEach(i => $(i).innerHTML = '');
   $('usage-form').classList.add('hidden');
   $('topup-form').classList.add('hidden');
   $('clear-form').classList.add('hidden');
@@ -486,34 +514,35 @@ async function openDetail(id) {
 function renderDetail() {
   const h = CURRENT.header, items = CURRENT.items, topups = CURRENT.topups || [];
   const isOpen = h.Status === 'Open';
-  const nominal = Number(h.Nominal), topup = Number(h.Topup || 0), total = nominal + topup;
-  const used = Number(h.Terpakai);
-  const sisa = total - used;
+  const s = saldo(h);
   const divisiList = MASTER.divisiMap[h.Grup] || [];
 
   $('d-title').textContent = `${h.CA_ID} - ${fmtPeriode(h.Periode)}`;
   $('d-info').innerHTML = `
     <div class="kv">
       <div>Grup</div><div>${esc(h.Grup)}</div>
-      <div>PIC</div><div>${esc(h.PIC)}</div>
-      <div>Tanggal terima</div><div>${esc(h.Tanggal_Terima)}</div>
+      <div>Manager pemegang CA</div><div>${esc(h.PIC)}</div>
+      <div>Tanggal CA cair</div><div>${esc(h.Tanggal_Terima)}</div>
       ${h.Keterangan ? `<div>Keterangan</div><div>${esc(h.Keterangan)}</div>` : ''}
-      <div>Nominal awal</div><div>${rp(nominal)}</div>
-      <div>Top up</div><div>${rp(topup)}${topups.length ? ' <span class="muted">(' + topups.length + 'x)</span>' : ''}</div>
-      <div>Total dana</div><div><b>${rp(total)}</b></div>
-      <div>Terpakai</div><div>${rp(used)}</div>
-      <div>${sisa >= 0 ? 'Sisa saldo' : 'Kelebihan pakai'}</div><div><b>${rp(Math.abs(sisa))}</b></div>
+      <div class="sep"></div>
+      <div>Nominal CA</div><div><b>${rp(s.nominal)}</b></div>
+      <div>Sudah di-top up ke admin</div><div>${rp(s.topup)}${topups.length ? ' <span class="muted">(' + topups.length + 'x)</span>' : ''}</div>
+      <div>Saldo di manager</div><div><b>${rpCls(s.mgr)}</b></div>
+      <div class="sep"></div>
+      <div>Terpakai</div><div>${rp(s.used)}</div>
+      <div>Saldo di admin</div><div><b>${rpCls(s.adm)}</b>${s.adm < 0 ? ' <span class="muted">(admin menalangi, perlu top up)</span>' : ''}</div>
+      <div>Sisa CA total</div><div><b>${rpCls(s.sisa)}</b></div>
+      <div class="sep"></div>
       <div>Status</div><div>${statusTag(h)}</div>
       ${isOpen ? `<div>Batas clearing</div><div>${esc(h.Batas_Clearing)}</div>` : ''}
       ${h.Tgl_Clearing ? `<div>Tanggal clearing</div><div>${esc(h.Tgl_Clearing)}</div>` : ''}
       ${h.Catatan_Clearing ? `<div>Catatan clearing</div><div>${esc(h.Catatan_Clearing)}</div>` : ''}
     </div>`;
 
-  const pct = total ? used / total * 100 : 0;
-  const bar = $('d-bar');
-  bar.className = 'bar' + (pct > 100 ? ' bad' : pct >= 80 ? ' warn' : '');
-  bar.firstElementChild.style.width = Math.min(pct, 100) + '%';
-  $('d-bar-text').textContent = `Terpakai ${pct.toFixed(1)}% dari total dana`;
+  const pct1 = s.nominal ? s.topup / s.nominal * 100 : 0;
+  setBar('d-bar1', 'd-bar1-text', pct1, `${rp(s.topup)} dari ${rp(s.nominal)} (${pct1.toFixed(1)}%)`);
+  const pct2 = s.topup ? s.used / s.topup * 100 : (s.used > 0 ? 101 : 0);
+  setBar('d-bar2', 'd-bar2-text', pct2, s.topup ? `${rp(s.used)} dari ${rp(s.topup)} (${pct2.toFixed(1)}%)` : (s.used > 0 ? `${rp(s.used)} terpakai, belum ada top up` : 'Belum ada top up'));
 
   // Top up
   $('d-topup').innerHTML = topups.length ? topups.map(t => `
@@ -524,12 +553,13 @@ function renderDetail() {
       <td class="num">${rp(t.Nominal)}</td>
       <td>${t.Bukti_URL ? `<a href="${esc(t.Bukti_URL)}" target="_blank" rel="noopener">Lihat</a>` : '<span class="muted">-</span>'}</td>
       <td>${isOpen ? `<button class="btn sec sm" onclick="delTopup('${esc(t.Topup_ID)}')">Hapus</button>` : ''}</td>
-    </tr>`).join('') + `<tr class="total"><td colspan="3">Total top up</td><td class="num">${rp(topup)}</td><td></td><td></td></tr>`
+    </tr>`).join('') + `<tr class="total"><td colspan="3">Total top up</td><td class="num">${rp(s.topup)}</td><td></td><td></td></tr>`
     : '<tr><td colspan="6" class="muted">Belum ada top up</td></tr>';
+  if (!$('t-dari').value) $('t-dari').value = h.PIC || '';
 
   // Rekap
-  $('d-rekap-div').innerHTML = rekapRows(groupSum(items, 'Divisi', divisiList), items.length, used);
-  $('d-rekap-kat').innerHTML = rekapRows(groupSum(items, 'Kategori'), items.length, used);
+  $('d-rekap-div').innerHTML = rekapRows(groupSum(items, 'Divisi', divisiList), items.length, s.used);
+  $('d-rekap-kat').innerHTML = rekapRows(groupSum(items, 'Kategori'), items.length, s.used);
 
   // Rincian pemakaian
   $('d-body').innerHTML = items.length ? items.map(i => `
@@ -543,7 +573,8 @@ function renderDetail() {
       <td>${isOpen ? `<button class="btn sec sm" onclick="delUsage('${esc(i.Detail_ID)}')">Hapus</button>` : ''}</td>
     </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada pemakaian</td></tr>';
 
-  // Form pemakaian: tanggal dibatasi dalam periode
+  // Form pemakaian
+  $('u-saldo').innerHTML = `Saldo admin saat ini: <b>${rpCls(s.adm)}</b>`;
   const range = periodeRange(h.Periode);
   const t = $('u-tanggal');
   t.min = range.min;
@@ -556,9 +587,15 @@ function renderDetail() {
   fillSelect($('u-divisi'), divisiList, 'Pilih divisi');
   if (divisiList.includes(keepDiv)) $('u-divisi').value = keepDiv;
 
-  $('c-info').textContent = sisa >= 0
-    ? `Total dana ${rp(total)}, terpakai ${rp(used)}. Saat clearing, sisa saldo ${rp(sisa)} akan dicatat sebagai sisa CA.`
-    : `Total dana ${rp(total)}, terpakai ${rp(used)}. Saat clearing, kelebihan pakai ${rp(-sisa)} akan dicatat sebagai kekurangan yang perlu diganti.`;
+  // Info clearing
+  let info = `Nominal CA ${rp(s.nominal)}, terpakai ${rp(s.used)}. `;
+  if (s.sisa >= 0) {
+    info += `Sisa CA ${rp(s.sisa)}: di manager ${rp(s.mgr)}, di admin ${rp(s.adm)}.`;
+  } else {
+    info += `Pemakaian melebihi nominal CA sebesar ${rp(-s.sisa)}.`;
+  }
+  if (s.adm < 0) info += ` Admin menalangi ${rp(-s.adm)} yang perlu diganti.`;
+  $('c-info').textContent = info;
 
   $('usage-form').classList.toggle('hidden', !isOpen);
   $('topup-form').classList.toggle('hidden', !isOpen);
@@ -593,8 +630,9 @@ function readFile(file) {
 
 // ---------- TOP UP ----------
 async function addTopup() {
+  const h = CURRENT.header, s = saldo(h);
   const d = {
-    CA_ID: CURRENT.header.CA_ID,
+    CA_ID: h.CA_ID,
     Tanggal: $('t-tanggal').value,
     Dari: $('t-dari').value.trim(),
     Nominal: toNum($('t-nominal').value),
@@ -603,10 +641,13 @@ async function addTopup() {
 
   const miss = [];
   if (!d.Tanggal) miss.push('tanggal transfer');
-  if (!d.Dari) miss.push('pemberi dana');
+  if (!d.Dari) miss.push('manager');
   if (!(d.Nominal > 0)) miss.push('nominal');
   if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
-  if (!confirm(`Tambah top up ${rp(d.Nominal)} dari ${d.Dari} ke ${d.CA_ID}?`)) return;
+
+  let msg = `Top up ${rp(d.Nominal)} dari ${d.Dari} ke admin untuk ${d.CA_ID}?\n\nSaldo di manager: ${rp(s.mgr)} -> ${rp(s.mgr - d.Nominal)}\nSaldo di admin: ${rp(s.adm)} -> ${rp(s.adm + d.Nominal)}`;
+  if (d.Nominal > s.mgr) msg += `\n\nPerhatian: top up melebihi sisa saldo di manager (${rp(s.mgr)}).`;
+  if (!confirm(msg)) return;
 
   const b = $('btn-topup');
   b.disabled = true; b.textContent = 'Menyimpan...';
@@ -639,8 +680,9 @@ async function delTopup(topupId) {
 
 // ---------- PEMAKAIAN ----------
 async function addUsage() {
+  const h = CURRENT.header, s = saldo(h);
   const d = {
-    CA_ID: CURRENT.header.CA_ID,
+    CA_ID: h.CA_ID,
     Tanggal: $('u-tanggal').value,
     Divisi: $('u-divisi').value,
     Kategori: $('u-kategori').value,
@@ -656,7 +698,12 @@ async function addUsage() {
   if (!d.Keterangan) miss.push('keterangan');
   if (!(d.Nominal > 0)) miss.push('nominal');
   if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
-  if (d.Tanggal.slice(0, 7) !== CURRENT.header.Periode) return toast('Tanggal harus dalam periode ' + fmtPeriode(CURRENT.header.Periode));
+  if (d.Tanggal.slice(0, 7) !== h.Periode) return toast('Tanggal harus dalam periode ' + fmtPeriode(h.Periode));
+
+  if (d.Nominal > s.adm) {
+    const ok = confirm(`Saldo admin saat ini ${rp(s.adm)}.\nPemakaian ${rp(d.Nominal)} membuat saldo admin menjadi ${rp(s.adm - d.Nominal)} (admin menalangi).\n\nTetap simpan?`);
+    if (!ok) return;
+  }
 
   const b = $('btn-usage');
   b.disabled = true; b.textContent = 'Menyimpan...';
@@ -667,7 +714,8 @@ async function addUsage() {
     ['u-ket', 'u-nominal', 'u-nota'].forEach(i => $(i).value = '');
     renderDetail();
     loadList();
-    toast(Number(CURRENT.header.Sisa) < 0 ? 'Tersimpan. Perhatian: pemakaian melebihi total dana' : 'Pemakaian tersimpan');
+    const adm = saldo(CURRENT.header).adm;
+    toast(adm < 0 ? `Tersimpan. Saldo admin minus ${rp(-adm)}, perlu top up` : 'Pemakaian tersimpan');
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
@@ -689,14 +737,13 @@ async function delUsage(detailId) {
 
 // ---------- CLEARING ----------
 async function doClearing() {
-  const h = CURRENT.header, items = CURRENT.items;
-  const total = Number(h.Nominal) + Number(h.Topup || 0);
-  const sisa = total - Number(h.Terpakai);
+  const h = CURRENT.header, items = CURRENT.items, s = saldo(h);
   const tanpaNota = items.filter(i => !i.Nota_URL).length;
 
   let msg = `Clearing ${h.CA_ID} (${fmtPeriode(h.Periode)})?\n\n`;
-  msg += `Nominal awal: ${rp(h.Nominal)}\nTop up: ${rp(h.Topup)}\nTotal dana: ${rp(total)}\nTerpakai: ${rp(h.Terpakai)}\n`;
-  msg += sisa >= 0 ? `Sisa saldo: ${rp(sisa)}` : `Kelebihan pakai: ${rp(-sisa)}`;
+  msg += `Nominal CA: ${rp(s.nominal)}\nTop up ke admin: ${rp(s.topup)}\nTerpakai: ${rp(s.used)}\n\n`;
+  msg += `Saldo di manager: ${rp(s.mgr)}\nSaldo di admin: ${rp(s.adm)}\nSisa CA total: ${rp(s.sisa)}`;
+  if (s.adm < 0) msg += `\n\nPerhatian: admin menalangi ${rp(-s.adm)}.`;
   if (!items.length) msg += '\n\nPerhatian: belum ada rincian pemakaian.';
   if (tanpaNota) msg += `\n\nPerhatian: ${tanpaNota} baris belum ada nota.`;
   if (h.Periode >= thisMonth()) msg += '\n\nPerhatian: periode CA ini belum berakhir.';
@@ -722,38 +769,37 @@ async function doClearing() {
 function printReport() {
   if (!CURRENT) return;
   const h = CURRENT.header, items = CURRENT.items, topups = CURRENT.topups || [];
-  const nominal = Number(h.Nominal), topup = Number(h.Topup || 0), total = nominal + topup;
-  const used = Number(h.Terpakai), sisa = total - used;
+  const s = saldo(h);
   const div = groupSum(items, 'Divisi', MASTER.divisiMap[h.Grup] || []);
   const kat = groupSum(items, 'Kategori');
   const rekap = o => Object.keys(o).map(k => `<tr><td>${esc(k)}</td><td class="num">${o[k].n}</td><td class="num">${rp(o[k].t)}</td></tr>`).join('') +
-    `<tr><td><b>Total</b></td><td class="num"><b>${items.length}</b></td><td class="num"><b>${rp(used)}</b></td></tr>`;
+    `<tr><td><b>Total</b></td><td class="num"><b>${items.length}</b></td><td class="num"><b>${rp(s.used)}</b></td></tr>`;
 
   $('print-area').innerHTML = `
     <h1>Laporan Clearing Cash Advance</h1>
     <div class="p-sub">Transport Department</div>
     <table>
-      <tr><td style="width:30%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
+      <tr><td style="width:35%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
       <tr><td>Periode</td><td>${esc(fmtPeriode(h.Periode))}</td></tr>
       <tr><td>Grup</td><td>${esc(h.Grup)}</td></tr>
-      <tr><td>PIC</td><td>${esc(h.PIC)}</td></tr>
-      <tr><td>Tanggal terima</td><td>${esc(h.Tanggal_Terima)}</td></tr>
-      <tr><td>Nominal awal</td><td>${rp(nominal)}</td></tr>
-      <tr><td>Top up</td><td>${rp(topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
-      <tr><td>Total dana</td><td><b>${rp(total)}</b></td></tr>
-      <tr><td>Total terpakai</td><td>${rp(used)}</td></tr>
-      <tr><td>${sisa >= 0 ? 'Sisa saldo' : 'Kelebihan pakai'}</td><td><b>${rp(Math.abs(sisa))}</b></td></tr>
+      <tr><td>Manager pemegang CA</td><td>${esc(h.PIC)}</td></tr>
+      <tr><td>Tanggal CA cair</td><td>${esc(h.Tanggal_Terima)}</td></tr>
+      <tr><td>Nominal CA</td><td><b>${rp(s.nominal)}</b></td></tr>
+      <tr><td>Total top up ke admin</td><td>${rp(s.topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
+      <tr><td>Total terpakai</td><td>${rp(s.used)}</td></tr>
+      <tr><td>Saldo di manager</td><td>${rp(s.mgr)}</td></tr>
+      <tr><td>Saldo di admin</td><td>${rp(s.adm)}${s.adm < 0 ? ' (admin menalangi)' : ''}</td></tr>
+      <tr><td>Sisa CA total</td><td><b>${rp(s.sisa)}</b></td></tr>
       <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared ' + esc(h.Tgl_Clearing) : 'Belum clearing'}</td></tr>
       ${h.Catatan_Clearing ? `<tr><td>Catatan</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
     </table>
 
-    ${topups.length ? `
-    <h3>Top Up Dana</h3>
+    <h3>Top Up dari Manager ke Admin</h3>
     <table>
       <tr><th>No</th><th>Tanggal</th><th>Dari</th><th>Keterangan</th><th>Nominal</th><th>Bukti</th></tr>
-      ${topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(t.Tanggal)}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${t.Bukti_URL ? 'Ada' : '-'}</td></tr>`).join('')}
-      <tr><td colspan="4"><b>Total top up</b></td><td class="num"><b>${rp(topup)}</b></td><td></td></tr>
-    </table>` : ''}
+      ${topups.length ? topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(t.Tanggal)}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${t.Bukti_URL ? 'Ada' : '-'}</td></tr>`).join('') : '<tr><td colspan="6">Belum ada top up</td></tr>'}
+      <tr><td colspan="4"><b>Total top up</b></td><td class="num"><b>${rp(s.topup)}</b></td><td></td></tr>
+    </table>
 
     <h3>Rekap per Divisi</h3>
     <table><tr><th>Divisi</th><th>Baris</th><th>Terpakai</th></tr>${rekap(div)}</table>
@@ -765,12 +811,12 @@ function printReport() {
     <table>
       <tr><th>No</th><th>Tanggal</th><th>Divisi</th><th>Kategori</th><th>Unit</th><th>Keterangan</th><th>Nominal</th><th>Nota</th></tr>
       ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.Tanggal)}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${i.Nota_URL ? 'Ada' : '-'}</td></tr>`).join('')}
-      <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(used)}</b></td><td></td></tr>
+      <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(s.used)}</b></td><td></td></tr>
     </table>
 
     <div class="sign">
-      <div>Dibuat oleh<div class="line">${esc(h.PIC)}</div></div>
-      <div>Diperiksa oleh<div class="line">&nbsp;</div></div>
+      <div>Dibuat oleh (Admin)<div class="line">&nbsp;</div></div>
+      <div>Diperiksa oleh<div class="line">${esc(h.PIC)}</div></div>
       <div>Disetujui oleh<div class="line">&nbsp;</div></div>
     </div>
     <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')}</div>`;
