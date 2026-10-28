@@ -101,8 +101,27 @@ tr.total td{font-weight:700;border-bottom:0}
   #print-area .lamp-img{height:103mm;display:flex;align-items:center;justify-content:center;margin-top:1mm}
   #print-area .lamp-img img{max-width:100%;max-height:103mm;object-fit:contain;display:block}
   #print-area .lamp-none{font-size:10px;color:#555;padding:6mm;border:1px dashed #aaa;text-align:center}
+
+  /* Invoice */
+  #print-area .inv-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px}
+  #print-area .inv-top h1{font-size:22px;letter-spacing:2px}
+  #print-area .inv-meta{width:auto}
+  #print-area .inv-meta td{border:0;padding:1px 6px;font-size:11px}
+  #print-area .inv-to{margin-bottom:10px}
+  #print-area .inv-to-name{font-size:14px;font-weight:700;margin:2px 0}
+  #print-area .muted-p{color:#555;font-size:10px}
+  #print-area .inv-table th,#print-area .inv-table td{font-size:10px;padding:3px 5px}
+  #print-area .inv-table .num{text-align:right;white-space:nowrap}
+  #print-area .inv-total td{font-weight:700;background:#f3f3f3;font-size:11px}
+  #print-area .inv-words{margin-top:6px;font-size:11px}
+  #print-area .inv-note{margin-top:4px;font-size:10px;color:#444}
+  #print-area .inv-table tr{break-inside:avoid;page-break-inside:avoid}
+  #print-area .inv-table .nw{white-space:nowrap}
+  #print-area .inv-end{break-inside:avoid;page-break-inside:avoid}
+  #print-area .inv-end .sign .line{margin-top:48px}
 }
 </style>
+<style id="page-size"></style>
 </head>
 <body>
 
@@ -311,6 +330,16 @@ tr.total td{font-weight:700;border-bottom:0}
     </div>
 
     <div class="card">
+      <h2>Cetak Invoice Tagihan Guest Mobility</h2>
+      <div class="hint">Invoice bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="row3">
+        <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
+        <div><label>Ditagihkan ke</label><select id="iv-pel"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value)">Cetak Invoice</button></div>
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Catat Income Manual</h2>
       <div class="hint">Untuk income di luar sumber otomatis, misalnya Last Mile atau shuttle charter.</div>
       <div class="row3">
@@ -516,6 +545,11 @@ const TTD_DISETUJUI = 'I Dewa Gede Windhu Wicaksana';
 
 // Jumlah foto per halaman lampiran
 const LAMP_PER_PAGE = 4;
+
+// Invoice tagihan Guest Mobility: penanda tangan "Mengetahui" dan catatan di bawah total
+const INV_HEAD_NAME = TTD_DISETUJUI;
+const INV_HEAD_TITLE = 'Head of Transport Department';
+const INV_NOTE = 'Mohon pembayaran diproses melalui cost transfer ke Transport Department. Rincian trip sesuai catatan Nuanu Guest Mobility.';
 
 let MASTER = { grup: [], divisiMap: {}, kategori: [], pic: [], unit: [], sumberIncome: [], sources: {} };
 let LIST = [];
@@ -1206,6 +1240,7 @@ function setIncome(d) {
   INCOME_LOADED = true;
   renderSyncInfo();
   fillBulkMonths();
+  fillInvoiceSelects();
   renderIncome();
 }
 
@@ -1312,6 +1347,7 @@ function renderIncome() {
       <td class="num">${rp(r.Nominal)}</td>
       <td>${incomeTag(r)}</td>
       <td><div class="btns">
+        ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Invoice</button>` : ''}
         ${r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
         ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
       </div></td>
@@ -1434,6 +1470,128 @@ async function delIncome(id) {
     toast('Income dihapus');
   } catch (e) {
     toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- INVOICE TAGIHAN BULANAN GUEST MOBILITY ----------
+// Tagihan taxi ke perusahaan / departemen (bukan bayar langsung) bisa dicetak sebagai invoice bulanan
+const isInvoiceRow = r => /^TAXI\|\d{4}-\d{2}\|BILL\|/.test(String(r.Sync_Key || ''));
+
+function fillInvoiceSelects() {
+  const list = INCOME.filter(isInvoiceRow);
+  const el = $('iv-periode');
+  const keep = el.value;
+  const months = [...new Set(list.map(r => String(r.Tanggal).slice(0, 7)))].sort().reverse();
+  el.innerHTML = months.length
+    ? months.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('')
+    : '<option value="">Belum ada tagihan</option>';
+  if (months.includes(keep)) el.value = keep;
+  fillInvoicePelanggan();
+}
+
+function fillInvoicePelanggan() {
+  const p = $('iv-periode').value;
+  const list = INCOME.filter(r => isInvoiceRow(r) && String(r.Tanggal).slice(0, 7) === p)
+    .sort((a, b) => String(a.Pelanggan).localeCompare(String(b.Pelanggan)));
+  $('iv-pel').innerHTML = list.length
+    ? list.map(r => `<option value="${esc(r.Income_ID)}">${esc(r.Pelanggan)} - ${esc(rp(r.Nominal))}${r.Status === 'Lunas' ? ' (lunas)' : ''}</option>`).join('')
+    : '<option value="">Tidak ada tagihan</option>';
+  $('btn-inv').disabled = !list.length;
+}
+
+// Angka ke kata (terbilang) untuk invoice
+function terbilang(n) {
+  const s = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  n = Math.floor(Math.abs(Number(n) || 0));
+  if (n < 12) return s[n];
+  if (n < 20) return terbilang(n - 10) + ' belas';
+  if (n < 100) return terbilang(Math.floor(n / 10)) + ' puluh ' + terbilang(n % 10);
+  if (n < 200) return 'seratus ' + terbilang(n - 100);
+  if (n < 1000) return terbilang(Math.floor(n / 100)) + ' ratus ' + terbilang(n % 100);
+  if (n < 2000) return 'seribu ' + terbilang(n - 1000);
+  if (n < 1e6) return terbilang(Math.floor(n / 1000)) + ' ribu ' + terbilang(n % 1000);
+  if (n < 1e9) return terbilang(Math.floor(n / 1e6)) + ' juta ' + terbilang(n % 1e6);
+  return terbilang(Math.floor(n / 1e9)) + ' miliar ' + terbilang(n % 1e9);
+}
+const terbilangRp = n => {
+  const t = terbilang(n).replace(/\s+/g, ' ').trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) + ' rupiah' : 'Nol rupiah';
+};
+
+function fmtTgl(ymd) {
+  if (!ymd) return '-';
+  const [y, m, d] = String(ymd).split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Ukuran kertas cetak: laporan CA portrait, invoice landscape
+function setPageSize(size) {
+  $('page-size').textContent = `@media print{@page{size:${size};margin:12mm}}`;
+}
+
+async function printInvoice(id) {
+  if (!id) return;
+  const btn = $('btn-inv');
+  btn.disabled = true; btn.textContent = 'Menyiapkan invoice...';
+  try {
+    const d = await apiGet({ action: 'invoice', id });
+    if (!d.rows.length) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
+    let msg = `Invoice ${d.pelanggan} periode ${fmtPeriode(d.periode)}: ${d.rows.length} trip, total ${rp(d.total)}.`;
+    if (d.total !== d.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(d.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+    msg += '\n\nNomor invoice:';
+    const no = prompt(msg, d.noInvoice);
+    if (no === null) return;
+
+    const tglCetak = today();
+    const hasDrv = d.rows.some(r => r.Driver), hasSO = d.rows.some(r => r.SO);   // kolom kosong semua tidak ditampilkan
+    $('print-area').innerHTML = `
+      <div class="inv-top">
+        <div>
+          <h1>INVOICE</h1>
+          <div class="p-sub">Nuanu Guest Mobility &middot; Transport Department</div>
+        </div>
+        <table class="inv-meta">
+          <tr><td>No invoice</td><td><b>${esc(no.trim() || d.noInvoice)}</b></td></tr>
+          <tr><td>Tanggal</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
+          <tr><td>Periode</td><td>${esc(fmtPeriode(d.periode))}</td></tr>
+        </table>
+      </div>
+
+      <div class="inv-to">
+        <div class="muted-p">Ditagihkan kepada</div>
+        <div class="inv-to-name">${esc(d.pelanggan)}</div>
+        <div class="muted-p">Layanan transportasi Guest Mobility, ${d.rows.length} trip selama ${esc(fmtPeriode(d.periode))}</div>
+      </div>
+
+      <table class="inv-table">
+        <tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Pemesan / Tamu</th><th>Penjemputan</th><th>Tujuan</th><th>Trip</th><th>Mobil</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>No SO</th>' : ''}<th>Biaya</th></tr>
+        ${d.rows.map((r, i) => `<tr>
+          <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
+          <td>${esc(r.Tamu)}${r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
+          <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
+          ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${rp(r.Biaya)}</td>
+        </tr>`).join('')}
+        <tr class="inv-total"><td colspan="${8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0)}">Total tagihan</td><td class="num">${rp(d.total)}</td></tr>
+      </table>
+
+      <div class="inv-end">
+        <div class="inv-words">Terbilang: <i>${esc(terbilangRp(d.total))}</i></div>
+        ${INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : ''}
+        <div class="sign">
+          <div>Dibuat oleh<br>Transport Team<div class="line">&nbsp;</div></div>
+          <div>Mengetahui<br>${esc(INV_HEAD_TITLE)}<div class="line">${esc(INV_HEAD_NAME)}</div></div>
+          <div>Diterima oleh<br>${esc(d.pelanggan)}<div class="line">&nbsp;</div></div>
+        </div>
+        <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')} &middot; sumber data: Nuanu Taxi Service</div>
+      </div>`;
+
+    setPageSize('A4 landscape');
+    window.print();
+  } catch (e) {
+    toast('Gagal menyiapkan invoice: ' + e.message);
+  } finally {
+    btn.textContent = 'Cetak Invoice';
+    fillInvoicePelanggan();
   }
 }
 
@@ -1782,6 +1940,7 @@ async function printReport() {
     const imgs = [...$('print-area').querySelectorAll('img')];
     await Promise.all(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
 
+    setPageSize('A4');
     window.print();
   } catch (e) {
     toast('Gagal menyiapkan laporan: ' + e.message);
