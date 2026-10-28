@@ -8,9 +8,11 @@
 :root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--warn:#d97706;--bad:#b91c1c}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
-header{background:#111827;color:#fff;padding:14px 16px}
+header{background:#1e5246;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:14px}
+header .logo{height:22px;width:auto;display:block}
+header .brand-sep{width:1px;align-self:stretch;background:rgba(255,255,255,.35)}
 header h1{margin:0;font-size:17px}
-header p{margin:2px 0 0;font-size:12px;color:#9ca3af}
+header p{margin:2px 0 0;font-size:12px;color:#c9ddd6}
 nav{display:flex;gap:4px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
 nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted);white-space:nowrap}
 nav button.active{background:#e0e7ff;color:var(--pri);font-weight:600}
@@ -91,6 +93,7 @@ tr.total td{font-weight:700;border-bottom:0}
   #print-area .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px;text-align:center}
   #print-area .sign .line{margin-top:60px;border-top:1px solid #000;padding-top:4px}
   #print-area .p-foot{margin-top:16px;font-size:9px;color:#666}
+  #print-area .doc-logo{height:22px;width:auto;display:block;margin-bottom:8px}
 
   /* Lampiran: 4 foto per halaman (2 x 2) */
   #print-area .lampiran{break-before:page;page-break-before:always}
@@ -126,8 +129,12 @@ tr.total td{font-weight:700;border-bottom:0}
 <body>
 
 <header>
-  <h1>Transport Finance</h1>
-  <p>Cash advance, pemakaian, income, dan ringkasan bulanan</p>
+  <img class="logo" src="logo-nuanu-white.png" alt="Nuanu" onerror="this.nextElementSibling.remove(); this.remove()">
+  <div class="brand-sep"></div>
+  <div>
+    <h1>Transport Finance</h1>
+    <p>Cash advance, pemakaian, income, dan ringkasan bulanan</p>
+  </div>
 </header>
 
 <nav>
@@ -545,6 +552,16 @@ const TTD_DISETUJUI = 'I Dewa Gede Windhu Wicaksana';
 
 // Jumlah foto per halaman lampiran
 const LAMP_PER_PAGE = 4;
+
+// Logo di laporan & invoice (file logo-nuanu.png di folder yang sama dengan index.html)
+const LOGO_URL = 'logo-nuanu.png';
+const logoTag = () => `<img class="doc-logo" src="${LOGO_URL}" alt="Nuanu" onerror="this.remove()">`;
+
+// Tunggu semua gambar di area cetak siap sebelum print
+async function waitImages() {
+  const imgs = [...$('print-area').querySelectorAll('img')];
+  await Promise.all(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
+}
 
 // Invoice tagihan Guest Mobility: penanda tangan "Mengetahui" dan catatan di bawah total
 const INV_HEAD_NAME = TTD_DISETUJUI;
@@ -1547,6 +1564,7 @@ async function printInvoice(id) {
     $('print-area').innerHTML = `
       <div class="inv-top">
         <div>
+          ${logoTag()}
           <h1>INVOICE</h1>
           <div class="p-sub">Nuanu Guest Mobility &middot; Transport Department</div>
         </div>
@@ -1585,6 +1603,7 @@ async function printInvoice(id) {
         <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')} &middot; sumber data: Nuanu Taxi Service</div>
       </div>`;
 
+    await waitImages();
     setPageSize('A4 landscape');
     window.print();
   } catch (e) {
@@ -1890,6 +1909,7 @@ async function printReport() {
     }
 
     $('print-area').innerHTML = `
+      ${logoTag()}
       <h1>Laporan Clearing Cash Advance</h1>
       <div class="p-sub">Transport Department</div>
       <table>
@@ -1937,8 +1957,7 @@ async function printReport() {
       ${lampiran}`;
 
     // Tunggu semua gambar siap sebelum print
-    const imgs = [...$('print-area').querySelectorAll('img')];
-    await Promise.all(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
+    await waitImages();
 
     setPageSize('A4');
     window.print();
