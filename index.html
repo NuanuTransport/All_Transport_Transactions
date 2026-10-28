@@ -74,6 +74,7 @@ tr.total td{font-weight:700;border-bottom:0}
   header,nav,main,.toast,.modal{display:none!important}
   #print-area{display:block;font-size:11px;color:#000}
   #print-area h1{font-size:16px;margin:0}
+  #print-area h2{font-size:14px;margin:0 0 8px}
   #print-area .p-sub{margin:2px 0 12px;color:#444}
   #print-area h3{font-size:12px;margin:14px 0 4px}
   #print-area table{width:100%;border-collapse:collapse}
@@ -82,6 +83,12 @@ tr.total td{font-weight:700;border-bottom:0}
   #print-area .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px;text-align:center}
   #print-area .sign .line{margin-top:60px;border-top:1px solid #000;padding-top:4px}
   #print-area .p-foot{margin-top:16px;font-size:9px;color:#666}
+  #print-area .lampiran{break-before:page;page-break-before:always}
+  #print-area .lamp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #print-area .lamp-item{border:1px solid #999;padding:6px;break-inside:avoid;page-break-inside:avoid}
+  #print-area .lamp-cap{font-size:10px;line-height:1.35}
+  #print-area .lamp-item img{width:100%;max-height:330px;object-fit:contain;display:block;margin-top:6px}
+  #print-area .lamp-none{font-size:10px;color:#555;margin-top:6px;padding:20px 6px;border:1px dashed #aaa;text-align:center}
 }
 </style>
 </head>
@@ -157,7 +164,7 @@ tr.total td{font-weight:700;border-bottom:0}
   <section id="view-detail" class="hidden">
     <div class="actions">
       <button class="btn sec" onclick="show('list')">&larr; Kembali</button>
-      <button class="btn sec" onclick="printReport()">Cetak Laporan Clearing</button>
+      <button class="btn sec" id="btn-print" onclick="printReport()">Cetak Laporan Clearing</button>
     </div>
 
     <div class="card">
@@ -635,12 +642,42 @@ function renderDetail() {
   $('clear-form').classList.toggle('hidden', !isOpen);
 }
 
-// ---------- MODAL DETAIL & FOTO ----------
+// ---------- FILE (FOTO NOTA / BUKTI) ----------
 function fileIdOf(url) {
   const m = String(url || '').match(/[-\w]{25,}/);
   return m ? m[0] : '';
 }
 
+// Ambil satu file, simpan di cache (error tidak disimpan)
+async function getFileData(url) {
+  const id = fileIdOf(url);
+  if (!id) throw new Error('Link file tidak valid');
+  if (!FILE_CACHE[id]) FILE_CACHE[id] = await apiGet({ action: 'file', id });
+  return FILE_CACHE[id];
+}
+
+// Ambil banyak file sekaligus (maks 4 bersamaan)
+async function preloadFiles(urls, onProgress) {
+  const list = [...new Set(urls.filter(Boolean))];
+  const result = {};
+  let next = 0, done = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const url = list[next++];
+      try {
+        result[url] = await getFileData(url);
+      } catch (e) {
+        result[url] = { error: e.message };
+      }
+      done++;
+      if (onProgress) onProgress(done, list.length);
+    }
+  };
+  await Promise.all([1, 2, 3, 4].map(worker));
+  return result;
+}
+
+// ---------- MODAL DETAIL & FOTO ----------
 function openItem(idx) {
   const i = CURRENT.items[idx];
   if (!i) return;
@@ -677,14 +714,9 @@ async function showModal(title, rows, url, fileLabel) {
     return;
   }
   const link = `<div style="margin-top:8px"><a href="${esc(url)}" target="_blank" rel="noopener">Buka di Google Drive</a></div>`;
-  const id = fileIdOf(url);
   box.innerHTML = `<div class="muted">Memuat ${esc(fileLabel.toLowerCase())}...</div>`;
   try {
-    let f = FILE_CACHE[id];
-    if (!f) {
-      f = await apiGet({ action: 'file', id });
-      FILE_CACHE[id] = f;
-    }
+    const f = await getFileData(url);
     if (token !== MODAL_TOKEN) return;
     box.innerHTML = f.base64
       ? `<img src="data:${esc(f.mime)};base64,${f.base64}" alt="${esc(fileLabel)}">` + link
@@ -700,7 +732,7 @@ function closeModal() {
   $('modal').classList.add('hidden');
 }
 
-// ---------- FILE ----------
+// ---------- BACA FILE UPLOAD ----------
 function readFile(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -864,62 +896,126 @@ async function doClearing() {
 }
 
 // ---------- CETAK LAPORAN ----------
-function printReport() {
+function lampiranItem(no, caption, url, files, label) {
+  let body;
+  if (!url) {
+    body = `<div class="lamp-none">${esc(label)} tidak dilampirkan</div>`;
+  } else {
+    const f = files[url] || {};
+    if (f.base64) body = `<img src="data:${esc(f.mime)};base64,${f.base64}" alt="${esc(label)} ${no}">`;
+    else if (f.error) body = `<div class="lamp-none">Gagal memuat file: ${esc(f.error)}</div>`;
+    else body = `<div class="lamp-none">File ${esc(f.name || '')} bukan gambar (lihat di Google Drive)</div>`;
+  }
+  return `<div class="lamp-item"><div class="lamp-cap">${caption}</div>${body}</div>`;
+}
+
+async function printReport() {
   if (!CURRENT) return;
   const h = CURRENT.header, items = CURRENT.items, topups = CURRENT.topups || [];
   const s = saldo(h);
-  const div = groupSum(items, 'Divisi', MASTER.divisiMap[h.Grup] || []);
-  const kat = groupSum(items, 'Kategori');
-  const rekap = o => Object.keys(o).map(k => `<tr><td>${esc(k)}</td><td class="num">${o[k].n}</td><td class="num">${rp(o[k].t)}</td></tr>`).join('') +
-    `<tr><td><b>Total</b></td><td class="num"><b>${items.length}</b></td><td class="num"><b>${rp(s.used)}</b></td></tr>`;
 
-  $('print-area').innerHTML = `
-    <h1>Laporan Clearing Cash Advance</h1>
-    <div class="p-sub">Transport Department</div>
-    <table>
-      <tr><td style="width:35%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
-      <tr><td>Periode</td><td>${esc(fmtPeriode(h.Periode))}</td></tr>
-      <tr><td>Grup</td><td>${esc(h.Grup)}</td></tr>
-      <tr><td>Manager pemegang CA</td><td>${esc(h.PIC)}</td></tr>
-      <tr><td>Tanggal CA cair</td><td>${esc(h.Tanggal_Terima)}</td></tr>
-      <tr><td>Nominal CA</td><td><b>${rp(s.nominal)}</b></td></tr>
-      <tr><td>Total top up ke admin</td><td>${rp(s.topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
-      <tr><td>Total terpakai</td><td>${rp(s.used)}</td></tr>
-      <tr><td>Saldo di manager</td><td>${rp(s.mgr)}</td></tr>
-      <tr><td>Saldo di admin</td><td>${rp(s.adm)}${s.adm < 0 ? ' (admin menalangi)' : ''}</td></tr>
-      <tr><td>Sisa CA total</td><td><b>${rp(s.sisa)}</b></td></tr>
-      <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared ' + esc(h.Tgl_Clearing) : 'Belum clearing'}</td></tr>
-      ${h.Catatan_Clearing ? `<tr><td>Catatan</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
-    </table>
+  const jmlFile = items.filter(i => i.Nota_URL).length + topups.filter(t => t.Bukti_URL).length;
+  const withLamp = jmlFile > 0 && confirm(`Sertakan lampiran foto nota & bukti transfer (${jmlFile} file) di laporan?\n\nOK = laporan lengkap dengan lampiran\nCancel = ringkasan saja`);
 
-    <h3>Top Up dari Manager ke Admin</h3>
-    <table>
-      <tr><th>No</th><th>Tanggal</th><th>Dari</th><th>Keterangan</th><th>Nominal</th><th>Bukti</th></tr>
-      ${topups.length ? topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(t.Tanggal)}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${t.Bukti_URL ? 'Ada' : '-'}</td></tr>`).join('') : '<tr><td colspan="6">Belum ada top up</td></tr>'}
-      <tr><td colspan="4"><b>Total top up</b></td><td class="num"><b>${rp(s.topup)}</b></td><td></td></tr>
-    </table>
+  const btn = $('btn-print');
+  btn.disabled = true;
+  let files = {};
+  try {
+    if (withLamp) {
+      btn.textContent = 'Menyiapkan lampiran...';
+      const urls = items.map(i => i.Nota_URL).concat(topups.map(t => t.Bukti_URL));
+      files = await preloadFiles(urls, (done, total) => { btn.textContent = `Memuat lampiran ${done}/${total}...`; });
+    }
 
-    <h3>Rekap per Divisi</h3>
-    <table><tr><th>Divisi</th><th>Baris</th><th>Terpakai</th></tr>${rekap(div)}</table>
+    const div = groupSum(items, 'Divisi', MASTER.divisiMap[h.Grup] || []);
+    const kat = groupSum(items, 'Kategori');
+    const rekap = o => Object.keys(o).map(k => `<tr><td>${esc(k)}</td><td class="num">${o[k].n}</td><td class="num">${rp(o[k].t)}</td></tr>`).join('') +
+      `<tr><td><b>Total</b></td><td class="num"><b>${items.length}</b></td><td class="num"><b>${rp(s.used)}</b></td></tr>`;
 
-    <h3>Rekap per Kategori</h3>
-    <table><tr><th>Kategori</th><th>Baris</th><th>Terpakai</th></tr>${rekap(kat)}</table>
+    let lampiran = '';
+    if (withLamp) {
+      if (items.length) {
+        lampiran += `
+          <div class="lampiran">
+            <h2>Lampiran Nota Pemakaian - ${esc(h.CA_ID)}</h2>
+            <div class="lamp-grid">
+              ${items.map((i, n) => lampiranItem(n + 1,
+                `<b>#${n + 1}</b> &middot; ${esc(i.Tanggal)} &middot; ${esc(i.Divisi)} &middot; ${esc(i.Kategori)}${i.Unit ? ' &middot; ' + esc(i.Unit) : ''}<br>${esc(i.Keterangan)} &middot; <b>${rp(i.Nominal)}</b>`,
+                i.Nota_URL, files, 'Nota')).join('')}
+            </div>
+          </div>`;
+      }
+      if (topups.length) {
+        lampiran += `
+          <div class="lampiran">
+            <h2>Lampiran Bukti Top Up - ${esc(h.CA_ID)}</h2>
+            <div class="lamp-grid">
+              ${topups.map((t, n) => lampiranItem(n + 1,
+                `<b>#${n + 1}</b> &middot; ${esc(t.Tanggal)} &middot; dari ${esc(t.Dari)}<br>${esc(t.Keterangan) || '-'} &middot; <b>${rp(t.Nominal)}</b>`,
+                t.Bukti_URL, files, 'Bukti transfer')).join('')}
+            </div>
+          </div>`;
+      }
+    }
 
-    <h3>Rincian Pemakaian</h3>
-    <table>
-      <tr><th>No</th><th>Tanggal</th><th>Divisi</th><th>Kategori</th><th>Unit</th><th>Keterangan</th><th>Nominal</th><th>Nota</th></tr>
-      ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.Tanggal)}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${i.Nota_URL ? 'Ada' : '-'}</td></tr>`).join('')}
-      <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(s.used)}</b></td><td></td></tr>
-    </table>
+    $('print-area').innerHTML = `
+      <h1>Laporan Clearing Cash Advance</h1>
+      <div class="p-sub">Transport Department</div>
+      <table>
+        <tr><td style="width:35%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
+        <tr><td>Periode</td><td>${esc(fmtPeriode(h.Periode))}</td></tr>
+        <tr><td>Grup</td><td>${esc(h.Grup)}</td></tr>
+        <tr><td>Manager pemegang CA</td><td>${esc(h.PIC)}</td></tr>
+        <tr><td>Tanggal CA cair</td><td>${esc(h.Tanggal_Terima)}</td></tr>
+        <tr><td>Nominal CA</td><td><b>${rp(s.nominal)}</b></td></tr>
+        <tr><td>Total top up ke admin</td><td>${rp(s.topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
+        <tr><td>Total terpakai</td><td>${rp(s.used)}</td></tr>
+        <tr><td>Saldo di manager</td><td>${rp(s.mgr)}</td></tr>
+        <tr><td>Saldo di admin</td><td>${rp(s.adm)}${s.adm < 0 ? ' (admin menalangi)' : ''}</td></tr>
+        <tr><td>Sisa CA total</td><td><b>${rp(s.sisa)}</b></td></tr>
+        <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared ' + esc(h.Tgl_Clearing) : 'Belum clearing'}</td></tr>
+        ${h.Catatan_Clearing ? `<tr><td>Catatan</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
+      </table>
 
-    <div class="sign">
-      <div>Dibuat oleh (Admin)<div class="line">&nbsp;</div></div>
-      <div>Diperiksa oleh<div class="line">${esc(TTD_DIPERIKSA)}</div></div>
-      <div>Disetujui oleh<div class="line">${esc(TTD_DISETUJUI)}</div></div>
-    </div>
-    <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')}</div>`;
+      <h3>Top Up dari Manager ke Admin</h3>
+      <table>
+        <tr><th>No</th><th>Tanggal</th><th>Dari</th><th>Keterangan</th><th>Nominal</th><th>Bukti</th></tr>
+        ${topups.length ? topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(t.Tanggal)}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${t.Bukti_URL ? 'Ada' : '-'}</td></tr>`).join('') : '<tr><td colspan="6">Belum ada top up</td></tr>'}
+        <tr><td colspan="4"><b>Total top up</b></td><td class="num"><b>${rp(s.topup)}</b></td><td></td></tr>
+      </table>
 
-  window.print();
+      <h3>Rekap per Divisi</h3>
+      <table><tr><th>Divisi</th><th>Baris</th><th>Terpakai</th></tr>${rekap(div)}</table>
+
+      <h3>Rekap per Kategori</h3>
+      <table><tr><th>Kategori</th><th>Baris</th><th>Terpakai</th></tr>${rekap(kat)}</table>
+
+      <h3>Rincian Pemakaian</h3>
+      <table>
+        <tr><th>No</th><th>Tanggal</th><th>Divisi</th><th>Kategori</th><th>Unit</th><th>Keterangan</th><th>Nominal</th><th>Nota</th></tr>
+        ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.Tanggal)}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${i.Nota_URL ? (withLamp ? 'Lamp. #' + (n + 1) : 'Ada') : '-'}</td></tr>`).join('')}
+        <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(s.used)}</b></td><td></td></tr>
+      </table>
+
+      <div class="sign">
+        <div>Dibuat oleh (Admin)<div class="line">&nbsp;</div></div>
+        <div>Diperiksa oleh<div class="line">${esc(TTD_DIPERIKSA)}</div></div>
+        <div>Disetujui oleh<div class="line">${esc(TTD_DISETUJUI)}</div></div>
+      </div>
+      <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')}</div>
+      ${lampiran}`;
+
+    // Tunggu semua gambar siap sebelum print
+    const imgs = [...$('print-area').querySelectorAll('img')];
+    await Promise.all(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
+
+    window.print();
+  } catch (e) {
+    toast('Gagal menyiapkan laporan: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Cetak Laporan Clearing';
+  }
 }
 
 init();
