@@ -115,7 +115,7 @@ tr.total td{font-weight:700;border-bottom:0}
   <button data-v="list" class="active" onclick="show('list')">Daftar CA</button>
   <button data-v="new" onclick="show('new')">Buat CA</button>
   <button data-v="income" onclick="show('income')">Income</button>
-  <button data-v="pr" onclick="show('pr')">Purchase Request</button>
+  <button data-v="pr" onclick="show('pr')">PR &amp; WO Keluar</button>
   <button data-v="summary" onclick="show('summary')">Ringkasan</button>
 </nav>
 
@@ -359,12 +359,12 @@ tr.total td{font-weight:700;border-bottom:0}
     </div>
   </section>
 
-  <!-- PURCHASE REQUEST -->
+  <!-- PR & WO KE DEPARTEMEN LAIN -->
   <section id="view-pr" class="hidden">
     <div class="stats">
-      <div class="stat"><div class="l">Menunggu PO</div><div class="v" id="p-wait">-</div></div>
-      <div class="stat"><div class="l">PO release bulan ini</div><div class="v" id="p-month">-</div></div>
-      <div class="stat"><div class="l">PO release (sesuai filter)</div><div class="v" id="p-total">-</div></div>
+      <div class="stat"><div class="l">Menunggu nominal (PO / tagihan)</div><div class="v" id="p-wait">-</div></div>
+      <div class="stat"><div class="l">Pengeluaran bulan ini</div><div class="v" id="p-month">-</div></div>
+      <div class="stat"><div class="l">Pengeluaran (sesuai filter)</div><div class="v" id="p-total">-</div></div>
     </div>
 
     <div class="card hidden" id="po-form">
@@ -374,54 +374,68 @@ tr.total td{font-weight:700;border-bottom:0}
       </div>
       <div class="muted" id="po-info"></div>
       <div class="row3">
-        <div><label>No PO</label><input type="text" id="po-no" placeholder="Contoh: PO/2026/00123"></div>
-        <div><label>Tanggal PO release</label><input type="date" id="po-tgl"></div>
-        <div><label>Nominal PO (Rp)</label><input type="text" id="po-nominal" class="money" inputmode="numeric" placeholder="1.500.000" autocomplete="off"></div>
+        <div><label id="po-no-l">No PO</label><input type="text" id="po-no"></div>
+        <div><label id="po-tgl-l">Tanggal PO release</label><input type="date" id="po-tgl"></div>
+        <div><label>Nominal (Rp)</label><input type="text" id="po-nominal" class="money" inputmode="numeric" placeholder="1.500.000" autocomplete="off"></div>
       </div>
       <div class="row">
-        <div><label>Vendor</label><input type="text" id="po-vendor" placeholder="Nama vendor"></div>
+        <div><label id="po-vendor-l">Vendor</label><input type="text" id="po-vendor"></div>
         <div><label>Catatan (opsional)</label><input type="text" id="po-catatan"></div>
       </div>
       <div class="btns">
-        <button class="btn ok" id="btn-po" onclick="savePO()">Simpan PO</button>
-        <button class="btn sec" id="btn-po-batal" onclick="cancelPR()">Batalkan PR</button>
+        <button class="btn ok" id="btn-po" onclick="savePO()">Simpan</button>
+        <button class="btn sec" id="btn-po-batal" onclick="cancelPR()">Batalkan</button>
       </div>
     </div>
 
     <div class="card">
-      <h2>Catat PR Baru</h2>
-      <div class="hint">PR dibayar perusahaan lewat Cost Transfer, tidak memotong CA. Nominal diisi nanti setelah PO release, lalu PR masuk Ringkasan di bulan tanggal PO.</div>
+      <h2>Catat PR / WO Keluar</h2>
+      <div class="hint" id="p-hint"></div>
       <div class="row3">
-        <div><label>Tanggal PR</label><input type="date" id="p-tanggal"></div>
-        <div><label>No PR</label><input type="text" id="p-no" placeholder="Contoh: PR/2026/00456"></div>
+        <div><label>Jenis</label>
+          <select id="p-jenis" onchange="applyJenis()">
+            <option value="PR">Purchase Request (PR)</option>
+            <option value="WO Departemen">WO ke departemen lain</option>
+          </select>
+        </div>
+        <div><label id="p-tanggal-l">Tanggal PR</label><input type="date" id="p-tanggal"></div>
+        <div><label id="p-no-l">No PR</label><input type="text" id="p-no"></div>
+      </div>
+      <div class="row3">
         <div><label>Divisi</label><select id="p-divisi"></select></div>
-      </div>
-      <div class="row">
         <div><label>Kategori</label><select id="p-kategori"></select></div>
-        <div><label>Vendor (opsional)</label><input type="text" id="p-vendor" placeholder="Bisa diisi saat PO release"></div>
+        <div><label id="p-vendor-l">Vendor (opsional)</label><input type="text" id="p-vendor" list="dept-list"></div>
       </div>
-      <label>Keterangan</label>
-      <input type="text" id="p-ket" placeholder="Contoh: Ban 23 seater 4 pcs">
-      <button class="btn" id="btn-pr" onclick="addPR()">Simpan PR</button>
+      <datalist id="dept-list"></datalist>
+      <div class="row">
+        <div><label>Keterangan</label><input type="text" id="p-ket"></div>
+        <div><label id="p-nominal-l">Nominal (opsional, bila sudah diketahui)</label><input type="text" id="p-nominal" class="money" inputmode="numeric" placeholder="Kosongkan bila belum ada" autocomplete="off"></div>
+      </div>
+      <button class="btn" id="btn-pr" onclick="addPR()">Simpan</button>
     </div>
 
     <div class="card">
-      <h2>Daftar PR</h2>
+      <h2>Daftar PR &amp; WO Keluar</h2>
       <div class="filters">
+        <select id="pf-jenis" onchange="renderPR()">
+          <option value="">Semua jenis</option>
+          <option value="PR">PR</option>
+          <option value="WO Departemen">WO ke departemen lain</option>
+        </select>
         <select id="pf-status" onchange="renderPR()">
           <option value="">Semua status</option>
-          <option>Menunggu PO</option>
-          <option>PO Release</option>
-          <option>Batal</option>
+          <option value="Menunggu PO">Menunggu nominal</option>
+          <option value="PO Release">Sudah bernominal</option>
+          <option value="Batal">Batal</option>
         </select>
         <select id="pf-periode" onchange="renderPR()"><option value="">Semua periode</option></select>
         <select id="pf-divisi" onchange="renderPR()"></select>
-        <input type="text" id="pf-cari" placeholder="Cari no PR / PO / keterangan" oninput="renderPR()">
+        <input type="text" id="pf-cari" placeholder="Cari no / vendor / keterangan" oninput="renderPR()">
       </div>
-      <div class="hint">Klik baris untuk mengisi PO atau membatalkan PR. Periode = bulan PO release (atau bulan PR bila belum ada PO).</div>
+      <div class="hint">Klik baris untuk mengisi nominal (PO / tagihan) atau membatalkan. Periode = bulan PO / tagihan (atau bulan input bila belum ada nominal).</div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Tanggal PR</th><th>No PR / Keterangan</th><th>Divisi / Kategori</th><th>Vendor</th><th>PO</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Tanggal</th><th>Jenis / No / Keterangan</th><th>Divisi / Kategori</th><th>Vendor / Dept tujuan</th><th>PO / Tagihan</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
           <tbody id="pr-body"></tbody>
         </table>
       </div>
@@ -451,7 +465,7 @@ tr.total td{font-weight:700;border-bottom:0}
           <tbody id="r-divisi"></tbody>
         </table>
       </div>
-      <div class="muted">Pengeluaran = pemakaian CA + PR yang PO-nya sudah release + HPP air mineral. Selisih = (sudah dibayar + belum dibayar) - pengeluaran.</div>
+      <div class="muted">Pengeluaran = pemakaian CA + PR &amp; WO ke departemen lain yang sudah bernominal + HPP air mineral. Selisih = (sudah dibayar + belum dibayar) - pengeluaran.</div>
       <div class="warn-text" id="r-prwait"></div>
     </div>
     <div class="grid2">
@@ -695,6 +709,7 @@ async function init() {
     fillSelect($('p-divisi'), allDivisi(), 'Pilih divisi');
     fillSelect($('p-kategori'), MASTER.kategori || [], 'Pilih kategori');
     fillSelect($('pf-divisi'), allDivisi(), 'Semua divisi');
+    applyJenis();
     const srcShort = ['Manual'].concat(Object.keys(MASTER.sources || {}).map(k => MASTER.sources[k].short));
     $('ff-sumber').innerHTML = '<option value="">Semua sumber data</option>' + srcShort.map(s => `<option>${esc(s)}</option>`).join('');
     $('b-sumber').innerHTML = '<option value="">Semua sumber</option>' + srcShort.map(s => `<option>${esc(s)}</option>`).join('');
@@ -1422,14 +1437,42 @@ async function delIncome(id) {
   }
 }
 
-// ---------- PURCHASE REQUEST ----------
-function prTag(r) {
-  if (r.Status === 'PO Release') return '<span class="tag cleared">PO Release</span>';
-  if (r.Status === 'Batal') return '<span class="tag auto">Batal</span>';
-  return '<span class="tag wait">Menunggu PO</span>';
+// ---------- PR & WO KE DEPARTEMEN LAIN ----------
+// Teks form menyesuaikan jenis: PR (vendor, PO) atau WO ke departemen lain (departemen tujuan, tagihan)
+const JENIS_UI = {
+  'PR': {
+    hint: 'Purchase request ke vendor, dibayar perusahaan lewat Cost Transfer (tidak memotong CA). Nominal biasanya diisi setelah PO release.',
+    tanggal: 'Tanggal PR', no: 'No PR', noPh: 'Contoh: PR/2026/00456',
+    vendor: 'Vendor (opsional)', vendorPh: 'Bisa diisi saat PO release', ketPh: 'Contoh: Ban 23 seater 4 pcs',
+    poNo: 'No PO', poNoPh: 'Contoh: PO/2026/00123', poTgl: 'Tanggal PO release', poVendor: 'Vendor', title: 'Isi PO'
+  },
+  'WO Departemen': {
+    hint: 'Work order dari transport ke departemen lain yang kita bayar (dicatat sebagai pengeluaran divisi yang memesan, tidak memotong CA).',
+    tanggal: 'Tanggal WO', no: 'No WO', noPh: 'Contoh: WO dari departemen tujuan',
+    vendor: 'Departemen tujuan', vendorPh: 'Contoh: Facility, IT, Landscape', ketPh: 'Contoh: Perbaikan atap parkir bus',
+    poNo: 'No SO / tagihan (opsional)', poNoPh: 'Contoh: SO/2026/01234', poTgl: 'Tanggal tagihan', poVendor: 'Departemen tujuan', title: 'Isi tagihan WO'
+  }
+};
+const isWO = r => r.Jenis === 'WO Departemen';
+
+function applyJenis() {
+  const u = JENIS_UI[$('p-jenis').value] || JENIS_UI.PR;
+  $('p-hint').textContent = u.hint;
+  $('p-tanggal-l').textContent = u.tanggal;
+  $('p-no-l').textContent = u.no;
+  $('p-no').placeholder = u.noPh;
+  $('p-vendor-l').textContent = u.vendor;
+  $('p-vendor').placeholder = u.vendorPh;
+  $('p-ket').placeholder = u.ketPh;
 }
 
-// Periode PR: bulan PO release, atau bulan PR bila belum ada PO
+function prTag(r) {
+  if (r.Status === 'PO Release') return `<span class="tag cleared">${isWO(r) ? 'Ditagih' : 'PO Release'}</span>`;
+  if (r.Status === 'Batal') return '<span class="tag auto">Batal</span>';
+  return `<span class="tag wait">${isWO(r) ? 'Menunggu tagihan' : 'Menunggu PO'}</span>`;
+}
+
+// Periode: bulan PO / tagihan, atau bulan input bila belum ada nominal
 const prPeriode = r => String(r.Tgl_PO || r.Tanggal || '').slice(0, 7);
 
 function setPR(rows) {
@@ -1440,6 +1483,8 @@ function setPR(rows) {
   const list = [...new Set(PR.map(prPeriode).filter(Boolean))].sort().reverse();
   el.innerHTML = '<option value="">Semua periode</option>' + list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('');
   if (list.includes(keep)) el.value = keep;
+  const depts = [...new Set(PR.filter(isWO).map(r => r.Vendor).filter(Boolean))].sort();
+  $('dept-list').innerHTML = depts.map(d => `<option value="${esc(d)}">`).join('');
   renderPR();
 }
 
@@ -1454,22 +1499,23 @@ async function loadPR() {
 }
 
 function renderPR() {
-  const fs = $('pf-status').value, fp = $('pf-periode').value, fd = $('pf-divisi').value, fq = $('pf-cari').value.toLowerCase();
+  const fj = $('pf-jenis').value, fs = $('pf-status').value, fp = $('pf-periode').value, fd = $('pf-divisi').value, fq = $('pf-cari').value.toLowerCase();
   const rows = PR.filter(r =>
+    (!fj || r.Jenis === fj) &&
     (!fs || r.Status === fs) &&
     (!fp || prPeriode(r) === fp) &&
     (!fd || r.Divisi === fd) &&
     (!fq || (r.No_PR + ' ' + r.No_PO + ' ' + r.Keterangan + ' ' + r.Vendor).toLowerCase().includes(fq))
   );
-  const released = x => x.Status === 'PO Release';
+  const counted = x => x.Status === 'PO Release';
   $('p-wait').textContent = PR.filter(r => r.Status === 'Menunggu PO').length;
-  $('p-month').textContent = rp(PR.filter(r => released(r) && prPeriode(r) === thisMonth()).reduce((a, r) => a + r.Nominal, 0));
-  $('p-total').textContent = rp(rows.filter(released).reduce((a, r) => a + r.Nominal, 0));
+  $('p-month').textContent = rp(PR.filter(r => counted(r) && prPeriode(r) === thisMonth()).reduce((a, r) => a + r.Nominal, 0));
+  $('p-total').textContent = rp(rows.filter(counted).reduce((a, r) => a + r.Nominal, 0));
 
   $('pr-body').innerHTML = rows.length ? rows.map(r => `
     <tr class="click" onclick="openPO('${esc(r.PR_ID)}')">
       <td>${esc(r.Tanggal)}</td>
-      <td>${esc(r.No_PR) || '<span class="muted">-</span>'}<div class="muted">${esc(r.Keterangan)}</div>${r.Catatan ? '<div class="muted">' + esc(r.Catatan) + '</div>' : ''}</td>
+      <td><span class="tag ${isWO(r) ? 'open' : 'auto'}">${isWO(r) ? 'WO keluar' : 'PR'}</span> ${esc(r.No_PR)}<div class="muted">${esc(r.Keterangan)}</div>${r.Catatan ? '<div class="muted">' + esc(r.Catatan) + '</div>' : ''}</td>
       <td>${esc(r.Divisi)}<div class="muted">${esc(r.Kategori)}</div></td>
       <td>${esc(r.Vendor) || '<span class="muted">-</span>'}</td>
       <td>${esc(r.No_PO) || '<span class="muted">-</span>'}${r.Tgl_PO ? '<div class="muted">' + esc(r.Tgl_PO) + '</div>' : ''}</td>
@@ -1481,30 +1527,35 @@ function renderPR() {
 
 async function addPR() {
   const d = {
+    Jenis: $('p-jenis').value,
     Tanggal: $('p-tanggal').value,
     No_PR: $('p-no').value.trim(),
     Divisi: $('p-divisi').value,
     Kategori: $('p-kategori').value,
     Vendor: $('p-vendor').value.trim(),
-    Keterangan: $('p-ket').value.trim()
+    Keterangan: $('p-ket').value.trim(),
+    Nominal: toNum($('p-nominal').value)
   };
+  const wo = d.Jenis === 'WO Departemen';
+  if (d.Nominal > 0) d.Tgl_PO = d.Tanggal;     // nominal sudah diketahui: langsung dihitung di bulan tanggal input
   const miss = [];
-  if (!d.Tanggal) miss.push('tanggal PR');
+  if (!d.Tanggal) miss.push('tanggal');
   if (!d.Divisi) miss.push('divisi');
+  if (wo && !d.Vendor) miss.push('departemen tujuan');
   if (!d.Keterangan) miss.push('keterangan');
   if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
-  if (d.No_PR && PR.some(r => r.No_PR === d.No_PR && r.Status !== 'Batal') && !confirm(`No PR ${d.No_PR} sudah tercatat.\n\nTetap simpan?`)) return;
+  if (d.No_PR && PR.some(r => r.No_PR === d.No_PR && r.Jenis === d.Jenis && r.Status !== 'Batal') && !confirm(`No ${d.No_PR} sudah tercatat.\n\nTetap simpan?`)) return;
 
   const b = $('btn-pr');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     setPR(await apiPost('addPR', d));
-    ['p-no', 'p-vendor', 'p-ket'].forEach(i => $(i).value = '');
-    toast('PR tersimpan, status Menunggu PO');
+    ['p-no', 'p-vendor', 'p-ket', 'p-nominal'].forEach(i => $(i).value = '');
+    toast(d.Nominal > 0 ? `Tersimpan, masuk pengeluaran ${fmtPeriode(d.Tanggal.slice(0, 7))}` : (wo ? 'WO tersimpan, menunggu tagihan' : 'PR tersimpan, menunggu PO'));
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
-    b.disabled = false; b.textContent = 'Simpan PR';
+    b.disabled = false; b.textContent = 'Simpan';
   }
 }
 
@@ -1512,8 +1563,13 @@ function openPO(id) {
   const r = PR.find(x => x.PR_ID === id);
   if (!r) return;
   PR_EDIT = r;
-  $('po-title').textContent = 'PR ' + (r.No_PR || r.Tanggal);
+  const u = JENIS_UI[r.Jenis] || JENIS_UI.PR;
+  $('po-title').textContent = u.title + (r.No_PR ? ' - ' + r.No_PR : '');
   $('po-info').innerHTML = `${esc(r.Tanggal)} &middot; ${esc(r.Divisi)} &middot; ${esc(r.Kategori)} &middot; ${esc(r.Keterangan)} &middot; ${prTag(r)}`;
+  $('po-no-l').textContent = u.poNo;
+  $('po-no').placeholder = u.poNoPh;
+  $('po-tgl-l').textContent = u.poTgl;
+  $('po-vendor-l').textContent = u.poVendor;
   $('po-no').value = r.No_PO || '';
   $('po-tgl').value = r.Tgl_PO || today();
   $('po-nominal').value = r.Nominal ? Number(r.Nominal).toLocaleString('id-ID') : '';
@@ -1531,6 +1587,7 @@ function closePO() {
 
 async function savePO() {
   if (!PR_EDIT) return;
+  const wo = isWO(PR_EDIT);
   const d = {
     PR_ID: PR_EDIT.PR_ID,
     Status: 'PO Release',
@@ -1541,29 +1598,30 @@ async function savePO() {
     Catatan: $('po-catatan').value.trim()
   };
   const miss = [];
-  if (!d.No_PO) miss.push('no PO');
-  if (!d.Tgl_PO) miss.push('tanggal PO');
+  if (!wo && !d.No_PO) miss.push('no PO');
+  if (!d.Tgl_PO) miss.push(wo ? 'tanggal tagihan' : 'tanggal PO');
   if (!(d.Nominal > 0)) miss.push('nominal');
+  if (wo && !d.Vendor) miss.push('departemen tujuan');
   if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
   const b = $('btn-po');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     setPR(await apiPost('updatePR', d));
     closePO();
-    toast(`PO tersimpan, masuk pengeluaran ${fmtPeriode(d.Tgl_PO.slice(0, 7))}`);
+    toast(`Tersimpan, masuk pengeluaran ${fmtPeriode(d.Tgl_PO.slice(0, 7))}`);
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
-    b.disabled = false; b.textContent = 'Simpan PO';
+    b.disabled = false; b.textContent = 'Simpan';
   }
 }
 
 async function cancelPR() {
-  if (!PR_EDIT || !confirm(`Batalkan PR ${PR_EDIT.No_PR || PR_EDIT.Keterangan}?\nPR batal tidak dihitung di Ringkasan.`)) return;
+  if (!PR_EDIT || !confirm(`Batalkan ${isWO(PR_EDIT) ? 'WO' : 'PR'} ${PR_EDIT.No_PR || PR_EDIT.Keterangan}?\nData batal tidak dihitung di Ringkasan.`)) return;
   try {
     setPR(await apiPost('updatePR', { PR_ID: PR_EDIT.PR_ID, Status: 'Batal', Catatan: $('po-catatan').value.trim() }));
     closePO();
-    toast('PR dibatalkan');
+    toast('Dibatalkan');
   } catch (e) {
     toast('Gagal: ' + e.message);
   }
@@ -1571,11 +1629,11 @@ async function cancelPR() {
 
 async function delPR(id) {
   const r = PR.find(x => x.PR_ID === id);
-  if (!r || !confirm(`Hapus PR ${r.No_PR || r.Keterangan}?`)) return;
+  if (!r || !confirm(`Hapus ${isWO(r) ? 'WO' : 'PR'} ${r.No_PR || r.Keterangan}?`)) return;
   try {
     setPR(await apiPost('deletePR', { PR_ID: id }));
     if (PR_EDIT && PR_EDIT.PR_ID === id) closePO();
-    toast('PR dihapus');
+    toast('Data dihapus');
   } catch (e) {
     toast('Gagal: ' + e.message);
   }
@@ -1599,7 +1657,7 @@ async function loadSummary() {
     $('r-piutang').textContent = rp(tp);
     $('r-expense').textContent = rp(te);
     $('r-net').innerHTML = rpNet(ti + tp - te);
-    $('r-prwait').textContent = d.prMenunggu ? `${d.prMenunggu} PR masih menunggu PO, belum masuk pengeluaran.` : '';
+    $('r-prwait').textContent = d.prMenunggu ? `${d.prMenunggu} PR / WO keluar masih menunggu nominal (PO / tagihan), belum masuk pengeluaran.` : '';
 
     const sk = Object.keys(d.sumber);
     $('r-sumber').innerHTML = sk.length ? sk.map(k => `<tr><td>${esc(k)}</td><td class="num">${d.sumber[k].n}</td><td class="num">${rp(d.sumber[k].t)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">Belum ada income</td></tr>';
