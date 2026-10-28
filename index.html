@@ -124,7 +124,9 @@ tr.total td{font-weight:700;border-bottom:0}
   #print-area .inv-table tr{break-inside:avoid;page-break-inside:avoid}
   #print-area .inv-table .nw{white-space:nowrap}
   #print-area .inv-end{break-inside:avoid;page-break-inside:avoid}
-  #print-area .inv-end .sign .line{margin-top:48px}
+  #print-area .inv-end .sign .line{margin-top:0}
+  #print-area .sig-box{height:50px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
+  #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
 }
 </style>
 <style id="page-size"></style>
@@ -566,10 +568,13 @@ async function waitImages() {
   await Promise.all(imgs.map(img => img.decode ? img.decode().catch(() => {}) : Promise.resolve()));
 }
 
-// Invoice tagihan Guest Mobility: penanda tangan "Mengetahui" dan catatan di bawah total
-const INV_HEAD_NAME = TTD_DISETUJUI;
+// Invoice tagihan Guest Mobility: penanda tangan "Acknowledged by" dan catatan di bawah total
+const INV_HEAD_NAME = 'Dimas Destrian Caesar';
 const INV_HEAD_TITLE = 'Head of Transport Department';
-const INV_NOTE = 'Mohon pembayaran diproses melalui cost transfer ke Transport Department. Rincian trip sesuai catatan Nuanu Guest Mobility.';
+const INV_NOTE = 'Please process the payment via cost transfer to the Transport Department. Trip details are based on Nuanu Guest Mobility records.';
+
+// Tanda tangan Head of Transport (vektor), tampil otomatis di invoice tepat di atas nama
+const TTD_HEAD_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 125.8 55.3"><path fill-rule="evenodd" d="M125.7 0.5 125.2 0.0 115.7 0.0 115.5 0.2 114.2 0.2 113.2 0.5 112.3 1.2 109.0 1.3 107.8 2.2 107.0 2.2 105.2 2.7 103.7 3.5 103.0 3.5 101.7 4.0 100.7 4.7 98.8 5.0 97.7 5.8 95.5 6.2 94.5 7.0 93.2 7.0 92.2 7.8 90.5 8.2 89.7 9.0 88.5 9.2 87.5 10.0 83.3 12.0 82.5 12.7 81.2 13.0 80.5 13.7 79.0 14.2 78.3 14.8 77.2 15.2 76.5 15.8 75.3 16.2 74.7 16.8 73.7 17.2 72.8 18.0 71.8 18.3 69.5 20.7 69.2 21.3 69.0 23.2 68.7 23.7 68.0 24.0 66.8 24.0 65.8 23.0 65.7 19.8 65.5 19.7 65.5 14.5 65.2 14.2 64.7 14.2 64.3 14.7 64.3 22.5 64.5 22.7 64.5 23.7 63.7 24.3 62.8 24.3 61.5 25.0 56.7 25.2 54.8 26.2 51.2 26.3 49.7 27.2 46.2 27.7 43.8 28.7 40.7 29.0 39.3 29.8 36.3 30.2 35.5 30.8 34.8 31.0 33.2 31.0 32.7 31.2 31.7 32.0 29.3 32.2 28.7 33.0 26.5 33.2 25.5 34.0 23.7 34.3 22.0 35.3 19.8 36.0 18.5 36.8 17.2 37.0 16.0 37.8 14.2 38.2 13.7 38.7 12.8 39.0 11.8 39.0 10.5 40.0 9.2 40.2 8.2 41.0 7.0 41.2 5.5 42.2 5.0 42.2 3.8 43.0 3.2 43.2 0.7 44.5 0.0 45.3 0.2 46.3 0.5 46.8 1.0 47.0 1.5 46.5 1.5 45.7 1.8 45.2 3.0 44.7 4.2 43.8 6.0 43.2 7.2 42.3 8.3 42.2 9.2 41.5 10.0 41.2 10.8 41.2 11.8 40.3 13.7 40.0 14.7 39.2 16.3 39.0 17.2 38.2 18.8 38.0 20.2 37.0 21.7 36.8 23.0 35.8 23.7 35.8 24.8 35.2 25.7 35.0 26.3 34.5 28.5 34.0 29.3 33.3 31.5 33.2 32.8 32.3 33.5 32.2 35.0 32.2 35.8 31.8 36.2 31.3 36.7 31.2 39.2 31.0 40.2 30.2 43.5 29.8 44.7 29.0 47.5 28.8 48.8 28.0 51.3 27.8 56.0 26.5 60.0 26.2 62.5 25.7 63.2 25.3 64.0 25.3 64.8 26.0 65.3 27.0 65.5 30.3 65.8 31.0 65.8 31.5 66.3 32.3 66.3 32.8 65.5 34.0 64.7 33.8 64.5 33.5 64.5 31.8 63.8 31.0 62.3 31.0 61.0 32.0 60.7 32.0 59.5 32.8 58.2 33.3 57.5 34.0 56.7 34.3 53.2 36.8 52.3 37.2 51.7 37.8 50.5 38.2 49.8 38.8 48.7 39.2 48.0 40.0 47.2 40.2 46.7 40.8 45.8 41.2 44.8 42.2 44.3 42.3 43.3 43.3 42.5 43.8 40.5 46.0 40.2 48.5 41.0 49.3 49.0 49.2 51.2 48.2 53.5 48.2 54.0 48.0 55.0 47.2 57.5 47.0 58.5 46.2 60.7 46.0 62.2 45.0 63.7 44.8 65.2 43.8 67.0 43.7 68.2 45.0 68.3 46.8 69.2 49.5 69.3 52.5 70.2 53.7 70.5 54.7 71.0 55.0 72.0 55.2 72.5 54.8 73.2 53.7 73.3 49.7 72.7 47.7 72.5 45.5 71.5 44.5 71.0 42.5 72.0 41.3 73.7 41.2 75.2 40.2 76.2 40.2 77.0 39.3 78.3 39.0 79.2 38.2 80.0 38.0 81.0 37.0 81.5 36.8 85.5 33.5 86.7 32.3 88.3 32.2 89.0 31.7 89.0 31.2 87.3 29.5 87.3 26.8 85.5 24.2 83.2 24.0 83.0 23.8 82.2 24.0 81.7 23.8 70.8 24.0 70.3 23.5 70.3 21.7 70.5 21.3 73.8 18.3 76.7 17.0 77.3 16.3 78.3 16.2 79.3 15.3 80.5 15.0 81.3 14.2 82.5 14.0 83.2 13.3 84.2 12.8 84.7 12.8 85.3 12.2 86.7 11.7 89.2 10.2 90.0 10.0 90.8 9.3 92.3 9.0 93.0 8.3 95.0 8.0 96.0 7.2 97.8 7.0 98.8 6.2 100.3 6.0 101.8 5.0 102.7 5.0 103.5 4.7 104.3 4.0 105.7 3.8 108.5 2.5 112.2 2.0 113.7 1.3 124.8 1.0ZM70.0 44.0 70.5 45.0 71.2 45.7 71.7 48.3 72.3 49.8 72.2 50.2 72.2 52.2 71.7 52.8 70.8 52.8 70.5 52.5 70.3 50.0 70.0 49.0 69.3 48.0 69.3 44.8ZM64.7 36.3 65.7 37.3 65.7 38.3 65.2 38.8 64.7 38.8 63.5 37.5 63.7 37.0 64.2 36.5ZM83.0 33.5 83.0 34.0 82.2 35.0 78.0 37.8 77.2 38.0 75.8 39.0 74.5 39.2 73.7 40.0 72.2 40.2 71.3 40.8 70.5 41.2 69.5 41.2 68.5 40.3 68.5 39.7 68.0 38.2 67.8 35.7 69.0 34.3 70.8 34.3 71.0 34.2 73.0 34.0 74.0 33.3 82.7 33.2ZM63.2 32.5 63.3 33.7 63.0 34.3 62.2 34.8 61.3 35.8 61.3 39.8 62.2 40.0 63.2 39.2 64.0 39.2 64.7 40.0 65.7 40.3 66.3 41.0 66.3 41.8 65.3 43.0 64.7 43.3 63.5 43.5 62.7 44.0 61.7 44.2 60.5 44.8 58.8 45.0 57.7 45.8 55.2 46.0 54.3 46.3 53.8 46.8 53.0 47.0 51.2 47.0 50.3 47.3 49.5 48.0 46.0 48.0 44.3 48.3 42.2 48.3 41.3 47.7 41.7 46.3 44.2 43.8 45.8 42.5 46.7 42.2 47.3 41.5 48.5 41.0 49.0 40.3 50.0 40.2 51.0 39.2 51.5 39.2 52.5 38.3 53.8 37.8 54.5 37.2 55.3 36.8 56.0 36.2 56.8 35.8 60.5 33.3 61.7 33.0 62.5 32.3ZM66.7 25.8 67.0 25.3 68.7 25.2 70.8 26.5 72.0 27.5 73.8 28.2 74.7 28.8 77.7 29.2 78.3 29.8 78.8 30.0 80.0 30.0 80.2 30.2 81.8 30.0 82.5 30.2 83.2 30.8 83.7 31.0 84.2 31.7 83.7 32.0 76.7 32.0 76.5 32.2 75.2 32.2 74.3 32.5 73.7 33.2 73.2 33.0 68.3 33.2 67.3 32.2 67.5 32.0 67.3 30.5 66.7 28.2ZM71.7 25.7 72.0 25.2 75.2 25.0 75.3 24.8 76.5 24.8 76.7 25.0 78.5 25.0 78.7 24.8 81.2 25.0 81.7 24.8 81.8 25.0 84.3 25.2 85.2 25.5 86.2 26.8 86.3 27.5 86.2 29.2 85.3 29.8 83.3 29.8 81.3 29.0 78.0 28.7 77.2 28.2 74.2 27.3 73.2 26.8Z"/></svg>';
 
 let MASTER = { grup: [], divisiMap: {}, kategori: [], pic: [], unit: [], sumberIncome: [], sources: {} };
 let LIST = [];
@@ -1520,30 +1525,37 @@ function fillInvoicePelanggan() {
   $('btn-inv').disabled = !list.length;
 }
 
-// Angka ke kata (terbilang) untuk invoice
-function terbilang(n) {
-  const s = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+// Angka ke kata dalam bahasa Inggris untuk invoice (Amount in words)
+function numWords(n) {
+  const a = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const t = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
   n = Math.floor(Math.abs(Number(n) || 0));
-  if (n < 12) return s[n];
-  if (n < 20) return terbilang(n - 10) + ' belas';
-  if (n < 100) return terbilang(Math.floor(n / 10)) + ' puluh ' + terbilang(n % 10);
-  if (n < 200) return 'seratus ' + terbilang(n - 100);
-  if (n < 1000) return terbilang(Math.floor(n / 100)) + ' ratus ' + terbilang(n % 100);
-  if (n < 2000) return 'seribu ' + terbilang(n - 1000);
-  if (n < 1e6) return terbilang(Math.floor(n / 1000)) + ' ribu ' + terbilang(n % 1000);
-  if (n < 1e9) return terbilang(Math.floor(n / 1e6)) + ' juta ' + terbilang(n % 1e6);
-  return terbilang(Math.floor(n / 1e9)) + ' miliar ' + terbilang(n % 1e9);
+  if (n < 20) return a[n];
+  if (n < 100) return t[Math.floor(n / 10)] + (n % 10 ? '-' + a[n % 10] : '');
+  if (n < 1000) return a[Math.floor(n / 100)] + ' hundred' + (n % 100 ? ' ' + numWords(n % 100) : '');
+  for (const [v, w] of [[1e9, 'billion'], [1e6, 'million'], [1e3, 'thousand']]) {
+    if (n >= v) return numWords(Math.floor(n / v)) + ' ' + w + (n % v ? ' ' + numWords(n % v) : '');
+  }
+  return '';
 }
-const terbilangRp = n => {
-  const t = terbilang(n).replace(/\s+/g, ' ').trim();
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) + ' rupiah' : 'Nol rupiah';
+const amountWords = n => {
+  const t = numWords(n).trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) + ' rupiah' : 'Zero rupiah';
 };
 
+// Format tanggal & periode untuk dokumen cetak (bahasa Inggris)
 function fmtTgl(ymd) {
   if (!ymd) return '-';
-  const [y, m, d] = String(ymd).split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const [y, m, d] = String(ymd).slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return String(ymd);
+  return new Date(y, m - 1, d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
+function fmtPeriodeEn(p) {
+  if (!p) return '-';
+  const [y, m] = String(p).split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+const printedAt = () => new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 // Ukuran kertas cetak: laporan CA portrait, invoice landscape
 function setPageSize(size) {
@@ -1573,38 +1585,38 @@ async function printInvoice(id) {
           <div class="p-sub">Nuanu Guest Mobility &middot; Transport Department</div>
         </div>
         <table class="inv-meta">
-          <tr><td>No invoice</td><td><b>${esc(no.trim() || d.noInvoice)}</b></td></tr>
-          <tr><td>Tanggal</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
-          <tr><td>Periode</td><td>${esc(fmtPeriode(d.periode))}</td></tr>
+          <tr><td>Invoice No.</td><td><b>${esc(no.trim() || d.noInvoice)}</b></td></tr>
+          <tr><td>Date</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
+          <tr><td>Period</td><td>${esc(fmtPeriodeEn(d.periode))}</td></tr>
         </table>
       </div>
 
       <div class="inv-to">
-        <div class="muted-p">Ditagihkan kepada</div>
+        <div class="muted-p">Bill to</div>
         <div class="inv-to-name">${esc(d.pelanggan)}</div>
-        <div class="muted-p">Layanan transportasi Guest Mobility, ${d.rows.length} trip selama ${esc(fmtPeriode(d.periode))}</div>
+        <div class="muted-p">Guest Mobility transport services, ${d.rows.length} trip${d.rows.length > 1 ? 's' : ''} in ${esc(fmtPeriodeEn(d.periode))}</div>
       </div>
 
       <table class="inv-table">
-        <tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Pemesan / Tamu</th><th>Penjemputan</th><th>Tujuan</th><th>Trip</th><th>Mobil</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>No SO</th>' : ''}<th>Biaya</th></tr>
+        <tr><th>No</th><th>Date</th><th>Time</th><th>Requested by / Guest</th><th>Pick-up</th><th>Drop-off</th><th>Trip</th><th>Vehicle</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>SO No.</th>' : ''}<th>Amount</th></tr>
         ${d.rows.map((r, i) => `<tr>
           <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
           <td>${esc(r.Tamu)}${r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
           <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
           ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${rp(r.Biaya)}</td>
         </tr>`).join('')}
-        <tr class="inv-total"><td colspan="${8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0)}">Total tagihan</td><td class="num">${rp(d.total)}</td></tr>
+        <tr class="inv-total"><td colspan="${8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0)}">Total Amount</td><td class="num">${rp(d.total)}</td></tr>
       </table>
 
       <div class="inv-end">
-        <div class="inv-words">Terbilang: <i>${esc(terbilangRp(d.total))}</i></div>
+        <div class="inv-words">Amount in words: <i>${esc(amountWords(d.total))}</i></div>
         ${INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : ''}
         <div class="sign">
-          <div>Dibuat oleh<br>Transport Team<div class="line">&nbsp;</div></div>
-          <div>Mengetahui<br>${esc(INV_HEAD_TITLE)}<div class="line">${esc(INV_HEAD_NAME)}</div></div>
-          <div>Diterima oleh<br>${esc(d.pelanggan)}<div class="line">&nbsp;</div></div>
+          <div>Prepared by<br>Transport Team<div class="sig-box"></div><div class="line">&nbsp;</div></div>
+          <div>Acknowledged by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
+          <div>Received by<br>${esc(d.pelanggan)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
         </div>
-        <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')} &middot; sumber data: Nuanu Taxi Service</div>
+        <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Nuanu Taxi Service</div>
       </div>`;
 
     await waitImages();
@@ -1855,8 +1867,8 @@ function lampiranItem(no, caption, url, files, label) {
   const f = files[url] || {};
   let body;
   if (f.base64) body = `<img src="data:${esc(f.mime)};base64,${f.base64}" alt="${esc(label)} ${no}">`;
-  else if (f.error) body = `<div class="lamp-none">Gagal memuat file: ${esc(f.error)}</div>`;
-  else body = `<div class="lamp-none">File ${esc(f.name || '')} bukan gambar<br>(lihat di Google Drive)</div>`;
+  else if (f.error) body = `<div class="lamp-none">Failed to load file: ${esc(f.error)}</div>`;
+  else body = `<div class="lamp-none">File ${esc(f.name || '')} is not an image<br>(see Google Drive)</div>`;
   return `<div class="lamp-item"><div class="lamp-cap">${caption}</div><div class="lamp-img">${body}</div></div>`;
 }
 
@@ -1868,7 +1880,7 @@ function lampiranPages(title, list, urlKey, capFn, files, label) {
   for (let i = 0; i < withFile.length; i += LAMP_PER_PAGE) pages.push(withFile.slice(i, i + LAMP_PER_PAGE));
   return pages.map((pg, p) => `
     <div class="lampiran">
-      <h2>${esc(title)} (hal ${p + 1}/${pages.length})</h2>
+      <h2>${esc(title)} (page ${p + 1}/${pages.length})</h2>
       <div class="lamp-grid">
         ${pg.map(o => lampiranItem(o.no, capFn(o.x, o.no), o.x[urlKey], files, label)).join('')}
       </div>
@@ -1901,63 +1913,64 @@ async function printReport() {
     let lampiran = '';
     if (withLamp) {
       lampiran += lampiranPages(
-        `Lampiran Nota Pemakaian - ${h.CA_ID}`, items, 'Nota_URL',
-        (i, no) => `<b>#${no}</b> &middot; ${esc(i.Tanggal)} &middot; ${esc(i.Divisi)} &middot; ${esc(i.Kategori)}${i.Unit ? ' &middot; ' + esc(i.Unit) : ''}<br>${esc(i.Keterangan)} &middot; <b>${rp(i.Nominal)}</b>`,
-        files, 'Nota'
+        `Receipt Attachments - ${h.CA_ID}`, items, 'Nota_URL',
+        (i, no) => `<b>#${no}</b> &middot; ${esc(fmtTgl(i.Tanggal))} &middot; ${esc(i.Divisi)} &middot; ${esc(i.Kategori)}${i.Unit ? ' &middot; ' + esc(i.Unit) : ''}<br>${esc(i.Keterangan)} &middot; <b>${rp(i.Nominal)}</b>`,
+        files, 'Receipt'
       );
       lampiran += lampiranPages(
-        `Lampiran Bukti Top Up - ${h.CA_ID}`, topups, 'Bukti_URL',
-        (t, no) => `<b>#${no}</b> &middot; ${esc(t.Tanggal)} &middot; dari ${esc(t.Dari)}<br>${esc(t.Keterangan) || '-'} &middot; <b>${rp(t.Nominal)}</b>`,
-        files, 'Bukti transfer'
+        `Top-up Proof Attachments - ${h.CA_ID}`, topups, 'Bukti_URL',
+        (t, no) => `<b>#${no}</b> &middot; ${esc(fmtTgl(t.Tanggal))} &middot; from ${esc(t.Dari)}<br>${esc(t.Keterangan) || '-'} &middot; <b>${rp(t.Nominal)}</b>`,
+        files, 'Transfer proof'
       );
     }
 
+    const att = (url, n) => url ? (withLamp ? 'Att. #' + n : 'Yes') : '-';
     $('print-area').innerHTML = `
       ${logoTag()}
-      <h1>Laporan Clearing Cash Advance</h1>
+      <h1>Cash Advance Clearing Report</h1>
       <div class="p-sub">Transport Department</div>
       <table>
-        <tr><td style="width:35%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
-        <tr><td>Periode</td><td>${esc(fmtPeriode(h.Periode))}</td></tr>
-        <tr><td>Grup</td><td>${esc(h.Grup)}</td></tr>
-        <tr><td>Manager pemegang CA</td><td>${esc(h.PIC)}</td></tr>
-        <tr><td>Tanggal CA cair</td><td>${esc(h.Tanggal_Terima)}</td></tr>
-        <tr><td>Nominal CA</td><td><b>${rp(s.nominal)}</b></td></tr>
-        <tr><td>Total top up ke admin</td><td>${rp(s.topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
-        <tr><td>Total terpakai</td><td>${rp(s.used)}</td></tr>
-        <tr><td>Saldo di manager</td><td>${rp(s.mgr)}</td></tr>
-        <tr><td>Saldo di admin</td><td>${rp(s.adm)}${s.adm < 0 ? ' (admin menalangi)' : ''}</td></tr>
-        <tr><td>Sisa CA total</td><td><b>${rp(s.sisa)}</b></td></tr>
-        <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared ' + esc(h.Tgl_Clearing) : 'Belum clearing'}</td></tr>
-        ${h.Catatan_Clearing ? `<tr><td>Catatan</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
+        <tr><td style="width:35%">CA No.</td><td>${esc(h.CA_ID)}</td></tr>
+        <tr><td>Period</td><td>${esc(fmtPeriodeEn(h.Periode))}</td></tr>
+        <tr><td>Group</td><td>${esc(h.Grup)}</td></tr>
+        <tr><td>CA holder (manager)</td><td>${esc(h.PIC)}</td></tr>
+        <tr><td>CA disbursement date</td><td>${esc(fmtTgl(h.Tanggal_Terima))}</td></tr>
+        <tr><td>CA amount</td><td><b>${rp(s.nominal)}</b></td></tr>
+        <tr><td>Total top-up to admin</td><td>${rp(s.topup)}${topups.length ? ' (' + topups.length + 'x)' : ''}</td></tr>
+        <tr><td>Total used</td><td>${rp(s.used)}</td></tr>
+        <tr><td>Balance with manager</td><td>${rp(s.mgr)}</td></tr>
+        <tr><td>Balance with admin</td><td>${rp(s.adm)}${s.adm < 0 ? ' (advanced by admin)' : ''}</td></tr>
+        <tr><td>Remaining CA balance</td><td><b>${rp(s.sisa)}</b></td></tr>
+        <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared on ' + esc(fmtTgl(h.Tgl_Clearing)) : 'Not yet cleared'}</td></tr>
+        ${h.Catatan_Clearing ? `<tr><td>Notes</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
       </table>
 
-      <h3>Top Up dari Manager ke Admin</h3>
+      <h3>Top-up from Manager to Admin</h3>
       <table>
-        <tr><th>No</th><th>Tanggal</th><th>Dari</th><th>Keterangan</th><th>Nominal</th><th>Bukti</th></tr>
-        ${topups.length ? topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(t.Tanggal)}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${t.Bukti_URL ? (withLamp ? 'Lamp. #' + (n + 1) : 'Ada') : '-'}</td></tr>`).join('') : '<tr><td colspan="6">Belum ada top up</td></tr>'}
-        <tr><td colspan="4"><b>Total top up</b></td><td class="num"><b>${rp(s.topup)}</b></td><td></td></tr>
+        <tr><th>No</th><th>Date</th><th>From</th><th>Description</th><th>Amount</th><th>Proof</th></tr>
+        ${topups.length ? topups.map((t, n) => `<tr><td>${n + 1}</td><td>${esc(fmtTgl(t.Tanggal))}</td><td>${esc(t.Dari)}</td><td>${esc(t.Keterangan)}</td><td class="num">${rp(t.Nominal)}</td><td>${att(t.Bukti_URL, n + 1)}</td></tr>`).join('') : '<tr><td colspan="6">No top-up yet</td></tr>'}
+        <tr><td colspan="4"><b>Total top-up</b></td><td class="num"><b>${rp(s.topup)}</b></td><td></td></tr>
       </table>
 
-      <h3>Rekap per Divisi</h3>
-      <table><tr><th>Divisi</th><th>Baris</th><th>Terpakai</th></tr>${rekap(div)}</table>
+      <h3>Summary by Division</h3>
+      <table><tr><th>Division</th><th>Lines</th><th>Used</th></tr>${rekap(div)}</table>
 
-      <h3>Rekap per Kategori</h3>
-      <table><tr><th>Kategori</th><th>Baris</th><th>Terpakai</th></tr>${rekap(kat)}</table>
+      <h3>Summary by Category</h3>
+      <table><tr><th>Category</th><th>Lines</th><th>Used</th></tr>${rekap(kat)}</table>
 
-      <h3>Rincian Pemakaian</h3>
+      <h3>Expense Details</h3>
       <table>
-        <tr><th>No</th><th>Tanggal</th><th>Divisi</th><th>Kategori</th><th>Unit</th><th>Keterangan</th><th>Nominal</th><th>Nota</th></tr>
-        ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.Tanggal)}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${i.Nota_URL ? (withLamp ? 'Lamp. #' + (n + 1) : 'Ada') : '-'}</td></tr>`).join('')}
+        <tr><th>No</th><th>Date</th><th>Division</th><th>Category</th><th>Unit</th><th>Description</th><th>Amount</th><th>Receipt</th></tr>
+        ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(fmtTgl(i.Tanggal))}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${att(i.Nota_URL, n + 1)}</td></tr>`).join('')}
         <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(s.used)}</b></td><td></td></tr>
       </table>
 
       <div class="sign">
-        <div>Dibuat oleh (Admin)<div class="line">&nbsp;</div></div>
-        <div>Diperiksa oleh<div class="line">${esc(TTD_DIPERIKSA)}</div></div>
-        <div>Disetujui oleh<div class="line">${esc(TTD_DISETUJUI)}</div></div>
+        <div>Prepared by (Admin)<div class="line">&nbsp;</div></div>
+        <div>Reviewed by<div class="line">${esc(TTD_DIPERIKSA)}</div></div>
+        <div>Approved by<div class="line">${esc(TTD_DISETUJUI)}</div></div>
       </div>
-      <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')}</div>
+      <div class="p-foot">Printed ${esc(printedAt())}</div>
       ${lampiran}`;
 
     // Tunggu semua gambar siap sebelum print
