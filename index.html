@@ -29,6 +29,7 @@ label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:inherit;background:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.row4{display:grid;grid-template-columns:1fr 1.3fr 1.3fr 1fr;gap:10px}
 .btn{background:var(--pri);color:#fff;border:0;padding:10px 16px;border-radius:7px;font-size:14px;cursor:pointer;margin-top:14px}
 .btn.sec{background:#fff;color:var(--text);border:1px solid var(--line)}
 .btn.ok{background:var(--ok)}
@@ -78,7 +79,7 @@ tr.total td{font-weight:700;border-bottom:0}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
-@media(max-width:700px){.row,.row3,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
+@media(max-width:700px){.row,.row3,.row4,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
 @media print{
   @page{size:A4;margin:14mm}
   body{background:#fff}
@@ -343,11 +344,12 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card">
       <h2>Cetak Invoice Tagihan Guest Mobility</h2>
-      <div class="hint">Invoice bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Klik Tarik Data dulu agar data terbaru.</div>
-      <div class="row3">
+      <div class="hint">Invoice bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Pilih Company untuk invoice per departemen (sesuai kolom COMPANY), atau Semua company untuk satu invoice gabungan. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="row4">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
-        <div><label>Ditagihkan ke</label><select id="iv-pel"></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value)">Cetak Invoice</button></div>
+        <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
+        <div><label>Company</label><select id="iv-comp"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value)">Cetak Invoice</button></div>
       </div>
     </div>
 
@@ -1266,6 +1268,7 @@ function setIncome(d) {
   INCOME_LOADED = true;
   renderSyncInfo();
   fillBulkMonths();
+  Object.keys(INV_CACHE).forEach(k => delete INV_CACHE[k]);   // data invoice dimuat ulang setelah income berubah / ditarik
   fillInvoiceSelects();
   renderIncome();
 }
@@ -1503,6 +1506,58 @@ async function delIncome(id) {
 // Tagihan taxi ke perusahaan / departemen (bukan bayar langsung) bisa dicetak sebagai invoice bulanan
 const isInvoiceRow = r => /^TAXI\|\d{4}-\d{2}\|BILL\|/.test(String(r.Sync_Key || ''));
 
+// Rincian trip per tagihan disimpan sementara, dipakai untuk daftar company dan cetak invoice
+const INV_CACHE = {};
+let INV_COMP_TOKEN = 0;
+
+async function getInvoiceData(id) {
+  if (!INV_CACHE[id]) INV_CACHE[id] = await apiGet({ action: 'invoice', id });
+  return INV_CACHE[id];
+}
+
+// Company dari kolom COMPANY sheet Nuanu Taxi Service (huruf besar, spasi dirapikan)
+const compKey = r => String(r.Perusahaan || '').replace(/\s+/g, ' ').trim().toUpperCase() || '(NO COMPANY)';
+
+function companiesOf(d) {
+  const o = {};
+  d.rows.forEach(r => {
+    const k = compKey(r);
+    o[k] = o[k] || { key: k, n: 0, total: 0 };
+    o[k].n++;
+    o[k].total += Number(r.Biaya || 0);
+  });
+  return Object.values(o).sort((a, b) => a.key.localeCompare(b.key));
+}
+
+async function fillInvoiceCompany() {
+  const id = $('iv-pel').value, el = $('iv-comp'), btn = $('btn-inv');
+  const token = ++INV_COMP_TOKEN;
+  if (!id) {
+    el.innerHTML = '<option value="">-</option>';
+    btn.disabled = true;
+    return;
+  }
+  el.innerHTML = '<option value="">Memuat company...</option>';
+  el.disabled = true;
+  btn.disabled = true;
+  try {
+    const d = await getInvoiceData(id);
+    if (token !== INV_COMP_TOKEN) return;
+    const list = companiesOf(d);
+    el.innerHTML = `<option value="">Semua company (${d.rows.length} trip - ${esc(rp(d.total))})</option>` +
+      list.map(c => `<option value="${esc(c.key)}">${esc(c.key)} - ${c.n} trip - ${esc(rp(c.total))}</option>`).join('');
+  } catch (e) {
+    if (token !== INV_COMP_TOKEN) return;
+    el.innerHTML = '<option value="">Semua company</option>';
+    toast('Gagal memuat company: ' + e.message);
+  } finally {
+    if (token === INV_COMP_TOKEN) {
+      el.disabled = false;
+      btn.disabled = false;
+    }
+  }
+}
+
 function fillInvoiceSelects() {
   const list = INCOME.filter(isInvoiceRow);
   const el = $('iv-periode');
@@ -1522,7 +1577,7 @@ function fillInvoicePelanggan() {
   $('iv-pel').innerHTML = list.length
     ? list.map(r => `<option value="${esc(r.Income_ID)}">${esc(r.Pelanggan)} - ${esc(rp(r.Nominal))}${r.Status === 'Lunas' ? ' (lunas)' : ''}</option>`).join('')
     : '<option value="">Tidak ada tagihan</option>';
-  $('btn-inv').disabled = !list.length;
+  fillInvoiceCompany();
 }
 
 // Angka ke kata dalam bahasa Inggris untuk invoice (Amount in words)
@@ -1562,21 +1617,30 @@ function setPageSize(size) {
   $('page-size').textContent = `@media print{@page{size:${size};margin:12mm}}`;
 }
 
-async function printInvoice(id) {
+async function printInvoice(id, comp) {
   if (!id) return;
   const btn = $('btn-inv');
   btn.disabled = true; btn.textContent = 'Menyiapkan invoice...';
   try {
-    const d = await apiGet({ action: 'invoice', id });
-    if (!d.rows.length) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
-    let msg = `Invoice ${d.pelanggan} periode ${fmtPeriode(d.periode)}: ${d.rows.length} trip, total ${rp(d.total)}.`;
-    if (d.total !== d.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(d.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+    const all = await getInvoiceData(id);
+    const rows = comp ? all.rows.filter(r => compKey(r) === comp) : all.rows;
+    if (!rows.length) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
+    const total = rows.reduce((a, r) => a + Number(r.Biaya || 0), 0);
+
+    // Ditagihkan ke: company (bila difilter) atau nama di kolom PAYMENT
+    const billTo = comp || all.pelanggan;
+    const entity = comp && comp !== String(all.pelanggan || '').trim().toUpperCase() ? all.pelanggan : '';
+    let noDefault = all.noInvoice;
+    if (comp) noDefault += '-' + String(companiesOf(all).findIndex(c => c.key === comp) + 1).padStart(2, '0');
+
+    let msg = `Invoice ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${rows.length} trip, total ${rp(total)}.`;
+    if (!comp && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
     msg += '\n\nNomor invoice:';
-    const no = prompt(msg, d.noInvoice);
+    const no = prompt(msg, noDefault);
     if (no === null) return;
 
     const tglCetak = today();
-    const hasDrv = d.rows.some(r => r.Driver), hasSO = d.rows.some(r => r.SO);   // kolom kosong semua tidak ditampilkan
+    const hasDrv = rows.some(r => r.Driver), hasSO = rows.some(r => r.SO);   // kolom kosong semua tidak ditampilkan
     $('print-area').innerHTML = `
       <div class="inv-top">
         <div>${logoTag()}</div>
@@ -1585,36 +1649,37 @@ async function printInvoice(id) {
           <div class="p-sub">Nuanu Guest Mobility &middot; Transport Department</div>
         </div>
         <table class="inv-meta">
-          <tr><td>Invoice No.</td><td><b>${esc(no.trim() || d.noInvoice)}</b></td></tr>
+          <tr><td>Invoice No.</td><td><b>${esc(no.trim() || noDefault)}</b></td></tr>
           <tr><td>Date</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
-          <tr><td>Period</td><td>${esc(fmtPeriodeEn(d.periode))}</td></tr>
+          <tr><td>Period</td><td>${esc(fmtPeriodeEn(all.periode))}</td></tr>
         </table>
       </div>
 
       <div class="inv-to">
         <div class="muted-p">Bill to</div>
-        <div class="inv-to-name">${esc(d.pelanggan)}</div>
-        <div class="muted-p">Guest Mobility transport services, ${d.rows.length} trip${d.rows.length > 1 ? 's' : ''} in ${esc(fmtPeriodeEn(d.periode))}</div>
+        <div class="inv-to-name">${esc(billTo)}</div>
+        ${entity ? `<div class="muted-p">Billing entity: ${esc(entity)}</div>` : ''}
+        <div class="muted-p">Guest Mobility transport services, ${rows.length} trip${rows.length > 1 ? 's' : ''} in ${esc(fmtPeriodeEn(all.periode))}</div>
       </div>
 
       <table class="inv-table">
         <tr><th>No</th><th>Date</th><th>Time</th><th>Requested by / Guest</th><th>Pick-up</th><th>Drop-off</th><th>Trip</th><th>Vehicle</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>SO No.</th>' : ''}<th>Amount</th></tr>
-        ${d.rows.map((r, i) => `<tr>
+        ${rows.map((r, i) => `<tr>
           <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
-          <td>${esc(r.Tamu)}${r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
+          <td>${esc(r.Tamu)}${!comp && r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
           <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
           ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${rp(r.Biaya)}</td>
         </tr>`).join('')}
-        <tr class="inv-total"><td colspan="${8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0)}">Total Amount</td><td class="num">${rp(d.total)}</td></tr>
+        <tr class="inv-total"><td colspan="${8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0)}">Total Amount</td><td class="num">${rp(total)}</td></tr>
       </table>
 
       <div class="inv-end">
-        <div class="inv-words">Amount in words: <i>${esc(amountWords(d.total))}</i></div>
+        <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
         ${INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : ''}
         <div class="sign">
           <div>Prepared by<br>Transport Team<div class="sig-box"></div><div class="line">&nbsp;</div></div>
           <div>Acknowledged by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
-          <div>Received by<br>${esc(d.pelanggan)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
+          <div>Received by<br>${esc(billTo)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
         </div>
         <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Nuanu Taxi Service</div>
       </div>`;
@@ -1626,7 +1691,7 @@ async function printInvoice(id) {
     toast('Gagal menyiapkan invoice: ' + e.message);
   } finally {
     btn.textContent = 'Cetak Invoice';
-    fillInvoicePelanggan();
+    btn.disabled = !$('iv-pel').value;
   }
 }
 
