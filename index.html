@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cash Advance Transport</title>
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--bad:#b91c1c}
+:root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--warn:#d97706;--bad:#b91c1c}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
 header{background:#111827;color:#fff;padding:14px 16px}
@@ -29,6 +29,8 @@ input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);b
 .btn.ok{background:var(--ok)}
 .btn.sm{margin:0;padding:4px 8px;font-size:12px}
 .btn:disabled{opacity:.6;cursor:default}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.actions .btn{margin:0}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
 .tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
@@ -40,21 +42,42 @@ tr.click:hover{background:#f9fafb}
 tr.total td{font-weight:700;border-bottom:0}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
 .tag.open{background:#dbeafe;color:var(--pri)}
-.tag.settled{background:#dcfce7;color:var(--ok)}
+.tag.cleared{background:#dcfce7;color:var(--ok)}
 .tag.over{background:#fee2e2;color:var(--bad)}
 .kv{display:grid;grid-template-columns:150px 1fr;gap:6px 10px}
 .kv>div:nth-child(odd){color:var(--muted)}
+.bar{height:10px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin:14px 0 4px}
+.bar>div{height:100%;background:var(--pri)}
+.bar.warn>div{background:var(--warn)}
+.bar.bad>div{background:var(--bad)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .muted{color:var(--muted);font-size:12px}
 .hidden{display:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:9;max-width:90%}
-@media(max-width:600px){.row{grid-template-columns:1fr}.kv{grid-template-columns:120px 1fr}}
+#print-area{display:none}
+@media(max-width:700px){.row,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:120px 1fr}}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff}
+  header,nav,main,.toast{display:none!important}
+  #print-area{display:block;font-size:11px;color:#000}
+  #print-area h1{font-size:16px;margin:0}
+  #print-area .p-sub{margin:2px 0 12px;color:#444}
+  #print-area h3{font-size:12px;margin:14px 0 4px}
+  #print-area table{width:100%;border-collapse:collapse}
+  #print-area th,#print-area td{border:1px solid #999;padding:4px 6px;font-size:11px;color:#000}
+  #print-area th{background:#eee}
+  #print-area .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:30px;text-align:center}
+  #print-area .sign .line{margin-top:60px;border-top:1px solid #000;padding-top:4px}
+  #print-area .p-foot{margin-top:16px;font-size:9px;color:#666}
+}
 </style>
 </head>
 <body>
 
 <header>
   <h1>Cash Advance - Transport</h1>
-  <p>Pengajuan, pemakaian, dan settlement CA</p>
+  <p>CA bulanan, pencatatan pemakaian, dan clearing akhir bulan</p>
 </header>
 
 <nav>
@@ -67,9 +90,9 @@ tr.total td{font-weight:700;border-bottom:0}
   <!-- DAFTAR -->
   <section id="view-list">
     <div class="stats">
-      <div class="stat"><div class="l">CA Open</div><div class="v" id="s-open">-</div></div>
-      <div class="stat"><div class="l">Nominal Open</div><div class="v" id="s-open-nom">-</div></div>
-      <div class="stat"><div class="l">Overdue (&gt;7 hari)</div><div class="v" id="s-over">-</div></div>
+      <div class="stat"><div class="l">CA aktif</div><div class="v" id="s-open">-</div></div>
+      <div class="stat"><div class="l">Sisa saldo CA aktif</div><div class="v" id="s-saldo">-</div></div>
+      <div class="stat"><div class="l">Belum clearing</div><div class="v" id="s-over">-</div></div>
       <div class="stat"><div class="l">Terpakai (sesuai filter)</div><div class="v" id="s-used">-</div></div>
     </div>
     <div class="card">
@@ -77,16 +100,16 @@ tr.total td{font-weight:700;border-bottom:0}
         <select id="f-grup" onchange="renderList()"></select>
         <select id="f-status" onchange="renderList()">
           <option value="">Semua status</option>
-          <option>Open</option>
-          <option>Overdue</option>
-          <option>Settled</option>
+          <option value="Open">Aktif (Open)</option>
+          <option value="Overdue">Belum clearing</option>
+          <option value="Cleared">Cleared</option>
         </select>
-        <input type="month" id="f-bulan" onchange="renderList()">
-        <input type="text" id="f-cari" placeholder="Cari no CA / pemohon" oninput="renderList()">
+        <input type="month" id="f-periode" onchange="renderList()">
+        <input type="text" id="f-cari" placeholder="Cari no CA / PIC" oninput="renderList()">
       </div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>No CA</th><th>Tanggal</th><th>Grup</th><th>Pemohon / Keperluan</th><th class="num">Nominal</th><th class="num">Terpakai</th><th>Status</th></tr></thead>
+          <thead><tr><th>No CA</th><th>Periode</th><th>Grup</th><th>PIC</th><th class="num">Nominal</th><th class="num">Terpakai</th><th class="num">Sisa</th><th>Status</th></tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -97,48 +120,57 @@ tr.total td{font-weight:700;border-bottom:0}
   <!-- BUAT CA -->
   <section id="view-new" class="hidden">
     <div class="card">
-      <h2>Pengajuan CA Baru</h2>
+      <h2>CA Bulanan Baru</h2>
       <div class="row">
-        <div><label>Tanggal</label><input type="date" id="n-tanggal"></div>
-        <div><label>Grup</label><select id="n-grup"></select></div>
+        <div><label>Periode</label><input type="month" id="n-periode"></div>
+        <div><label>Tanggal terima uang</label><input type="date" id="n-tanggal"></div>
       </div>
-      <div class="muted" id="n-grup-info"></div>
-      <label>Pemohon</label>
-      <input type="text" id="n-pemohon" list="pemohon-list" placeholder="Nama pemohon">
-      <datalist id="pemohon-list"></datalist>
-      <label>Keperluan</label>
-      <textarea id="n-keperluan" rows="2" placeholder="Contoh: Kebutuhan operasional minggu 1 November"></textarea>
+      <div class="row">
+        <div><label>Grup</label><select id="n-grup"></select></div>
+        <div><label>PIC / pemegang CA</label><input type="text" id="n-pic" list="pic-list" placeholder="Nama PIC"></div>
+      </div>
+      <datalist id="pic-list"></datalist>
+      <div class="muted" id="n-grup-info" style="margin-top:6px"></div>
       <label>Nominal CA (Rp)</label>
-      <input type="number" id="n-nominal" min="0" inputmode="numeric">
+      <input type="number" id="n-nominal" min="0" inputmode="numeric" placeholder="20000000">
+      <label>Keterangan (opsional)</label>
+      <input type="text" id="n-ket" placeholder="Contoh: CA operasional November">
       <button class="btn" id="btn-new" onclick="createCA()">Simpan CA</button>
     </div>
   </section>
 
   <!-- DETAIL -->
   <section id="view-detail" class="hidden">
-    <button class="btn sec" style="margin:0 0 12px" onclick="show('list')">&larr; Kembali</button>
+    <div class="actions">
+      <button class="btn sec" onclick="show('list')">&larr; Kembali</button>
+      <button class="btn sec" onclick="printReport()">Cetak Laporan Clearing</button>
+    </div>
+
     <div class="card">
       <h2 id="d-title">-</h2>
       <div id="d-info"></div>
+      <div class="bar" id="d-bar"><div></div></div>
+      <div class="muted" id="d-bar-text"></div>
     </div>
 
-    <div class="card">
-      <h2>Rekap per Divisi</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Divisi</th><th class="num">Jumlah baris</th><th class="num">Terpakai</th></tr></thead>
-          <tbody id="d-rekap"></tbody>
-        </table>
+    <div class="grid2">
+      <div class="card">
+        <h2>Rekap per Divisi</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Divisi</th><th class="num">Baris</th><th class="num">Terpakai</th></tr></thead>
+            <tbody id="d-rekap-div"></tbody>
+          </table>
+        </div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Rincian Pemakaian</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Kategori / Unit</th><th>Keterangan</th><th class="num">Nominal</th><th>Nota</th><th></th></tr></thead>
-          <tbody id="d-body"></tbody>
-        </table>
+      <div class="card">
+        <h2>Rekap per Kategori</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Kategori</th><th class="num">Baris</th><th class="num">Terpakai</th></tr></thead>
+            <tbody id="d-rekap-kat"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -161,22 +193,34 @@ tr.total td{font-weight:700;border-bottom:0}
       <button class="btn" id="btn-usage" onclick="addUsage()">Tambah Pemakaian</button>
     </div>
 
-    <div class="card" id="settle-form">
-      <h2>Settlement</h2>
+    <div class="card">
+      <h2>Rincian Pemakaian</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Kategori / Unit</th><th>Keterangan</th><th class="num">Nominal</th><th>Nota</th><th></th></tr></thead>
+          <tbody id="d-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" id="clear-form">
+      <h2>Clearing Akhir Bulan</h2>
+      <div class="muted" id="c-info"></div>
       <label>Catatan (opsional)</label>
-      <input type="text" id="s-catatan" placeholder="Contoh: Sisa sudah dikembalikan ke kas">
-      <button class="btn ok" id="btn-settle" onclick="settle()">Settle CA</button>
+      <input type="text" id="c-catatan" placeholder="Contoh: Sisa dikembalikan ke kas / dilanjut ke CA bulan berikutnya">
+      <button class="btn ok" id="btn-clear" onclick="doClearing()">Clearing CA</button>
     </div>
   </section>
 
 </main>
 
+<div id="print-area"></div>
 <div class="toast" id="toast"></div>
 
 <script>
 const API = 'PASTE_URL_WEB_APP_DI_SINI';
 
-let MASTER = { grup: [], divisiMap: {}, kategori: [], pemohon: [], unit: [] };
+let MASTER = { grup: [], divisiMap: {}, kategori: [], pic: [], unit: [] };
 let LIST = [];
 let CURRENT = null;
 
@@ -188,6 +232,19 @@ function today() {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
+}
+const thisMonth = () => today().slice(0, 7);
+
+function fmtPeriode(p) {
+  if (!p) return '-';
+  const [y, m] = String(p).split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+}
+
+function periodeRange(p) {
+  const [y, m] = String(p).split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return { min: `${p}-01`, max: `${p}-${String(last).padStart(2, '0')}` };
 }
 
 function toast(msg) {
@@ -223,17 +280,36 @@ function fillSelect(el, items, placeholder) {
 }
 
 function statusTag(r) {
-  if (r.Status === 'Settled') return '<span class="tag settled">Settled</span>';
-  return r.Overdue ? `<span class="tag over">Open ${r.Umur} hari</span>` : '<span class="tag open">Open</span>';
+  if (r.Status === 'Cleared') return '<span class="tag cleared">Cleared</span>';
+  return r.Overdue ? '<span class="tag over">Belum clearing</span>' : '<span class="tag open">Aktif</span>';
+}
+
+function groupSum(items, key, base) {
+  const o = {};
+  (base || []).forEach(k => o[k] = { n: 0, t: 0 });
+  items.forEach(i => {
+    const k = i[key] || '(kosong)';
+    o[k] = o[k] || { n: 0, t: 0 };
+    o[k].n++;
+    o[k].t += Number(i.Nominal || 0);
+  });
+  return o;
+}
+
+function rekapRows(o, count, total) {
+  const keys = Object.keys(o);
+  if (!keys.length) return '<tr><td colspan="3" class="muted">Belum ada data</td></tr>';
+  return keys.map(k => `<tr><td>${esc(k)}</td><td class="num">${o[k].n}</td><td class="num">${rp(o[k].t)}</td></tr>`).join('') +
+    `<tr class="total"><td>Total</td><td class="num">${count}</td><td class="num">${rp(total)}</td></tr>`;
 }
 
 // ---------- INIT ----------
 async function init() {
+  $('n-periode').value = thisMonth();
   $('n-tanggal').value = today();
-  $('u-tanggal').value = today();
   $('n-grup').addEventListener('change', () => {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
-    $('n-grup-info').textContent = list.length ? 'Divisi: ' + list.join(', ') : '';
+    $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
   });
   try {
     MASTER = await apiGet({ action: 'master' });
@@ -241,7 +317,7 @@ async function init() {
     fillSelect($('n-grup'), MASTER.grup, 'Pilih grup');
     fillSelect($('u-kategori'), MASTER.kategori, 'Pilih kategori');
     fillSelect($('u-unit'), MASTER.unit, '- Tidak terkait unit -');
-    $('pemohon-list').innerHTML = MASTER.pemohon.map(p => `<option value="${esc(p)}">`).join('');
+    $('pic-list').innerHTML = MASTER.pic.map(p => `<option value="${esc(p)}">`).join('');
     await loadList();
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
@@ -250,60 +326,65 @@ async function init() {
 
 // ---------- DAFTAR ----------
 async function loadList() {
-  $('list-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  $('list-body').innerHTML = '<tr><td colspan="8" class="muted">Memuat...</td></tr>';
   try {
     LIST = await apiGet({ action: 'list' });
     renderList();
   } catch (e) {
-    $('list-body').innerHTML = '<tr><td colspan="7" class="muted">Gagal memuat data</td></tr>';
+    $('list-body').innerHTML = '<tr><td colspan="8" class="muted">Gagal memuat data</td></tr>';
     toast('Gagal: ' + e.message);
   }
 }
 
 function renderList() {
-  const fg = $('f-grup').value, fs = $('f-status').value, fm = $('f-bulan').value, fq = $('f-cari').value.toLowerCase();
+  const fg = $('f-grup').value, fs = $('f-status').value, fp = $('f-periode').value, fq = $('f-cari').value.toLowerCase();
   const rows = LIST.filter(r =>
     (!fg || r.Grup === fg) &&
     (!fs || (fs === 'Overdue' ? r.Overdue : r.Status === fs)) &&
-    (!fm || String(r.Tanggal).slice(0, 7) === fm) &&
-    (!fq || (r.CA_ID + ' ' + r.Pemohon + ' ' + r.Keperluan).toLowerCase().includes(fq))
+    (!fp || r.Periode === fp) &&
+    (!fq || (r.CA_ID + ' ' + r.PIC + ' ' + r.Keterangan).toLowerCase().includes(fq))
   );
 
   const open = LIST.filter(r => r.Status === 'Open');
   $('s-open').textContent = open.length;
-  $('s-open-nom').textContent = rp(open.reduce((a, r) => a + Number(r.Nominal || 0), 0));
+  $('s-saldo').textContent = rp(open.reduce((a, r) => a + Number(r.Sisa || 0), 0));
   $('s-over').textContent = LIST.filter(r => r.Overdue).length;
   $('s-used').textContent = rp(rows.reduce((a, r) => a + Number(r.Terpakai || 0), 0));
 
   $('list-body').innerHTML = rows.length ? rows.map(r => `
     <tr class="click" onclick="openDetail('${esc(r.CA_ID)}')">
       <td>${esc(r.CA_ID)}</td>
-      <td>${esc(r.Tanggal)}</td>
+      <td>${esc(fmtPeriode(r.Periode))}</td>
       <td>${esc(r.Grup)}</td>
-      <td>${esc(r.Pemohon)}<div class="muted">${esc(r.Keperluan)}</div></td>
+      <td>${esc(r.PIC)}</td>
       <td class="num">${rp(r.Nominal)}</td>
       <td class="num">${rp(r.Terpakai)}</td>
+      <td class="num">${rp(r.Sisa)}</td>
       <td>${statusTag(r)}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
 }
 
 // ---------- BUAT CA ----------
 async function createCA() {
   const d = {
-    Tanggal: $('n-tanggal').value,
+    Periode: $('n-periode').value,
+    Tanggal_Terima: $('n-tanggal').value,
     Grup: $('n-grup').value,
-    Pemohon: $('n-pemohon').value.trim(),
-    Keperluan: $('n-keperluan').value.trim(),
-    Nominal: Number($('n-nominal').value)
+    PIC: $('n-pic').value.trim(),
+    Nominal: Number($('n-nominal').value),
+    Keterangan: $('n-ket').value.trim()
   };
-  if (!d.Tanggal || !d.Grup || !d.Pemohon || !d.Keperluan || !(d.Nominal > 0)) return toast('Lengkapi semua field');
+  if (!d.Periode || !d.Tanggal_Terima || !d.Grup || !d.PIC || !(d.Nominal > 0)) return toast('Lengkapi periode, tanggal, grup, PIC, dan nominal');
+
+  const dup = LIST.find(r => r.Status === 'Open' && r.Grup === d.Grup && r.Periode === d.Periode);
+  if (dup && !confirm(`Sudah ada CA aktif ${dup.CA_ID} untuk ${d.Grup} periode ${fmtPeriode(d.Periode)}.\nTetap buat CA baru?`)) return;
 
   const b = $('btn-new');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     const res = await apiPost('createCA', d);
     toast('CA tersimpan: ' + res.CA_ID);
-    ['n-pemohon', 'n-keperluan', 'n-nominal'].forEach(i => $(i).value = '');
+    ['n-pic', 'n-nominal', 'n-ket'].forEach(i => $(i).value = '');
     loadList();
     openDetail(res.CA_ID);
   } catch (e) {
@@ -318,10 +399,9 @@ async function openDetail(id) {
   show('detail');
   $('d-title').textContent = id;
   $('d-info').innerHTML = '<span class="muted">Memuat...</span>';
-  $('d-body').innerHTML = '';
-  $('d-rekap').innerHTML = '';
+  ['d-body', 'd-rekap-div', 'd-rekap-kat', 'd-bar-text'].forEach(i => $(i).innerHTML = '');
   $('usage-form').classList.add('hidden');
-  $('settle-form').classList.add('hidden');
+  $('clear-form').classList.add('hidden');
   try {
     CURRENT = await apiGet({ action: 'detail', id });
     renderDetail();
@@ -333,37 +413,35 @@ async function openDetail(id) {
 function renderDetail() {
   const h = CURRENT.header, items = CURRENT.items;
   const isOpen = h.Status === 'Open';
-  const sisa = Number(h.Nominal) - Number(h.Terpakai);
+  const nominal = Number(h.Nominal), used = Number(h.Terpakai);
+  const sisa = nominal - used;
   const divisiList = MASTER.divisiMap[h.Grup] || [];
 
-  $('d-title').textContent = h.CA_ID;
+  $('d-title').textContent = `${h.CA_ID} - ${fmtPeriode(h.Periode)}`;
   $('d-info').innerHTML = `
     <div class="kv">
-      <div>Tanggal</div><div>${esc(h.Tanggal)}</div>
       <div>Grup</div><div>${esc(h.Grup)}</div>
-      <div>Pemohon</div><div>${esc(h.Pemohon)}</div>
-      <div>Keperluan</div><div>${esc(h.Keperluan)}</div>
-      <div>Nominal CA</div><div><b>${rp(h.Nominal)}</b></div>
-      <div>Terpakai</div><div>${rp(h.Terpakai)}</div>
-      <div>${sisa >= 0 ? 'Sisa dikembalikan' : 'Kurang, diganti'}</div><div><b>${rp(Math.abs(sisa))}</b></div>
-      <div>Status</div><div>${statusTag(h)} ${h.Tgl_Settlement ? '<span class="muted">' + esc(h.Tgl_Settlement) + '</span>' : ''}</div>
-      ${h.Catatan_Settlement ? `<div>Catatan</div><div>${esc(h.Catatan_Settlement)}</div>` : ''}
+      <div>PIC</div><div>${esc(h.PIC)}</div>
+      <div>Tanggal terima</div><div>${esc(h.Tanggal_Terima)}</div>
+      ${h.Keterangan ? `<div>Keterangan</div><div>${esc(h.Keterangan)}</div>` : ''}
+      <div>Nominal CA</div><div><b>${rp(nominal)}</b></div>
+      <div>Terpakai</div><div>${rp(used)}</div>
+      <div>${sisa >= 0 ? 'Sisa saldo' : 'Kelebihan pakai'}</div><div><b>${rp(Math.abs(sisa))}</b></div>
+      <div>Status</div><div>${statusTag(h)}</div>
+      ${isOpen ? `<div>Batas clearing</div><div>${esc(h.Batas_Clearing)}</div>` : ''}
+      ${h.Tgl_Clearing ? `<div>Tanggal clearing</div><div>${esc(h.Tgl_Clearing)}</div>` : ''}
+      ${h.Catatan_Clearing ? `<div>Catatan clearing</div><div>${esc(h.Catatan_Clearing)}</div>` : ''}
     </div>`;
 
-  // Rekap per divisi
-  const rekap = {};
-  divisiList.forEach(dv => rekap[dv] = { n: 0, total: 0 });
-  items.forEach(i => {
-    const k = i.Divisi || '(tanpa divisi)';
-    rekap[k] = rekap[k] || { n: 0, total: 0 };
-    rekap[k].n++;
-    rekap[k].total += Number(i.Nominal || 0);
-  });
-  $('d-rekap').innerHTML = Object.keys(rekap).map(k => `
-    <tr><td>${esc(k)}</td><td class="num">${rekap[k].n}</td><td class="num">${rp(rekap[k].total)}</td></tr>`).join('') +
-    `<tr class="total"><td>Total</td><td class="num">${items.length}</td><td class="num">${rp(h.Terpakai)}</td></tr>`;
+  const pct = nominal ? used / nominal * 100 : 0;
+  const bar = $('d-bar');
+  bar.className = 'bar' + (pct > 100 ? ' bad' : pct >= 80 ? ' warn' : '');
+  bar.firstElementChild.style.width = Math.min(pct, 100) + '%';
+  $('d-bar-text').textContent = `Terpakai ${pct.toFixed(1)}% dari nominal CA`;
 
-  // Rincian
+  $('d-rekap-div').innerHTML = rekapRows(groupSum(items, 'Divisi', divisiList), items.length, used);
+  $('d-rekap-kat').innerHTML = rekapRows(groupSum(items, 'Kategori'), items.length, used);
+
   $('d-body').innerHTML = items.length ? items.map(i => `
     <tr>
       <td>${esc(i.Tanggal)}</td>
@@ -375,9 +453,25 @@ function renderDetail() {
       <td>${isOpen ? `<button class="btn sec sm" onclick="delUsage('${esc(i.Detail_ID)}')">Hapus</button>` : ''}</td>
     </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada pemakaian</td></tr>';
 
+  // Form pemakaian: tanggal dibatasi dalam periode
+  const range = periodeRange(h.Periode);
+  const t = $('u-tanggal');
+  t.min = range.min;
+  t.max = range.max;
+  if (!t.value || t.value < range.min || t.value > range.max) {
+    const td = today();
+    t.value = td < range.min ? range.min : td > range.max ? range.max : td;
+  }
+  const keepDiv = $('u-divisi').value;
   fillSelect($('u-divisi'), divisiList, 'Pilih divisi');
+  if (divisiList.includes(keepDiv)) $('u-divisi').value = keepDiv;
+
+  $('c-info').textContent = sisa >= 0
+    ? `Saat clearing, sisa saldo ${rp(sisa)} akan dicatat sebagai sisa CA.`
+    : `Saat clearing, kelebihan pakai ${rp(-sisa)} akan dicatat sebagai kekurangan yang perlu diganti.`;
+
   $('usage-form').classList.toggle('hidden', !isOpen);
-  $('settle-form').classList.toggle('hidden', !isOpen);
+  $('clear-form').classList.toggle('hidden', !isOpen);
 }
 
 // ---------- PEMAKAIAN ----------
@@ -417,19 +511,19 @@ async function addUsage() {
     Nominal: Number($('u-nominal').value)
   };
   if (!d.Tanggal || !d.Divisi || !d.Kategori || !d.Keterangan || !(d.Nominal > 0)) return toast('Lengkapi data pemakaian');
+  if (d.Tanggal.slice(0, 7) !== CURRENT.header.Periode) return toast('Tanggal harus dalam periode ' + fmtPeriode(CURRENT.header.Periode));
 
   const b = $('btn-usage');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     const f = $('u-nota').files[0];
     if (f) d.Nota = await readFile(f);
-    const keepDivisi = d.Divisi;
     CURRENT = await apiPost('addUsage', d);
     ['u-ket', 'u-nominal', 'u-nota'].forEach(i => $(i).value = '');
     renderDetail();
-    $('u-divisi').value = keepDivisi;
     loadList();
-    toast('Pemakaian tersimpan');
+    const sisa = Number(CURRENT.header.Nominal) - Number(CURRENT.header.Terpakai);
+    toast(sisa < 0 ? 'Tersimpan. Perhatian: pemakaian melebihi nominal CA' : 'Pemakaian tersimpan');
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
@@ -449,31 +543,82 @@ async function delUsage(detailId) {
   }
 }
 
-// ---------- SETTLEMENT ----------
-async function settle() {
+// ---------- CLEARING ----------
+async function doClearing() {
   const h = CURRENT.header, items = CURRENT.items;
   const sisa = Number(h.Nominal) - Number(h.Terpakai);
   const tanpaNota = items.filter(i => !i.Nota_URL).length;
 
-  let msg = `Settle ${h.CA_ID}?\n\nNominal: ${rp(h.Nominal)}\nTerpakai: ${rp(h.Terpakai)}\n`;
-  msg += sisa >= 0 ? `Sisa dikembalikan: ${rp(sisa)}` : `Kurang, diganti ke pemohon: ${rp(-sisa)}`;
+  let msg = `Clearing ${h.CA_ID} (${fmtPeriode(h.Periode)})?\n\nNominal: ${rp(h.Nominal)}\nTerpakai: ${rp(h.Terpakai)}\n`;
+  msg += sisa >= 0 ? `Sisa saldo: ${rp(sisa)}` : `Kelebihan pakai: ${rp(-sisa)}`;
   if (!items.length) msg += '\n\nPerhatian: belum ada rincian pemakaian.';
   if (tanpaNota) msg += `\n\nPerhatian: ${tanpaNota} baris belum ada nota.`;
+  if (h.Periode >= thisMonth()) msg += '\n\nPerhatian: periode CA ini belum berakhir.';
+  msg += '\n\nSetelah clearing, data tidak bisa diubah lagi.';
   if (!confirm(msg)) return;
 
-  const b = $('btn-settle');
+  const b = $('btn-clear');
   b.disabled = true; b.textContent = 'Memproses...';
   try {
-    CURRENT = await apiPost('settle', { CA_ID: h.CA_ID, Catatan: $('s-catatan').value.trim() });
-    $('s-catatan').value = '';
+    CURRENT = await apiPost('clearing', { CA_ID: h.CA_ID, Catatan: $('c-catatan').value.trim() });
+    $('c-catatan').value = '';
     renderDetail();
     loadList();
-    toast('CA sudah settled');
+    toast('CA sudah clearing');
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
-    b.disabled = false; b.textContent = 'Settle CA';
+    b.disabled = false; b.textContent = 'Clearing CA';
   }
+}
+
+// ---------- CETAK LAPORAN ----------
+function printReport() {
+  if (!CURRENT) return;
+  const h = CURRENT.header, items = CURRENT.items;
+  const nominal = Number(h.Nominal), used = Number(h.Terpakai), sisa = nominal - used;
+  const div = groupSum(items, 'Divisi', MASTER.divisiMap[h.Grup] || []);
+  const kat = groupSum(items, 'Kategori');
+  const rekap = o => Object.keys(o).map(k => `<tr><td>${esc(k)}</td><td class="num">${o[k].n}</td><td class="num">${rp(o[k].t)}</td></tr>`).join('') +
+    `<tr><td><b>Total</b></td><td class="num"><b>${items.length}</b></td><td class="num"><b>${rp(used)}</b></td></tr>`;
+
+  $('print-area').innerHTML = `
+    <h1>Laporan Clearing Cash Advance</h1>
+    <div class="p-sub">Transport Department</div>
+    <table>
+      <tr><td style="width:30%">No CA</td><td>${esc(h.CA_ID)}</td></tr>
+      <tr><td>Periode</td><td>${esc(fmtPeriode(h.Periode))}</td></tr>
+      <tr><td>Grup</td><td>${esc(h.Grup)}</td></tr>
+      <tr><td>PIC</td><td>${esc(h.PIC)}</td></tr>
+      <tr><td>Tanggal terima</td><td>${esc(h.Tanggal_Terima)}</td></tr>
+      <tr><td>Nominal CA</td><td>${rp(nominal)}</td></tr>
+      <tr><td>Total terpakai</td><td>${rp(used)}</td></tr>
+      <tr><td>${sisa >= 0 ? 'Sisa saldo' : 'Kelebihan pakai'}</td><td><b>${rp(Math.abs(sisa))}</b></td></tr>
+      <tr><td>Status</td><td>${h.Status === 'Cleared' ? 'Cleared ' + esc(h.Tgl_Clearing) : 'Belum clearing'}</td></tr>
+      ${h.Catatan_Clearing ? `<tr><td>Catatan</td><td>${esc(h.Catatan_Clearing)}</td></tr>` : ''}
+    </table>
+
+    <h3>Rekap per Divisi</h3>
+    <table><tr><th>Divisi</th><th>Baris</th><th>Terpakai</th></tr>${rekap(div)}</table>
+
+    <h3>Rekap per Kategori</h3>
+    <table><tr><th>Kategori</th><th>Baris</th><th>Terpakai</th></tr>${rekap(kat)}</table>
+
+    <h3>Rincian Pemakaian</h3>
+    <table>
+      <tr><th>No</th><th>Tanggal</th><th>Divisi</th><th>Kategori</th><th>Unit</th><th>Keterangan</th><th>Nominal</th><th>Nota</th></tr>
+      ${items.map((i, n) => `<tr><td>${n + 1}</td><td>${esc(i.Tanggal)}</td><td>${esc(i.Divisi)}</td><td>${esc(i.Kategori)}</td><td>${esc(i.Unit)}</td><td>${esc(i.Keterangan)}</td><td class="num">${rp(i.Nominal)}</td><td>${i.Nota_URL ? 'Ada' : '-'}</td></tr>`).join('')}
+      <tr><td colspan="6"><b>Total</b></td><td class="num"><b>${rp(used)}</b></td><td></td></tr>
+    </table>
+
+    <div class="sign">
+      <div>Dibuat oleh<div class="line">${esc(h.PIC)}</div></div>
+      <div>Diperiksa oleh<div class="line">&nbsp;</div></div>
+      <div>Disetujui oleh<div class="line">&nbsp;</div></div>
+    </div>
+    <div class="p-foot">Dicetak ${new Date().toLocaleString('id-ID')}</div>`;
+
+  window.print();
 }
 
 init();
