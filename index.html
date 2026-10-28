@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cash Advance Transport</title>
+<title>Transport Finance</title>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--warn:#d97706;--bad:#b91c1c}
 *{box-sizing:border-box}
@@ -11,13 +11,14 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;b
 header{background:#111827;color:#fff;padding:14px 16px}
 header h1{margin:0;font-size:17px}
 header p{margin:2px 0 0;font-size:12px;color:#9ca3af}
-nav{display:flex;gap:4px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line)}
-nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted)}
+nav{display:flex;gap:4px;padding:8px 16px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted);white-space:nowrap}
 nav button.active{background:#e0e7ff;color:var(--pri);font-weight:600}
 main{max-width:1000px;margin:0 auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
 .card h2{margin:0 0 6px;font-size:15px}
 .card h3{margin:16px 0 4px;font-size:13px}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px}
 .stat .l{font-size:12px;color:var(--muted)}
@@ -25,11 +26,13 @@ main{max-width:1000px;margin:0 auto;padding:16px}
 label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
 input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:inherit;background:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .btn{background:var(--pri);color:#fff;border:0;padding:10px 16px;border-radius:7px;font-size:14px;cursor:pointer;margin-top:14px}
 .btn.sec{background:#fff;color:var(--text);border:1px solid var(--line)}
 .btn.ok{background:var(--ok)}
 .btn.sm{margin:0;padding:4px 8px;font-size:12px}
 .btn:disabled{opacity:.6;cursor:default}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .actions .btn{margin:0}
 .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
@@ -39,6 +42,8 @@ th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertic
 th{font-size:12px;color:var(--muted);font-weight:600}
 .num{text-align:right;white-space:nowrap}
 .neg{color:var(--bad);font-weight:600}
+.pos{color:var(--ok);font-weight:600}
+.warn-text{color:var(--bad);font-size:12px;margin-top:2px}
 tr.click{cursor:pointer}
 tr.click:hover{background:#f9fafb}
 tr.total td{font-weight:700;border-bottom:0}
@@ -46,6 +51,7 @@ tr.total td{font-weight:700;border-bottom:0}
 .tag.open{background:#dbeafe;color:var(--pri)}
 .tag.cleared{background:#dcfce7;color:var(--ok)}
 .tag.over{background:#fee2e2;color:var(--bad)}
+.tag.auto{background:#f3f4f6;color:#374151}
 .kv{display:grid;grid-template-columns:170px 1fr;gap:6px 10px}
 .kv>div:nth-child(odd){color:var(--muted)}
 .kv .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}
@@ -57,6 +63,8 @@ tr.total td{font-weight:700;border-bottom:0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .muted{color:var(--muted);font-size:12px}
 .hint{color:var(--muted);font-size:12px;margin:-2px 0 8px}
+.sync-box{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6}
+.sync-box b{color:var(--text)}
 .hidden{display:none}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;display:none;z-index:9;max-width:90%}
 .modal{position:fixed;inset:0;background:rgba(17,24,39,.6);display:flex;align-items:center;justify-content:center;padding:16px;z-index:8}
@@ -67,7 +75,7 @@ tr.total td{font-weight:700;border-bottom:0}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
-@media(max-width:700px){.row,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
+@media(max-width:700px){.row,.row3,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
 @media print{
   @page{size:A4;margin:14mm}
   body{background:#fff}
@@ -98,18 +106,20 @@ tr.total td{font-weight:700;border-bottom:0}
 <body>
 
 <header>
-  <h1>Cash Advance - Transport</h1>
-  <p>CA dipegang manager, top up bertahap ke admin, pemakaian, dan clearing akhir bulan</p>
+  <h1>Transport Finance</h1>
+  <p>Cash advance, pemakaian, income, dan ringkasan bulanan</p>
 </header>
 
 <nav>
   <button data-v="list" class="active" onclick="show('list')">Daftar CA</button>
   <button data-v="new" onclick="show('new')">Buat CA</button>
+  <button data-v="income" onclick="show('income')">Income</button>
+  <button data-v="summary" onclick="show('summary')">Ringkasan</button>
 </nav>
 
 <main>
 
-  <!-- DAFTAR -->
+  <!-- DAFTAR CA -->
   <section id="view-list">
     <div class="stats">
       <div class="stat"><div class="l">CA aktif</div><div class="v" id="s-open">-</div></div>
@@ -163,7 +173,7 @@ tr.total td{font-weight:700;border-bottom:0}
     </div>
   </section>
 
-  <!-- DETAIL -->
+  <!-- DETAIL CA -->
   <section id="view-detail" class="hidden">
     <div class="actions">
       <button class="btn sec" onclick="show('list')">&larr; Kembali</button>
@@ -267,6 +277,132 @@ tr.total td{font-weight:700;border-bottom:0}
     </div>
   </section>
 
+  <!-- INCOME -->
+  <section id="view-income" class="hidden">
+    <div class="stats">
+      <div class="stat"><div class="l">Sudah dibayar (sesuai filter)</div><div class="v pos" id="i-paid">-</div></div>
+      <div class="stat"><div class="l">Belum dibayar (sesuai filter)</div><div class="v" id="i-unpaid">-</div></div>
+      <div class="stat"><div class="l">Tagihan terbuka (semua periode)</div><div class="v" id="i-open">-</div></div>
+      <div class="stat"><div class="l">Tagihan &gt; 30 hari</div><div class="v" id="i-old">-</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>Tarik Data Otomatis</h2>
+          <div class="muted">Taxi, air mineral, WO bus &amp; buggy, dan servis mekanik ditarik dari sheet masing-masing. Tidak perlu diinput manual.</div>
+        </div>
+        <button class="btn" style="margin:0" id="btn-sync" onclick="syncIncome()">Tarik Data Sekarang</button>
+      </div>
+      <div class="sync-box" id="sync-info">Belum pernah ditarik.</div>
+    </div>
+
+    <div class="card">
+      <h2>Lunaskan Tagihan Lama</h2>
+      <div class="hint">Untuk tagihan bulan-bulan sebelumnya yang sudah dibayar. Semua tagihan Belum dibayar sampai bulan yang dipilih akan ditandai Lunas (tanggal bayar = tanggal tagihan).</div>
+      <div class="row3">
+        <div><label>Sampai bulan</label><select id="b-sampai"></select></div>
+        <div><label>Sumber data</label><select id="b-sumber"><option value="">Semua sumber</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn ok" style="margin:0;width:100%" id="btn-bulk" onclick="payBulk()">Tandai Lunas</button></div>
+      </div>
+      <div class="muted" id="b-info" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2>Catat Income Manual</h2>
+      <div class="hint">Untuk income di luar sumber otomatis, misalnya Last Mile atau shuttle charter.</div>
+      <div class="row3">
+        <div><label>Tanggal tagihan</label><input type="date" id="i-tanggal"></div>
+        <div><label>Divisi</label><select id="i-divisi"></select></div>
+        <div><label>Sumber</label><select id="i-sumber"></select></div>
+      </div>
+      <div class="row">
+        <div><label>Pelanggan / ditagihkan ke</label><input type="text" id="i-pel" placeholder="Contoh: Luna, PT Oshom, dept. F&B"></div>
+        <div><label>Keterangan (opsional)</label><input type="text" id="i-ket" placeholder="Contoh: SO/2026/01234 charter shuttle"></div>
+      </div>
+      <div class="row3">
+        <div><label>Nominal (Rp)</label><input type="text" id="i-nominal" class="money" inputmode="numeric" placeholder="500.000" autocomplete="off"></div>
+        <div><label>Status</label>
+          <select id="i-status">
+            <option>Belum dibayar</option>
+            <option>Lunas</option>
+          </select>
+        </div>
+        <div><label>Bukti (opsional)</label><input type="file" id="i-bukti" accept="image/*,application/pdf"></div>
+      </div>
+      <button class="btn" id="btn-income" onclick="addIncome()">Simpan Income</button>
+    </div>
+
+    <div class="card">
+      <h2>Daftar Income</h2>
+      <div class="filters">
+        <select id="ff-periode" onchange="renderIncome()"><option value="">Semua periode</option></select>
+        <select id="ff-divisi" onchange="renderIncome()"></select>
+        <select id="ff-sumber" onchange="renderIncome()"><option value="">Semua sumber data</option></select>
+        <select id="ff-status" onchange="renderIncome()">
+          <option value="">Semua status</option>
+          <option>Belum dibayar</option>
+          <option>Lunas</option>
+        </select>
+        <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan" oninput="renderIncome()">
+      </div>
+      <div class="hint">Klik baris untuk melihat detail. Tagihan otomatis per bulan per pelanggan.</div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Sumber</th><th>Pelanggan / Keterangan</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
+          <tbody id="income-body"></tbody>
+        </table>
+      </div>
+      <button class="btn sec" onclick="loadIncome()">Refresh</button>
+    </div>
+  </section>
+
+  <!-- RINGKASAN -->
+  <section id="view-summary" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div><label>Periode</label><select id="r-periode" onchange="loadSummary()"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0" onclick="loadSummary()">Refresh</button></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="l">Income sudah dibayar</div><div class="v pos" id="r-income">-</div></div>
+      <div class="stat"><div class="l">Belum dibayar</div><div class="v" id="r-piutang">-</div></div>
+      <div class="stat"><div class="l">Pengeluaran (CA)</div><div class="v" id="r-expense">-</div></div>
+      <div class="stat"><div class="l">Selisih (total income - pengeluaran)</div><div class="v" id="r-net">-</div></div>
+    </div>
+    <div class="card">
+      <h2>Per Divisi</h2>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Divisi</th><th class="num">Sudah dibayar</th><th class="num">Belum dibayar</th><th class="num">Pengeluaran</th><th class="num">Selisih</th></tr></thead>
+          <tbody id="r-divisi"></tbody>
+        </table>
+      </div>
+      <div class="muted">Selisih = (sudah dibayar + belum dibayar) - pengeluaran.</div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h2>Income per Sumber</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Sumber</th><th class="num">Transaksi</th><th class="num">Nominal</th></tr></thead>
+            <tbody id="r-sumber"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Pengeluaran per Kategori</h2>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Kategori</th><th class="num">Baris</th><th class="num">Nominal</th></tr></thead>
+            <tbody id="r-kategori"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- MODAL DETAIL & FOTO -->
@@ -294,15 +430,19 @@ const TTD_DISETUJUI = 'I Dewa Gede Windhu Wicaksana';
 // Jumlah foto per halaman lampiran
 const LAMP_PER_PAGE = 4;
 
-let MASTER = { grup: [], divisiMap: {}, kategori: [], pic: [], unit: [] };
+let MASTER = { grup: [], divisiMap: {}, kategori: [], pic: [], unit: [], sumberIncome: [], sources: {} };
 let LIST = [];
 let CURRENT = null;
+let INCOME = [];
+let LAST_SYNC = null;
+let INCOME_LOADED = false;
 const FILE_CACHE = {};
 let MODAL_TOKEN = 0;
 
 const $ = id => document.getElementById(id);
 const rp = n => (Number(n) < 0 ? '-Rp ' : 'Rp ') + Math.abs(Number(n || 0)).toLocaleString('id-ID');
 const rpCls = n => `<span class="${Number(n) < 0 ? 'neg' : ''}">${rp(n)}</span>`;
+const rpNet = n => `<span class="${Number(n) < 0 ? 'neg' : 'pos'}">${rp(n)}</span>`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const toNum = v => Number(String(v || '').replace(/\D/g, ''));
 
@@ -329,12 +469,24 @@ function periodeRange(p) {
   return { min: `${p}-01`, max: `${p}-${String(last).padStart(2, '0')}` };
 }
 
+function monthOptions(back, fwd) {
+  const now = new Date(), out = [];
+  for (let i = fwd; i >= -back; i--) out.push(ym(new Date(now.getFullYear(), now.getMonth() + i, 1)));
+  return out;
+}
+
+function allDivisi() {
+  const out = [];
+  Object.keys(MASTER.divisiMap || {}).forEach(g => MASTER.divisiMap[g].forEach(d => { if (!out.includes(d)) out.push(d); }));
+  return out;
+}
+
 function toast(msg) {
   const t = $('toast');
   t.textContent = msg;
   t.style.display = 'block';
   clearTimeout(t._h);
-  t._h = setTimeout(() => t.style.display = 'none', 4000);
+  t._h = setTimeout(() => t.style.display = 'none', 4500);
 }
 
 async function parseRes(r) {
@@ -356,9 +508,11 @@ async function apiPost(action, data) {
 }
 
 function show(view) {
-  ['list', 'new', 'detail'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  ['list', 'new', 'detail', 'income', 'summary'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === view));
   window.scrollTo(0, 0);
+  if (view === 'income' && !INCOME_LOADED) loadIncome();
+  if (view === 'summary') loadSummary();
 }
 
 function fillSelect(el, items, placeholder) {
@@ -418,16 +572,14 @@ function setupMoneyInputs() {
   });
 }
 
-// Dropdown periode: 3 bulan ke belakang sampai 2 bulan ke depan
+// Dropdown periode CA baru: 3 bulan ke belakang sampai 2 bulan ke depan
 function fillPeriodeNew() {
-  const now = new Date();
-  const opts = [];
-  for (let i = -3; i <= 2; i++) opts.push(ym(new Date(now.getFullYear(), now.getMonth() + i, 1)));
+  const opts = monthOptions(3, 2).reverse();
   $('n-periode').innerHTML = opts.map(p => `<option value="${p}">${esc(fmtPeriode(p))}</option>`).join('');
   $('n-periode').value = thisMonth();
 }
 
-// Filter periode di daftar: diisi dari data yang ada
+// Filter periode di daftar CA: diisi dari data yang ada
 function fillPeriodeFilter() {
   const el = $('f-periode');
   const keep = el.value;
@@ -442,6 +594,10 @@ async function init() {
   fillPeriodeNew();
   $('n-tanggal').value = today();
   $('t-tanggal').value = today();
+  $('i-tanggal').value = today();
+  const rOpts = monthOptions(11, 1);
+  $('r-periode').innerHTML = rOpts.map(p => `<option value="${p}">${esc(fmtPeriode(p))}</option>`).join('');
+  $('r-periode').value = thisMonth();
   $('n-grup').addEventListener('change', () => {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
     $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
@@ -453,6 +609,14 @@ async function init() {
     fillSelect($('n-grup'), MASTER.grup || [], 'Pilih grup');
     fillSelect($('u-kategori'), MASTER.kategori || [], 'Pilih kategori');
     fillSelect($('u-unit'), MASTER.unit || [], '- Tidak terkait unit -');
+    fillSelect($('i-divisi'), allDivisi(), 'Pilih divisi');
+    fillSelect($('i-sumber'), MASTER.sumberIncome || [], 'Pilih sumber');
+    fillSelect($('ff-divisi'), allDivisi(), 'Semua divisi');
+    const srcShort = ['Manual'].concat(Object.keys(MASTER.sources || {}).map(k => MASTER.sources[k].short));
+    $('ff-sumber').innerHTML = '<option value="">Semua sumber data</option>' + srcShort.map(s => `<option>${esc(s)}</option>`).join('');
+    $('b-sumber').innerHTML = '<option value="">Semua sumber</option>' + srcShort.map(s => `<option>${esc(s)}</option>`).join('');
+    $('b-sumber').addEventListener('change', renderBulkInfo);
+    $('b-sampai').addEventListener('change', renderBulkInfo);
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     await loadList();
   } catch (e) {
@@ -460,7 +624,7 @@ async function init() {
   }
 }
 
-// ---------- DAFTAR ----------
+// ---------- DAFTAR CA ----------
 async function loadList() {
   $('list-body').innerHTML = '<tr><td colspan="9" class="muted">Memuat...</td></tr>';
   try {
@@ -540,7 +704,7 @@ async function createCA() {
   }
 }
 
-// ---------- DETAIL ----------
+// ---------- DETAIL CA ----------
 async function openDetail(id) {
   show('detail');
   $('d-title').textContent = id;
@@ -706,6 +870,35 @@ function openTopup(idx) {
     ['Keterangan', esc(t.Keterangan) || '-'],
     ['Nominal', '<b>' + rp(t.Nominal) + '</b>']
   ], t.Bukti_URL, 'Bukti transfer');
+}
+
+function sourceUrl(short) {
+  const k = Object.keys(MASTER.sources || {}).find(x => MASTER.sources[x].short === short);
+  return k ? MASTER.sources[k].url : '';
+}
+
+function openIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r) return;
+  const rows = [
+    ['Tanggal tagihan', esc(r.Tanggal)],
+    ['Divisi', esc(r.Divisi)],
+    ['Sumber', esc(r.Sumber)],
+    ['Pelanggan', esc(r.Pelanggan) || '-'],
+    ['Keterangan', esc(r.Keterangan) || '-'],
+    ['Nominal', '<b>' + rp(r.Nominal) + '</b>'],
+    ['Status', incomeTag(r)],
+    ['Tanggal bayar', esc(r.Tgl_Bayar) || '-'],
+    ['Sumber data', esc(r.Sumber_Data)]
+  ];
+  if (r.Auto) {
+    const url = sourceUrl(r.Sumber_Data);
+    rows.push(['Jumlah transaksi', esc(r.Jumlah_Trx)]);
+    rows.push(['Terakhir ditarik', esc(r.Last_Sync) || '-']);
+    if (r.Catatan_Sync) rows.push(['Perlu dicek', `<span class="neg">${esc(r.Catatan_Sync)}</span>`]);
+    if (url) rows.push(['Sheet sumber', `<a href="${esc(url)}" target="_blank" rel="noopener">Buka sheet ${esc(r.Sumber_Data)}</a>`]);
+  }
+  showModal('Detail Income', rows, r.Bukti_URL, 'Bukti');
 }
 
 async function showModal(title, rows, url, fileLabel) {
@@ -901,7 +1094,242 @@ async function doClearing() {
   }
 }
 
-// ---------- CETAK LAPORAN ----------
+// ---------- INCOME ----------
+function incomeTag(r) {
+  if (r.Status === 'Lunas') return '<span class="tag cleared">Lunas</span>';
+  if (r.Berjalan) return '<span class="tag open">Bulan berjalan</span>';
+  return `<span class="tag over">Belum dibayar${r.Umur > 0 ? ' ' + r.Umur + ' hari' : ''}</span>`;
+}
+
+function setIncome(d) {
+  INCOME = d.rows || [];
+  LAST_SYNC = d.lastSync || LAST_SYNC;
+  fillIncomePeriode();
+  INCOME_LOADED = true;
+  renderSyncInfo();
+  fillBulkMonths();
+  renderIncome();
+}
+
+// ---------- LUNASKAN TAGIHAN LAMA ----------
+function bulkTargets() {
+  const sampai = $('b-sampai').value, sd = $('b-sumber').value;
+  if (!sampai) return [];
+  return INCOME.filter(r => r.Status !== 'Lunas' && String(r.Tanggal).slice(0, 7) <= sampai && (!sd || r.Sumber_Data === sd));
+}
+
+function fillBulkMonths() {
+  const el = $('b-sampai');
+  const keep = el.value;
+  const cur = thisMonth();
+  const list = [...new Set(INCOME.filter(r => r.Status !== 'Lunas').map(r => String(r.Tanggal).slice(0, 7)).filter(p => p && p < cur))].sort().reverse();
+  el.innerHTML = list.length
+    ? list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('')
+    : '<option value="">Tidak ada tagihan lama</option>';
+  if (list.includes(keep)) el.value = keep;
+  renderBulkInfo();
+}
+
+function renderBulkInfo() {
+  const t = bulkTargets();
+  $('b-info').textContent = t.length
+    ? `${t.length} tagihan, total ${rp(t.reduce((a, r) => a + r.Nominal, 0))} akan ditandai Lunas.`
+    : 'Tidak ada tagihan yang cocok.';
+  $('btn-bulk').disabled = !t.length;
+}
+
+async function payBulk() {
+  const t = bulkTargets();
+  if (!t.length) return;
+  const sampai = $('b-sampai').value, sd = $('b-sumber').value;
+  if (!confirm(`Tandai Lunas ${t.length} tagihan (${rp(t.reduce((a, r) => a + r.Nominal, 0))})\nsampai ${fmtPeriode(sampai)}${sd ? ' dari sumber ' + sd : ''}?\n\nPastikan tagihan ini memang sudah dibayar.`)) return;
+  const b = $('btn-bulk');
+  b.disabled = true; b.textContent = 'Memproses...';
+  try {
+    const res = await apiPost('payIncomeBulk', { Sampai: sampai, Sumber_Data: sd });
+    setIncome(res);
+    toast(`${res.bulkCount || 0} tagihan ditandai Lunas`);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.textContent = 'Tandai Lunas';
+    renderBulkInfo();
+  }
+}
+
+function renderSyncInfo() {
+  const s = LAST_SYNC;
+  if (!s) {
+    $('sync-info').innerHTML = 'Belum pernah ditarik. Klik <b>Tarik Data Sekarang</b>.';
+    return;
+  }
+  const src = (s.sumber || []).map(x => x.ok
+    ? `<div>${esc(x.label)}: <b>${x.transaksi}</b> transaksi${x.catatan ? ' <span class="muted">(' + esc(x.catatan) + ')</span>' : ''}</div>`
+    : `<div class="neg">${esc(x.label)}: gagal - ${esc(x.error)}</div>`).join('');
+  $('sync-info').innerHTML = `Terakhir ditarik <b>${esc(s.waktu)}</b> &middot; baru ${s.baru}, diperbarui ${s.diperbarui}, dihapus ${s.dihapus}` +
+    (s.perluCek ? `, <span class="neg">perlu dicek ${s.perluCek}</span>` : '') + src;
+}
+
+function fillIncomePeriode() {
+  const el = $('ff-periode');
+  const keep = INCOME_LOADED ? el.value : thisMonth();
+  const list = [...new Set(INCOME.map(r => String(r.Tanggal).slice(0, 7)).concat([thisMonth()]).filter(Boolean))].sort().reverse();
+  el.innerHTML = '<option value="">Semua periode</option>' + list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('');
+  el.value = (keep === '' || list.includes(keep)) ? keep : thisMonth();
+}
+
+async function loadIncome() {
+  $('income-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  try {
+    setIncome(await apiGet({ action: 'incomeList' }));
+  } catch (e) {
+    $('income-body').innerHTML = '<tr><td colspan="7" class="muted">Gagal memuat data</td></tr>';
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function renderIncome() {
+  const fp = $('ff-periode').value, fd = $('ff-divisi').value, fsd = $('ff-sumber').value, fs = $('ff-status').value, fq = $('ff-cari').value.toLowerCase();
+  const rows = INCOME.filter(r =>
+    (!fp || String(r.Tanggal).slice(0, 7) === fp) &&
+    (!fd || r.Divisi === fd) &&
+    (!fsd || r.Sumber_Data === fsd) &&
+    (!fs || r.Status === fs) &&
+    (!fq || (r.Pelanggan + ' ' + r.Keterangan + ' ' + r.Sumber).toLowerCase().includes(fq))
+  );
+
+  const unpaidAll = INCOME.filter(r => r.Status !== 'Lunas');
+  const old = unpaidAll.filter(r => !r.Berjalan && r.Umur > 30);
+  $('i-paid').textContent = rp(rows.filter(r => r.Status === 'Lunas').reduce((a, r) => a + r.Nominal, 0));
+  $('i-unpaid').textContent = rp(rows.filter(r => r.Status !== 'Lunas').reduce((a, r) => a + r.Nominal, 0));
+  $('i-open').textContent = rp(unpaidAll.reduce((a, r) => a + r.Nominal, 0));
+  $('i-old').innerHTML = old.length ? `<span class="neg">${rp(old.reduce((a, r) => a + r.Nominal, 0))}</span>` : rp(0);
+
+  $('income-body').innerHTML = rows.length ? rows.map(r => `
+    <tr class="click" onclick="openIncome('${esc(r.Income_ID)}')">
+      <td>${esc(r.Tanggal)}</td>
+      <td>${esc(r.Divisi)}</td>
+      <td>${esc(r.Sumber)}<div><span class="tag auto">${r.Auto ? 'Otomatis' : 'Manual'}</span></div></td>
+      <td>${esc(r.Pelanggan) || '<span class="muted">-</span>'}${r.Keterangan ? '<div class="muted">' + esc(r.Keterangan) + '</div>' : ''}${r.Catatan_Sync ? '<div class="warn-text">' + esc(r.Catatan_Sync) + '</div>' : ''}</td>
+      <td class="num">${rp(r.Nominal)}</td>
+      <td>${incomeTag(r)}</td>
+      <td><div class="btns">
+        ${r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
+        ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
+}
+
+async function syncIncome() {
+  const b = $('btn-sync');
+  b.disabled = true; b.textContent = 'Menarik data...';
+  try {
+    setIncome(await apiPost('syncIncome', {}));
+    const s = LAST_SYNC || {};
+    const gagal = (s.sumber || []).filter(x => !x.ok).length;
+    toast(gagal ? `Selesai, ${gagal} sumber gagal ditarik. Lihat keterangan di atas.` : `Data ditarik: baru ${s.baru}, diperbarui ${s.diperbarui}`);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Tarik Data Sekarang';
+  }
+}
+
+async function addIncome() {
+  const d = {
+    Tanggal: $('i-tanggal').value,
+    Divisi: $('i-divisi').value,
+    Sumber: $('i-sumber').value,
+    Pelanggan: $('i-pel').value.trim(),
+    Keterangan: $('i-ket').value.trim(),
+    Nominal: toNum($('i-nominal').value),
+    Status: $('i-status').value
+  };
+
+  const miss = [];
+  if (!d.Tanggal) miss.push('tanggal');
+  if (!d.Divisi) miss.push('divisi');
+  if (!d.Sumber) miss.push('sumber');
+  if (!(d.Nominal > 0)) miss.push('nominal');
+  if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
+
+  const auto = Object.keys(MASTER.sources || {}).map(k => MASTER.sources[k].sumber);
+  if (auto.includes(d.Sumber) && !confirm(`"${d.Sumber}" sudah ditarik otomatis dari sheet sumber.\nInput manual bisa membuat income tercatat dobel.\n\nTetap simpan?`)) return;
+
+  const b = $('btn-income');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('i-bukti').files[0];
+    if (f) d.Bukti = await readFile(f);
+    setIncome(await apiPost('addIncome', d));
+    ['i-pel', 'i-ket', 'i-nominal', 'i-bukti'].forEach(i => $(i).value = '');
+    $('i-status').value = 'Belum dibayar';
+    toast('Income tersimpan');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Income';
+  }
+}
+
+async function payIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r) return;
+  let msg = `Tandai lunas: ${r.Sumber} ${rp(r.Nominal)}${r.Pelanggan ? ' (' + r.Pelanggan + ')' : ''}`;
+  if (r.Berjalan) msg += '\n\nPerhatian: bulan ini belum selesai, nominal tagihan masih bisa bertambah.';
+  msg += '\n\nTanggal pembayaran (YYYY-MM-DD):';
+  const tgl = prompt(msg, today());
+  if (tgl === null) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl.trim())) return toast('Format tanggal harus YYYY-MM-DD');
+  try {
+    setIncome(await apiPost('payIncome', { Income_ID: id, Tgl_Bayar: tgl.trim() }));
+    toast('Income ditandai lunas');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+async function delIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r || !confirm(`Hapus income ${r.Sumber} ${rp(r.Nominal)} tanggal ${r.Tanggal}?`)) return;
+  try {
+    setIncome(await apiPost('deleteIncome', { Income_ID: id }));
+    toast('Income dihapus');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- RINGKASAN ----------
+async function loadSummary() {
+  const p = $('r-periode').value;
+  ['r-divisi', 'r-sumber', 'r-kategori'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Memuat...</td></tr>');
+  try {
+    const d = await apiGet({ action: 'summary', periode: p });
+    let ti = 0, tp = 0, te = 0;
+    const keys = Object.keys(d.divisi);
+    $('r-divisi').innerHTML = keys.map(k => {
+      const x = d.divisi[k], net = x.income + x.piutang - x.expense;
+      ti += x.income; tp += x.piutang; te += x.expense;
+      return `<tr><td>${esc(k)}</td><td class="num">${rp(x.income)}</td><td class="num">${rp(x.piutang)}</td><td class="num">${rp(x.expense)}</td><td class="num">${rpNet(net)}</td></tr>`;
+    }).join('') + `<tr class="total"><td>Total</td><td class="num">${rp(ti)}</td><td class="num">${rp(tp)}</td><td class="num">${rp(te)}</td><td class="num">${rpNet(ti + tp - te)}</td></tr>`;
+
+    $('r-income').textContent = rp(ti);
+    $('r-piutang').textContent = rp(tp);
+    $('r-expense').textContent = rp(te);
+    $('r-net').innerHTML = rpNet(ti + tp - te);
+
+    const sk = Object.keys(d.sumber);
+    $('r-sumber').innerHTML = sk.length ? sk.map(k => `<tr><td>${esc(k)}</td><td class="num">${d.sumber[k].n}</td><td class="num">${rp(d.sumber[k].t)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">Belum ada income</td></tr>';
+    const kk = Object.keys(d.kategori);
+    $('r-kategori').innerHTML = kk.length ? kk.map(k => `<tr><td>${esc(k)}</td><td class="num">${d.kategori[k].n}</td><td class="num">${rp(d.kategori[k].t)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">Belum ada pengeluaran</td></tr>';
+  } catch (e) {
+    ['r-divisi', 'r-sumber', 'r-kategori'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Gagal memuat data</td></tr>');
+    toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- CETAK LAPORAN CLEARING ----------
 function lampiranItem(no, caption, url, files, label) {
   const f = files[url] || {};
   let body;
