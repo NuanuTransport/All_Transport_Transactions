@@ -354,13 +354,13 @@ tr.total td{font-weight:700;border-bottom:0}
     </div>
 
     <div class="card">
-      <h2>Cetak Invoice Tagihan Guest Mobility</h2>
-      <div class="hint">Invoice bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Pilih Company untuk invoice per departemen (sesuai kolom COMPANY), atau Semua company untuk satu invoice gabungan. Klik Tarik Data dulu agar data terbaru.</div>
+      <h2>Cetak Job Completion Guest Mobility</h2>
+      <div class="hint">Job Completion bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Pilih Company untuk Job Completion per departemen (sesuai kolom COMPANY), atau Semua company untuk satu Job Completion gabungan. Klik Tarik Data dulu agar data terbaru.</div>
       <div class="row4">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
         <div><label>Company</label><select id="iv-comp"></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value)">Cetak Invoice</button></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value)">Cetak Job Completion</button></div>
       </div>
     </div>
 
@@ -1401,7 +1401,7 @@ function renderIncome() {
       <td class="num">${rp(r.Nominal)}</td>
       <td>${incomeTag(r)}</td>
       <td><div class="btns">
-        ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Invoice</button>` : ''}
+        ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
         ${r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
         ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
       </div></td>
@@ -1659,7 +1659,7 @@ function setPageSize(size) {
 async function printInvoice(id, comp) {
   if (!id) return;
   const btn = $('btn-inv');
-  btn.disabled = true; btn.textContent = 'Menyiapkan invoice...';
+  btn.disabled = true; btn.textContent = 'Menyiapkan Job Completion...';
   try {
     const all = await getInvoiceData(id);
     const rows = comp ? all.rows.filter(r => compKey(r) === comp) : all.rows;
@@ -1669,12 +1669,12 @@ async function printInvoice(id, comp) {
     // Ditagihkan ke: company (bila difilter) atau nama di kolom PAYMENT
     const billTo = comp || all.pelanggan;
     const entity = comp && comp !== String(all.pelanggan || '').trim().toUpperCase() ? all.pelanggan : '';
-    let noDefault = all.noInvoice;
+    let noDefault = String(all.noInvoice || '').replace(/^INV\//, 'JC/');   // nomor dokumen: JC/GM/yyMM/NNN
     if (comp) noDefault += '-' + String(companiesOf(all).findIndex(c => c.key === comp) + 1).padStart(2, '0');
 
-    let msg = `Invoice ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${rows.length} trip, total ${rp(total)}.`;
+    let msg = `Job Completion ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${rows.length} trip, total ${rp(total)}.`;
     if (!comp && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
-    msg += '\n\nNomor invoice:';
+    msg += '\n\nNomor Job Completion:';
     const no = prompt(msg, noDefault);
     if (no === null) return;
 
@@ -1684,11 +1684,11 @@ async function printInvoice(id, comp) {
       <div class="inv-top">
         <div>${logoTag()}</div>
         <div class="inv-title">
-          <h1>INVOICE</h1>
+          <h1>JOB COMPLETION</h1>
           <div class="p-sub">Nuanu Guest Mobility &middot; Transport Department</div>
         </div>
         <table class="inv-meta">
-          <tr><td>Invoice No.</td><td><b>${esc(no.trim() || noDefault)}</b></td></tr>
+          <tr><td>Job Completion No.</td><td><b>${esc(no.trim() || noDefault)}</b></td></tr>
           <tr><td>Date</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
           <tr><td>Period</td><td>${esc(fmtPeriodeEn(all.periode))}</td></tr>
         </table>
@@ -1725,11 +1725,11 @@ async function printInvoice(id, comp) {
 
     await waitImages();
     setPageSize('A4 landscape');
-    printAs(`Invoice ${billTo} - ${fmtPeriodeEn(all.periode)}`);
+    printAs(`Job Completion ${billTo} - ${fmtPeriodeEn(all.periode)}`);
   } catch (e) {
-    toast('Gagal menyiapkan invoice: ' + e.message);
+    toast('Gagal menyiapkan Job Completion: ' + e.message);
   } finally {
-    btn.textContent = 'Cetak Invoice';
+    btn.textContent = 'Cetak Job Completion';
     btn.disabled = !$('iv-pel').value;
   }
 }
