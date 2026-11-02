@@ -355,7 +355,7 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card">
       <h2>Cetak Job Completion Guest Mobility</h2>
-      <div class="hint">Job Completion bulanan berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Untuk bayar langsung (mis. Bayar langsung - Transfer), pilih Pemesan (kolom REQ BY - GUEST NAME) untuk Job Completion per pemesan seperti Darya atau Maxim. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="hint">Job Completion bulanan berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Untuk direct order yang ditagih bulanan (Direct order - Transfer), pilih Pemesan (kolom REQ BY - GUEST NAME) untuk rekap per pemesan seperti Darya atau Maxim, lalu tandai Lunas setelah transfer masuk. Klik Tarik Data dulu agar data terbaru.</div>
       <div class="row4">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
@@ -588,6 +588,8 @@ const INV_HEAD_NAME = 'Dimas Destrian Caesar';
 const INV_HEAD_TITLE = 'Head of Transport Department';
 const INV_NOTE = 'Please process the payment via cost transfer to the Transport Department. Trip details are based on Nuanu Guest Mobility records.';
 const INV_NOTE_DIRECT = pay => `Monthly statement for direct order bookings, paid by ${String(pay || 'transfer').toLowerCase()}. Trip details are based on Nuanu Guest Mobility records.`;
+// Direct order yang dibayar setelah rekap bulanan dikirim (mis. by transfer): belum dibayar, diminta transfer
+const INV_NOTE_PAYLATER = 'Monthly statement for direct order bookings. Please transfer the total amount upon receipt of this statement. Trip details are based on Nuanu Guest Mobility records.';
 
 // Tanda tangan Head of Transport (vektor), tampil otomatis di invoice tepat di atas nama
 const TTD_HEAD_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160.0 64.9"><path fill-rule="evenodd" d="M159.9 0.8 158.7 0.1 154.7 0.0 146.1 1.1 139.3 2.5 131.9 4.5 119.2 8.8 105.7 14.5 96.0 19.5 90.2 23.5 88.0 25.6 87.2 27.4 86.3 27.8 83.1 28.1 82.5 27.9 81.9 20.8 81.8 14.7 81.3 14.5 80.9 14.7 80.7 20.8 81.3 26.3 81.1 28.3 70.4 30.1 59.5 32.5 46.7 36.0 35.2 39.7 24.7 43.6 11.2 49.3 1.7 54.2 0.0 55.6 0.0 56.0 0.8 56.3 5.4 53.2 17.0 47.8 28.7 43.2 39.6 39.3 49.4 36.2 62.1 32.9 76.6 30.0 81.3 29.5 81.5 29.7 82.5 39.3 82.1 39.8 80.6 40.2 80.1 40.1 80.9 38.4 80.9 37.6 80.6 37.0 79.8 36.6 78.3 36.6 76.0 37.3 71.3 39.3 61.5 44.5 54.6 48.9 51.1 51.5 48.7 53.9 47.7 55.6 47.5 56.7 48.3 57.8 49.5 58.2 52.6 58.3 56.8 57.8 65.7 55.8 76.1 52.7 83.4 50.2 83.7 50.5 84.4 57.1 85.5 62.5 86.2 64.3 86.7 64.8 87.1 64.8 87.6 64.4 88.0 63.3 88.2 58.4 87.4 53.4 85.9 49.4 93.1 46.2 97.6 43.8 102.8 40.4 105.8 37.6 110.6 37.2 111.3 36.6 110.7 36.0 108.0 35.1 109.1 32.3 109.3 30.1 108.7 28.8 107.8 27.9 105.7 27.1 102.0 26.7 94.8 26.8 88.4 27.4 88.6 26.7 89.9 25.1 95.6 21.0 104.9 16.1 115.5 11.4 124.0 8.2 135.0 4.8 145.0 2.4 154.0 1.1 157.2 1.1 159.3 1.5ZM84.8 49.7 86.0 52.3 86.8 55.8 87.2 59.2 87.0 63.1 86.6 62.5 85.5 57.2 84.7 51.1ZM82.6 42.5 82.9 42.8 83.1 45.0 82.9 45.3 82.1 45.1 81.5 45.4 81.5 44.9ZM81.1 42.2 77.1 45.3 76.9 45.1 78.7 42.2ZM81.5 41.0 82.1 40.8 82.6 40.9 82.5 41.3ZM104.0 37.8 102.5 39.3 99.2 41.7 95.1 44.1 90.7 46.2 85.6 48.3 85.1 48.1 84.3 46.9 83.7 40.8 84.0 40.4 93.6 38.8 103.2 37.7ZM79.8 37.8 79.8 38.4 78.9 40.2 77.5 41.4 77.7 42.1 76.3 44.1 75.6 46.1 76.2 46.7 76.9 46.6 80.9 43.8 81.0 44.1 80.5 45.0 80.2 46.3 80.6 46.7 81.1 46.7 82.2 46.2 83.3 47.3 83.3 49.1 73.2 52.6 60.4 56.0 53.2 57.2 49.3 57.1 48.6 56.6 48.6 56.0 49.4 54.7 51.9 52.2 56.2 49.0 60.3 46.3 66.4 42.9 73.0 39.6 77.4 37.8 79.5 37.6ZM107.0 36.4 107.3 36.0 108.1 36.2ZM82.6 29.5 83.0 29.1 87.1 28.7 88.6 30.5 91.8 32.1 98.5 34.1 105.7 35.6 106.0 36.0 105.2 36.6 93.1 37.8 83.8 39.4 83.4 38.9ZM88.3 28.7 89.4 28.3 95.7 27.8 101.4 27.6 104.5 27.9 106.4 28.3 108.0 29.5 108.2 30.1 108.2 31.7 107.2 34.4 106.5 34.9 96.3 32.5 92.4 31.3 90.0 30.3Z"/></svg>';
@@ -1706,7 +1708,7 @@ async function printInvoice(id, comp) {
     const oneComp = !comp && comps.length === 1 && comps[0].key !== '(NO COMPANY)' && comps[0].key !== '(NO NAME)' ? comps[0].key : '';
     const billTo = comp || oneComp || all.pelanggan;
     const entity = all.direct
-      ? 'Direct order, paid by ' + all.payment
+      ? (all.payLater ? 'Direct order, payment by ' + String(all.payment).toLowerCase() : 'Direct order, paid by ' + all.payment)
       : (billTo !== String(all.pelanggan || '').trim().toUpperCase() && billTo !== all.pelanggan ? all.pelanggan : '');
     let noDefault = String(all.noInvoice || '').replace(/^INV\//, 'JC/');   // nomor dokumen: JC/GM/yyMM/NNN
     if (comp && (all.direct || comps.length > 1)) noDefault += '-' + String(comps.findIndex(c => c.key === comp) + 1).padStart(2, '0');
@@ -1758,7 +1760,7 @@ async function printInvoice(id, comp) {
 
       <div class="inv-end">
         <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
-        ${all.direct ? `<div class="inv-note">${esc(INV_NOTE_DIRECT(all.payment))}</div>` : (INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : '')}
+        ${all.direct ? `<div class="inv-note">${esc(all.payLater ? INV_NOTE_PAYLATER : INV_NOTE_DIRECT(all.payment))}</div>` : (INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : '')}
         <div class="sign">
           <div>Prepared by<br>${esc(INV_PREP_TITLE)}<div class="sig-box">${TTD_ADMIN_SVG}</div><div class="line">${esc(INV_PREP_NAME)}</div></div>
           <div>Acknowledged by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
