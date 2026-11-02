@@ -355,7 +355,7 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card">
       <h2>Cetak Job Completion Guest Mobility</h2>
-      <div class="hint">Job Completion bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Pilih Company untuk Job Completion per departemen (sesuai kolom COMPANY), atau Semua company untuk satu Job Completion gabungan. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="hint">Job Completion bulanan untuk tagihan taxi ke perusahaan / departemen, berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2), dan Bill to diisi nama company (kolom COMPANY). Bila satu PAYMENT berisi beberapa company, pilih Company untuk Job Completion per company, atau Semua company untuk satu Job Completion gabungan. Klik Tarik Data dulu agar data terbaru.</div>
       <div class="row4">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
@@ -1540,8 +1540,17 @@ async function getInvoiceData(id) {
   return INV_CACHE[id];
 }
 
-// Company dari kolom COMPANY sheet Nuanu Taxi Service (huruf besar, spasi dirapikan)
-const compKey = r => String(r.Perusahaan || '').replace(/\s+/g, ' ').trim().toUpperCase() || '(NO COMPANY)';
+// Company dari kolom COMPANY sheet Nuanu Taxi Service (huruf besar, spasi dirapikan).
+// Penulisan berbeda untuk company yang sama disatukan lewat COMPANY_ALIAS.
+const COMPANY_ALIAS = [
+  [/^(NSF|NUANU\s*SOCIAL\s*FUND)(\s*\(NSF\))?$/, 'NUANU SOCIAL FUND (NSF)']
+];
+const compKey = r => {
+  const k = String(r.Perusahaan || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!k) return '(NO COMPANY)';
+  const a = COMPANY_ALIAS.find(x => x[0].test(k));
+  return a ? a[1] : k;
+};
 
 function companiesOf(d) {
   const o = {};
@@ -1573,12 +1582,10 @@ async function fillInvoiceCompany() {
       el.innerHTML = `<option value="">Flat ${esc(rp(d.flat))} sesuai agreement (${d.rows.length} trip)</option>`;
       return;
     }
-    if (d.split) {
-      el.innerHTML = `<option value="">${esc(d.split.label)} ${d.split.pct}% (${d.rows.length} trip - ${esc(rp(d.total))})</option>`;
-      return;
-    }
-    el.innerHTML = `<option value="">Semua company (${d.rows.length} trip - ${esc(rp(d.total))})</option>` +
-      list.map(c => `<option value="${esc(c.key)}">${esc(c.key)} - ${c.n} trip - ${esc(rp(c.total))}</option>`).join('');
+    el.innerHTML = (list.length === 1
+      ? `<option value="">${esc(list[0].key)} (${d.rows.length} trip - ${esc(rp(d.total))})</option>`
+      : `<option value="">Semua company (${d.rows.length} trip - ${esc(rp(d.total))})</option>`) +
+      (list.length > 1 ? list : []).map(c => `<option value="${esc(c.key)}">${esc(c.key)} - ${c.n} trip - ${esc(rp(c.total))}</option>`).join('');
   } catch (e) {
     if (token !== INV_COMP_TOKEN) return;
     el.innerHTML = '<option value="">Semua company</option>';
@@ -1671,16 +1678,19 @@ async function printInvoice(id, comp) {
   try {
     const all = await getInvoiceData(id);
     const flat = Number(all.flat || 0);                 // tagihan flat per bulan sesuai agreement (mis. PT BRR / Handara)
-    if (flat || all.split) comp = '';                   // flat / tagihan bagian berlaku untuk seluruh tagihan, tidak dipisah per company
+    if (flat) comp = '';                                // flat berlaku untuk seluruh tagihan, tidak dipisah per company
     const rows = comp ? all.rows.filter(r => compKey(r) === comp) : all.rows;
     if (!rows.length && !flat) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
     const total = flat || rows.reduce((a, r) => a + Number(r.Biaya || 0), 0);
 
-    // Ditagihkan ke: company (bila difilter) atau nama di kolom PAYMENT
-    const billTo = comp || all.pelanggan;
-    const entity = comp && comp !== String(all.pelanggan || '').trim().toUpperCase() ? all.pelanggan : '';
+    // Ditagihkan ke company (kolom COMPANY); kolom PAYMENT dicantumkan sebagai billing entity.
+    // Tanpa filter: bila semua trip dari satu company, Bill to = company tersebut; bila campuran, Bill to = PAYMENT.
+    const comps = companiesOf(all);
+    const oneComp = !comp && comps.length === 1 && comps[0].key !== '(NO COMPANY)' ? comps[0].key : '';
+    const billTo = comp || oneComp || all.pelanggan;
+    const entity = billTo !== String(all.pelanggan || '').trim().toUpperCase() && billTo !== all.pelanggan ? all.pelanggan : '';
     let noDefault = String(all.noInvoice || '').replace(/^INV\//, 'JC/');   // nomor dokumen: JC/GM/yyMM/NNN
-    if (comp) noDefault += '-' + String(companiesOf(all).findIndex(c => c.key === comp) + 1).padStart(2, '0');
+    if (comp && comps.length > 1) noDefault += '-' + String(comps.findIndex(c => c.key === comp) + 1).padStart(2, '0');
 
     let msg = `Job Completion ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${rows.length} trip, total ${rp(total)}${flat ? ' (flat sesuai agreement)' : ''}.`;
     if (!comp && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
@@ -1690,8 +1700,7 @@ async function printInvoice(id, comp) {
 
     const tglCetak = today();
     const hasDrv = rows.some(r => r.Driver), hasSO = rows.some(r => r.SO);   // kolom kosong semua tidak ditampilkan
-    const split = all.split;                                                  // tagihan bagian (mis. NSF 50% ke YDSN 1 / YDSN 2)
-    const nCol = 8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0) + (split ? 1 : 0);    // jumlah kolom sebelum kolom Amount
+    const nCol = 8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0);                      // jumlah kolom sebelum kolom Amount
     const tripLine = `${rows.length} trip${rows.length === 1 ? '' : 's'}`;
     $('print-area').innerHTML = `
       <div class="inv-top">
@@ -1710,13 +1719,12 @@ async function printInvoice(id, comp) {
       <div class="inv-to">
         <div class="muted-p">Bill to</div>
         <div class="inv-to-name">${esc(billTo)}</div>
-        ${entity ? `<div class="muted-p">Billing entity: ${esc(entity)}</div>` : ''}
+        ${entity ? `<div class="muted-p">Payment / billing entity: ${esc(entity)}</div>` : ''}
         <div class="muted-p">Guest Mobility transport services, ${tripLine} in ${esc(fmtPeriodeEn(all.periode))}${flat ? ' &middot; monthly flat fee as per agreement' : ''}</div>
-        ${split ? `<div class="muted-p">${esc(split.label)} trips shared equally between ${esc(split.parts.join(' and '))}: this document covers ${split.pct}% (part ${split.idx + 1} of ${split.n}) of total trip charges ${rp(split.fullTotal)}</div>` : ''}
       </div>
 
       <table class="inv-table">
-        <tr><th>No</th><th>Date</th><th>Time</th><th>Requested by / Guest</th><th>Pick-up</th><th>Drop-off</th><th>Trip</th><th>Vehicle</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>SO No.</th>' : ''}${split ? '<th>Trip charge</th>' : ''}<th>Amount${split ? ' (' + split.pct + '%)' : ''}</th></tr>
+        <tr><th>No</th><th>Date</th><th>Time</th><th>Requested by / Guest</th><th>Pick-up</th><th>Drop-off</th><th>Trip</th><th>Vehicle</th>${hasDrv ? '<th>Driver</th>' : ''}${hasSO ? '<th>SO No.</th>' : ''}<th>Amount</th></tr>
         ${flat ? `<tr><td colspan="${nCol}"><b>Monthly flat fee as per agreement</b> &middot; ${esc(fmtPeriodeEn(all.periode))} &middot; regardless of number of bookings</td><td class="num"><b>${rp(flat)}</b></td></tr>
         <tr><td colspan="${nCol + 1}"><i>Trip details for reference (${tripLine}, included in the flat fee)</i></td></tr>` : ''}
         ${!rows.length ? `<tr><td colspan="${nCol + 1}">No bookings in this period</td></tr>` : ''}
@@ -1724,9 +1732,9 @@ async function printInvoice(id, comp) {
           <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
           <td>${esc(r.Tamu)}${!comp && r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
           <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
-          ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}${split ? '<td class="num">' + rp(r.BiayaPenuh) + '</td>' : ''}<td class="num">${flat ? 'Included' : rp(r.Biaya)}</td>
+          ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${flat ? 'Included' : rp(r.Biaya)}</td>
         </tr>`).join('')}
-        <tr class="inv-total"><td colspan="${nCol}">Total Amount${flat ? ' (monthly flat fee)' : ''}${split ? ' (' + split.pct + '% share)' : ''}</td><td class="num">${rp(total)}</td></tr>
+        <tr class="inv-total"><td colspan="${nCol}">Total Amount${flat ? ' (monthly flat fee)' : ''}</td><td class="num">${rp(total)}</td></tr>
       </table>
 
       <div class="inv-end">
