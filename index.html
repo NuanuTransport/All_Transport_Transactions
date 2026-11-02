@@ -357,7 +357,7 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card">
       <h2>Cetak Job Completion Guest Mobility</h2>
-      <div class="hint">Job Completion bulanan berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Untuk direct order yang ditagih bulanan (Direct order - Transfer), pilih Pemesan (kolom REQ BY - GUEST NAME) untuk rekap per pemesan seperti Darya atau Maxim, lalu tandai Lunas setelah transfer masuk. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="hint">Job Completion bulanan berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Direct order yang ditagih bulanan (Darya, Maxim) punya tagihan sendiri per pemesan per bulan; tandai Lunas setelah transfer masuk. Bayar langsung lainnya (mis. Bayar langsung - Transfer) bisa dicetak per pemesan. Klik Tarik Data dulu agar data terbaru.</div>
       <div class="row4">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
@@ -1537,7 +1537,8 @@ async function delIncome(id) {
 // ---------- INVOICE TAGIHAN BULANAN GUEST MOBILITY ----------
 // Tagihan taxi ke perusahaan / departemen (bukan bayar langsung) bisa dicetak sebagai invoice bulanan
 // Bayar langsung (Transfer, Cash, dll) juga bisa, dipisah per pemesan (mis. direct order bulanan by transfer)
-const isInvoiceRow = r => /^TAXI\|\d{4}-\d{2}\|(BILL|DIRECT)\|/.test(String(r.Sync_Key || ''));
+// Direct order ditagih bulanan per pemesan (CUST), mis. Darya dan Maxim
+const isInvoiceRow = r => /^TAXI\|\d{4}-\d{2}\|(BILL|DIRECT|CUST)\|/.test(String(r.Sync_Key || ''));
 
 // Rincian trip per tagihan disimpan sementara, dipakai untuk daftar company dan cetak invoice
 const INV_CACHE = {};
@@ -1596,6 +1597,11 @@ async function fillInvoiceCompany() {
     const list = companiesOf(d);
     if (d.flat) {
       el.innerHTML = `<option value="">Flat ${esc(rp(d.flat))} sesuai agreement (${d.rows.length} trip)</option>`;
+      return;
+    }
+    if (d.monthly) {
+      $('iv-comp-l').textContent = 'Pemesan';
+      el.innerHTML = `<option value="">${esc(d.pelanggan)} (${d.rows.length} trip - ${esc(rp(d.total))})</option>`;
       return;
     }
     if (d.direct) {
@@ -1700,7 +1706,7 @@ async function printInvoice(id, comp) {
   try {
     const all = await getInvoiceData(id);
     const flat = Number(all.flat || 0);                 // tagihan flat per bulan sesuai agreement (mis. PT BRR / Handara)
-    if (flat) comp = '';                                // flat berlaku untuk seluruh tagihan, tidak dipisah per company
+    if (flat || all.monthly) comp = '';                 // flat / tagihan bulanan pemesan: tidak dipisah per company
     const keyFn = groupKeyOf(all);
     const rows = comp ? all.rows.filter(r => keyFn(r) === comp) : all.rows;
     if (!rows.length && !flat) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
@@ -1710,9 +1716,11 @@ async function printInvoice(id, comp) {
     // Tanpa filter: bila semua trip dari satu company, Bill to = company tersebut; bila campuran, Bill to = PAYMENT.
     const comps = companiesOf(all);
     const oneComp = !comp && comps.length === 1 && comps[0].key !== '(NO COMPANY)' && comps[0].key !== '(NO NAME)' ? comps[0].key : '';
-    const billTo = comp || oneComp || all.pelanggan;
-    const entity = all.direct
-      ? (all.payLater ? 'Direct order, payment by ' + String(all.payment).toLowerCase() : 'Direct order, paid by ' + all.payment)
+    const billTo = all.monthly ? all.pelanggan : (comp || oneComp || all.pelanggan);
+    const entity = all.payLater
+      ? 'Direct order, payment by ' + String(all.payment).toLowerCase()
+      : all.direct
+      ? 'Direct order, paid by ' + all.payment
       : (billTo !== String(all.pelanggan || '').trim().toUpperCase() && billTo !== all.pelanggan ? all.pelanggan : '');
     let noDefault = String(all.noInvoice || '').replace(/^INV\//, 'JC/');   // nomor dokumen: JC/GM/yyMM/NNN
     if (comp && (all.direct || comps.length > 1)) noDefault += '-' + String(comps.findIndex(c => c.key === comp) + 1).padStart(2, '0');
@@ -1744,7 +1752,7 @@ async function printInvoice(id, comp) {
       <div class="inv-to">
         <div class="muted-p">Bill to</div>
         <div class="inv-to-name">${esc(billTo)}</div>
-        ${entity ? `<div class="muted-p">${all.direct ? esc(entity) : 'Payment / billing entity: ' + esc(entity)}</div>` : ''}
+        ${entity ? `<div class="muted-p">${all.direct || all.payLater ? esc(entity) : 'Payment / billing entity: ' + esc(entity)}</div>` : ''}
         <div class="muted-p">Guest Mobility transport services, ${tripLine} in ${esc(fmtPeriodeEn(all.periode))}${flat ? ' &middot; monthly flat fee as per agreement' : ''}</div>
       </div>
 
@@ -1755,7 +1763,7 @@ async function printInvoice(id, comp) {
         ${!rows.length ? `<tr><td colspan="${nCol + 1}">No bookings in this period</td></tr>` : ''}
         ${rows.map((r, i) => `<tr>
           <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
-          <td>${esc(r.Tamu)}${!comp && !all.direct && r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
+          <td>${esc(r.Tamu)}${!comp && !all.direct && !all.payLater && r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
           <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
           ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${flat ? 'Included' : rp(r.Biaya)}</td>
         </tr>`).join('')}
@@ -1764,7 +1772,7 @@ async function printInvoice(id, comp) {
 
       <div class="inv-end">
         <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
-        ${all.direct ? `<div class="inv-note">${esc(all.payLater ? INV_NOTE_PAYLATER : INV_NOTE_DIRECT(all.payment))}</div>` : (INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : '')}
+        ${all.payLater ? `<div class="inv-note">${esc(INV_NOTE_PAYLATER)}</div>` : all.direct ? `<div class="inv-note">${esc(INV_NOTE_DIRECT(all.payment))}</div>` : (INV_NOTE ? `<div class="inv-note">${esc(INV_NOTE)}</div>` : '')}
         ${all.payLater ? `<div class="inv-bank"><b>Payment by bank transfer to:</b>
           <table><tr><td>Bank</td><td>${esc(INV_BANK.bank)}</td></tr>
           <tr><td>Account No.</td><td><b>${esc(INV_BANK.no)}</b></td></tr>
