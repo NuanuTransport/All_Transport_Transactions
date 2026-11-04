@@ -56,6 +56,9 @@ tr.total td{font-weight:700;border-bottom:0}
 .tag.over{background:#fee2e2;color:var(--bad)}
 .tag.auto{background:#f3f4f6;color:#374151}
 .tag.wait{background:#fef3c7;color:#92400e}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:4px 0 12px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 14px;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:inherit}
+.tabs button.active{color:var(--pri);border-bottom-color:var(--pri);font-weight:600}
 .kv{display:grid;grid-template-columns:170px 1fr;gap:6px 10px}
 .kv>div:nth-child(odd){color:var(--muted)}
 .kv .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}
@@ -126,6 +129,7 @@ tr.total td{font-weight:700;border-bottom:0}
   #print-area .inv-bank td{border:0;padding:1px 10px 1px 0;font-size:11px}
   #print-area .inv-table tr{break-inside:avoid;page-break-inside:avoid}
   #print-area .inv-table .nw{white-space:nowrap}
+  #print-area .inv-table tr.inv-cancel td{color:#777;font-style:italic}
   #print-area .inv-end{break-inside:avoid;page-break-inside:avoid}
   #print-area .inv-end .sign .line{margin-top:0}
   #print-area .sig-box{height:50px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
@@ -327,10 +331,10 @@ tr.total td{font-weight:700;border-bottom:0}
   <!-- INCOME -->
   <section id="view-income" class="hidden">
     <div class="stats">
-      <div class="stat"><div class="l">Sudah dibayar (sesuai filter)</div><div class="v pos" id="i-paid">-</div></div>
-      <div class="stat"><div class="l">Belum dibayar (sesuai filter)</div><div class="v" id="i-unpaid">-</div></div>
-      <div class="stat"><div class="l">Tagihan terbuka (semua periode)</div><div class="v" id="i-open">-</div></div>
-      <div class="stat"><div class="l">Tagihan &gt; 30 hari</div><div class="v" id="i-old">-</div></div>
+      <div class="stat"><div class="l">Tagihan belum dibayar (semua periode)</div><div class="v" id="i-open">-</div><div class="muted" id="i-open-n"></div></div>
+      <div class="stat"><div class="l">Tagihan belum dibayar &gt; 30 hari</div><div class="v" id="i-old">-</div><div class="muted" id="i-old-n"></div></div>
+      <div class="stat"><div class="l" id="i-tag-l">Tagihan bulan ini</div><div class="v" id="i-tag">-</div><div class="muted" id="i-tag-n"></div></div>
+      <div class="stat"><div class="l" id="i-lang-l">Penjualan langsung bulan ini</div><div class="v pos" id="i-lang">-</div><div class="muted" id="i-lang-n"></div></div>
     </div>
 
     <div class="card">
@@ -393,6 +397,10 @@ tr.total td{font-weight:700;border-bottom:0}
 
     <div class="card">
       <h2>Daftar Income</h2>
+      <div class="tabs" id="inc-tabs">
+        <button data-t="tagihan" class="active" onclick="setIncTab('tagihan')">Tagihan</button>
+        <button data-t="langsung" onclick="setIncTab('langsung')">Penjualan langsung</button>
+      </div>
       <div class="filters">
         <select id="ff-periode" onchange="renderIncome()"><option value="">Semua periode</option></select>
         <select id="ff-divisi" onchange="renderIncome()"></select>
@@ -404,10 +412,10 @@ tr.total td{font-weight:700;border-bottom:0}
         </select>
         <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan" oninput="renderIncome()">
       </div>
-      <div class="hint">Klik baris untuk melihat detail. Tagihan otomatis per bulan per pelanggan.</div>
+      <div class="hint" id="inc-hint"></div>
       <div class="tablewrap">
         <table>
-          <thead><tr><th>Tanggal</th><th>Divisi</th><th>Sumber</th><th>Pelanggan / Keterangan</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
+          <thead id="income-head"></thead>
           <tbody id="income-body"></tbody>
         </table>
       </div>
@@ -1072,15 +1080,19 @@ function sourceUrl(short) {
 function openIncome(id) {
   const r = INCOME.find(x => x.Income_ID === id);
   if (!r) return;
+  const lang = isLangsung(r), p = periodeOf(r);
   const rows = [
-    ['Tanggal tagihan', esc(r.Tanggal)],
+    ['Jenis', lang ? 'Penjualan langsung (sudah dibayar di tempat)' : 'Tagihan'],
+    r.Auto
+      ? ['Periode', esc(fmtPeriode(p)) + (p >= thisMonth() ? ' <span class="tag open">Bulan berjalan</span>' : '')]
+      : ['Tanggal', esc(fmtTgl(r.Tanggal))],
     ['Divisi', esc(r.Divisi)],
     ['Sumber', esc(r.Sumber)],
-    ['Pelanggan', esc(r.Pelanggan) || '-'],
+    [lang ? 'Metode bayar' : 'Ditagihkan ke', esc(r.Pelanggan) || '-'],
     ['Keterangan', esc(r.Keterangan) || '-'],
-    ['Nominal', '<b>' + rp(r.Nominal) + '</b>'],
-    ['Status', incomeTag(r)],
-    ['Tanggal bayar', esc(r.Tgl_Bayar) || '-'],
+    ['Nominal', '<b>' + rp(r.Nominal) + '</b>' + (r.Auto && p >= thisMonth() ? ' <span class="muted">(sementara, masih bertambah)</span>' : '')],
+    lang ? ['Transaksi s/d', esc(fmtTgl(r.Tgl_Bayar))] : ['Status', incomeTag(r)],
+    ...(lang ? [] : [['Tanggal bayar', r.Tgl_Bayar ? esc(fmtTgl(r.Tgl_Bayar)) : '-']]),
     ['Sumber data', esc(r.Sumber_Data)]
   ];
   if (r.Auto) {
@@ -1382,37 +1394,87 @@ async function loadIncome() {
   }
 }
 
+// Jenis income:
+// - Penjualan langsung: sudah dibayar di tempat (taxi Cash / QRIS / Transfer saat job done, air mineral, komisi KDAB)
+// - Tagihan: perlu ditagih dan dipantau pembayarannya (perusahaan / departemen, direct order bulanan, WO, mekanik, income manual)
+const isLangsung = r => {
+  const p = String(r.Sync_Key || '').split('|');
+  return p[0] === 'WATER' || p[0] === 'KDAB' || (p[0] === 'TAXI' && p[2] === 'DIRECT');
+};
+const periodeOf = r => String(r.Tanggal).slice(0, 7);
+const sumNom = list => list.reduce((a, r) => a + Number(r.Nominal || 0), 0);
+let INC_TAB = 'tagihan';
+
+function setIncTab(t) {
+  INC_TAB = t;
+  document.querySelectorAll('#inc-tabs button').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+  renderIncome();
+}
+
+// Kolom periode: baris otomatis = rekap per bulan (tanda Bulan berjalan bila bulannya belum selesai); manual = tanggal input
+function periodeCell(r) {
+  const p = periodeOf(r);
+  if (!r.Auto) return `${esc(fmtPeriode(p))}<div class="muted">${esc(fmtTgl(r.Tanggal))}</div>`;
+  return esc(fmtPeriode(p)) + (p >= thisMonth() ? '<div><span class="tag open">Bulan berjalan</span></div>' : '');
+}
+
 function renderIncome() {
+  const lang = INC_TAB === 'langsung';
   const fp = $('ff-periode').value, fd = $('ff-divisi').value, fsd = $('ff-sumber').value, fs = $('ff-status').value, fq = $('ff-cari').value.toLowerCase();
+  $('ff-status').classList.toggle('hidden', lang);
+
+  // Ringkasan di atas
+  const tagihan = INCOME.filter(r => !isLangsung(r)), langsung = INCOME.filter(isLangsung);
+  const unpaid = tagihan.filter(r => r.Status !== 'Lunas');
+  const old = unpaid.filter(r => !r.Berjalan && r.Umur > 30);
+  const P = fp || thisMonth();
+  const tagP = tagihan.filter(r => periodeOf(r) === P), langP = langsung.filter(r => periodeOf(r) === P);
+  $('i-open').textContent = rp(sumNom(unpaid));
+  $('i-open-n').textContent = unpaid.length + ' tagihan';
+  $('i-old').innerHTML = old.length ? `<span class="neg">${rp(sumNom(old))}</span>` : rp(0);
+  $('i-old-n').textContent = old.length + ' tagihan';
+  $('i-tag-l').textContent = 'Tagihan ' + fmtPeriode(P);
+  $('i-tag').textContent = rp(sumNom(tagP));
+  $('i-tag-n').textContent = `Lunas ${rp(sumNom(tagP.filter(r => r.Status === 'Lunas')))}`;
+  $('i-lang-l').textContent = 'Penjualan langsung ' + fmtPeriode(P);
+  $('i-lang').textContent = rp(sumNom(langP));
+  $('i-lang-n').textContent = `Total pendapatan ${rp(sumNom(tagP) + sumNom(langP))}`;
+
+  const tabs = document.querySelectorAll('#inc-tabs button');
+  tabs[0].textContent = `Tagihan${unpaid.length ? ' (' + unpaid.length + ' belum dibayar)' : ''}`;
+  tabs[1].textContent = 'Penjualan langsung';
+
+  $('inc-hint').textContent = lang
+    ? 'Sudah dibayar di tempat (taxi Cash / QRIS / Transfer saat job done, air mineral, komisi KDAB). Rekap per bulan per metode bayar; angka bulan berjalan masih bertambah setiap Tarik Data.'
+    : 'Tagihan ke perusahaan / departemen dan direct order bulanan. Rekap per bulan per pelanggan; klik Lunas setelah pembayaran masuk. Klik baris untuk melihat detail.';
+
   const rows = INCOME.filter(r =>
-    (!fp || String(r.Tanggal).slice(0, 7) === fp) &&
+    isLangsung(r) === lang &&
+    (!fp || periodeOf(r) === fp) &&
     (!fd || r.Divisi === fd) &&
     (!fsd || r.Sumber_Data === fsd) &&
-    (!fs || r.Status === fs) &&
+    (lang || !fs || r.Status === fs) &&
     (!fq || (r.Pelanggan + ' ' + r.Keterangan + ' ' + r.Sumber).toLowerCase().includes(fq))
-  );
+  ).sort((a, b) => periodeOf(b).localeCompare(periodeOf(a)) ||
+    (lang ? 0 : (a.Status === 'Lunas') - (b.Status === 'Lunas')) || b.Nominal - a.Nominal);
 
-  const unpaidAll = INCOME.filter(r => r.Status !== 'Lunas');
-  const old = unpaidAll.filter(r => !r.Berjalan && r.Umur > 30);
-  $('i-paid').textContent = rp(rows.filter(r => r.Status === 'Lunas').reduce((a, r) => a + r.Nominal, 0));
-  $('i-unpaid').textContent = rp(rows.filter(r => r.Status !== 'Lunas').reduce((a, r) => a + r.Nominal, 0));
-  $('i-open').textContent = rp(unpaidAll.reduce((a, r) => a + r.Nominal, 0));
-  $('i-old').innerHTML = old.length ? `<span class="neg">${rp(old.reduce((a, r) => a + r.Nominal, 0))}</span>` : rp(0);
-
+  $('income-head').innerHTML = `<tr><th>Periode</th><th>Divisi</th><th>Sumber</th><th>${lang ? 'Metode bayar / Keterangan' : 'Ditagihkan ke / Keterangan'}</th><th class="num">Nominal</th><th>${lang ? 'Transaksi s/d' : 'Status'}</th><th></th></tr>`;
+  const ket = r => `${esc(r.Pelanggan) || '<span class="muted">-</span>'}${r.Keterangan ? '<div class="muted">' + esc(r.Keterangan) + '</div>' : ''}${r.Catatan_Sync ? '<div class="warn-text">' + esc(r.Catatan_Sync) + '</div>' : ''}`;
   $('income-body').innerHTML = rows.length ? rows.map(r => `
     <tr class="click" onclick="openIncome('${esc(r.Income_ID)}')">
-      <td>${esc(r.Tanggal)}</td>
+      <td>${periodeCell(r)}</td>
       <td>${esc(r.Divisi)}</td>
       <td>${esc(r.Sumber)}<div><span class="tag auto">${r.Auto ? 'Otomatis' : 'Manual'}</span></div></td>
-      <td>${esc(r.Pelanggan) || '<span class="muted">-</span>'}${r.Keterangan ? '<div class="muted">' + esc(r.Keterangan) + '</div>' : ''}${r.Catatan_Sync ? '<div class="warn-text">' + esc(r.Catatan_Sync) + '</div>' : ''}</td>
+      <td>${ket(r)}</td>
       <td class="num">${rp(r.Nominal)}</td>
-      <td>${incomeTag(r)}</td>
+      <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}</td>
       <td><div class="btns">
         ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
-        ${r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
+        ${!lang && r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
         ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
       </div></td>
-    </tr>`).join('') : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
+    </tr>`).join('') + `<tr class="total"><td colspan="4">Total (${rows.length} baris)</td><td class="num">${rp(sumNom(rows))}</td><td colspan="2"></td></tr>`
+    : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
 }
 
 async function syncIncome() {
@@ -1573,11 +1635,15 @@ function companiesOf(d) {
   d.rows.forEach(r => {
     const k = keyFn(r);
     o[k] = o[k] || { key: k, n: 0, total: 0 };
+    if (r.Batal) return;                                  // booking batal tidak dihitung
     o[k].n++;
     o[k].total += Number(r.Biaya || 0);
   });
   return Object.values(o).sort((a, b) => a.key.localeCompare(b.key));
 }
+
+// Jumlah trip yang ditagih (booking batal tidak dihitung)
+const doneCount = rows => rows.filter(r => !r.Batal).length;
 
 async function fillInvoiceCompany() {
   const id = $('iv-pel').value, el = $('iv-comp'), btn = $('btn-inv');
@@ -1596,23 +1662,23 @@ async function fillInvoiceCompany() {
     if (token !== INV_COMP_TOKEN) return;
     const list = companiesOf(d);
     if (d.flat) {
-      el.innerHTML = `<option value="">Flat ${esc(rp(d.flat))} sesuai agreement (${d.rows.length} trip)</option>`;
+      el.innerHTML = `<option value="">Flat ${esc(rp(d.flat))} sesuai agreement (${doneCount(d.rows)} trip)</option>`;
       return;
     }
     if (d.monthly) {
       $('iv-comp-l').textContent = 'Pemesan';
-      el.innerHTML = `<option value="">${esc(d.pelanggan)} (${d.rows.length} trip - ${esc(rp(d.total))})</option>`;
+      el.innerHTML = `<option value="">${esc(d.pelanggan)} (${doneCount(d.rows)} trip - ${esc(rp(d.total))})</option>`;
       return;
     }
     if (d.direct) {
       $('iv-comp-l').textContent = 'Pemesan';
-      el.innerHTML = `<option value="">Semua pemesan / rekap (${d.rows.length} trip - ${esc(rp(d.total))})</option>` +
+      el.innerHTML = `<option value="">Semua pemesan / rekap (${doneCount(d.rows)} trip - ${esc(rp(d.total))})</option>` +
         list.slice().sort((a, b) => b.total - a.total).map(c => `<option value="${esc(c.key)}">${esc(c.key)} - ${c.n} trip - ${esc(rp(c.total))}</option>`).join('');
       return;
     }
     el.innerHTML = (list.length === 1
-      ? `<option value="">${esc(list[0].key)} (${d.rows.length} trip - ${esc(rp(d.total))})</option>`
-      : `<option value="">Semua company (${d.rows.length} trip - ${esc(rp(d.total))})</option>`) +
+      ? `<option value="">${esc(list[0].key)} (${doneCount(d.rows)} trip - ${esc(rp(d.total))})</option>`
+      : `<option value="">Semua company (${doneCount(d.rows)} trip - ${esc(rp(d.total))})</option>`) +
       (list.length > 1 ? list : []).map(c => `<option value="${esc(c.key)}">${esc(c.key)} - ${c.n} trip - ${esc(rp(c.total))}</option>`).join('');
   } catch (e) {
     if (token !== INV_COMP_TOKEN) return;
@@ -1709,8 +1775,9 @@ async function printInvoice(id, comp) {
     if (flat || all.monthly) comp = '';                 // flat / tagihan bulanan pemesan: tidak dipisah per company
     const keyFn = groupKeyOf(all);
     const rows = comp ? all.rows.filter(r => keyFn(r) === comp) : all.rows;
-    if (!rows.length && !flat) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
-    const total = flat || rows.reduce((a, r) => a + Number(r.Biaya || 0), 0);
+    const nDone = doneCount(rows), nBatal = rows.length - nDone;   // booking batal dicantumkan tanpa amount
+    if (!nDone && !flat) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
+    const total = flat || rows.reduce((a, r) => a + (r.Batal ? 0 : Number(r.Biaya || 0)), 0);
 
     // Ditagihkan ke company (kolom COMPANY); kolom PAYMENT dicantumkan sebagai billing entity.
     // Tanpa filter: bila semua trip dari satu company, Bill to = company tersebut; bila campuran, Bill to = PAYMENT.
@@ -1725,7 +1792,7 @@ async function printInvoice(id, comp) {
     let noDefault = String(all.noInvoice || '').replace(/^INV\//, 'JC/');   // nomor dokumen: JC/GM/yyMM/NNN
     if (comp && (all.direct || comps.length > 1)) noDefault += '-' + String(comps.findIndex(c => c.key === comp) + 1).padStart(2, '0');
 
-    let msg = `Job Completion ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${rows.length} trip, total ${rp(total)}${flat ? ' (flat sesuai agreement)' : ''}.`;
+    let msg = `Job Completion ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${fmtPeriode(all.periode)}: ${nDone} trip${nBatal ? ' + ' + nBatal + ' cancel (tanpa amount)' : ''}, total ${rp(total)}${flat ? ' (flat sesuai agreement)' : ''}.`;
     if (!comp && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
     msg += '\n\nNomor Job Completion:';
     const no = prompt(msg, noDefault);
@@ -1734,7 +1801,7 @@ async function printInvoice(id, comp) {
     const tglCetak = today();
     const hasDrv = rows.some(r => r.Driver), hasSO = rows.some(r => r.SO);   // kolom kosong semua tidak ditampilkan
     const nCol = 8 + (hasDrv ? 1 : 0) + (hasSO ? 1 : 0);                      // jumlah kolom sebelum kolom Amount
-    const tripLine = `${rows.length} trip${rows.length === 1 ? '' : 's'}`;
+    const tripLine = `${nDone} trip${nDone === 1 ? '' : 's'}`;
     $('print-area').innerHTML = `
       <div class="inv-top">
         <div>${logoTag()}</div>
@@ -1753,7 +1820,7 @@ async function printInvoice(id, comp) {
         <div class="muted-p">Bill to</div>
         <div class="inv-to-name">${esc(billTo)}</div>
         ${entity ? `<div class="muted-p">${all.direct || all.payLater ? esc(entity) : 'Payment / billing entity: ' + esc(entity)}</div>` : ''}
-        <div class="muted-p">Guest Mobility transport services, ${tripLine} in ${esc(fmtPeriodeEn(all.periode))}${flat ? ' &middot; monthly flat fee as per agreement' : ''}</div>
+        <div class="muted-p">Guest Mobility transport services, ${tripLine} in ${esc(fmtPeriodeEn(all.periode))}${nBatal ? ` &middot; ${nBatal} cancelled booking${nBatal === 1 ? '' : 's'} (not charged)` : ''}${flat ? ' &middot; monthly flat fee as per agreement' : ''}</div>
       </div>
 
       <table class="inv-table">
@@ -1761,11 +1828,11 @@ async function printInvoice(id, comp) {
         ${flat ? `<tr><td colspan="${nCol}"><b>Monthly flat fee as per agreement</b> &middot; ${esc(fmtPeriodeEn(all.periode))} &middot; regardless of number of bookings</td><td class="num"><b>${rp(flat)}</b></td></tr>
         <tr><td colspan="${nCol + 1}"><i>Trip details for reference (${tripLine}, included in the flat fee)</i></td></tr>` : ''}
         ${!rows.length ? `<tr><td colspan="${nCol + 1}">No bookings in this period</td></tr>` : ''}
-        ${rows.map((r, i) => `<tr>
+        ${rows.map((r, i) => `<tr${r.Batal ? ' class="inv-cancel"' : ''}>
           <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td>${esc(r.Jam)}</td>
           <td>${esc(r.Tamu)}${!comp && !all.direct && !all.payLater && r.Perusahaan ? '<br><span class="muted-p">' + esc(r.Perusahaan) + '</span>' : ''}</td>
           <td>${esc(r.Dari)}</td><td>${esc(r.Ke)}</td><td>${esc(r.Trip)}</td><td>${esc(r.Mobil)}</td>
-          ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${flat ? 'Included' : rp(r.Biaya)}</td>
+          ${hasDrv ? '<td>' + esc(r.Driver) + '</td>' : ''}${hasSO ? '<td class="nw">' + esc(r.SO) + '</td>' : ''}<td class="num">${r.Batal ? 'Cancelled' : flat ? 'Included' : rp(r.Biaya)}</td>
         </tr>`).join('')}
         <tr class="inv-total"><td colspan="${nCol}">Total Amount${flat ? ' (monthly flat fee)' : ''}</td><td class="num">${rp(total)}</td></tr>
       </table>
