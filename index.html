@@ -123,7 +123,7 @@ table.items input{padding:6px 8px;font-size:13px}
   #print-area .inv-title h1{font-size:22px;letter-spacing:2px}
   #print-area .inv-title .p-sub{margin:2px 0 0}
   #print-area .inv-meta{width:auto;justify-self:end}
-  #print-area .inv-meta td{border:0;padding:1px 6px;font-size:11px}
+  #print-area .inv-meta td{border:0;padding:1px 6px;font-size:11px;white-space:nowrap}
   #print-area .inv-to{margin-bottom:10px}
   #print-area .inv-to-name{font-size:14px;font-weight:700;margin:2px 0}
   #print-area .muted-p{color:#555;font-size:10px}
@@ -138,6 +138,36 @@ table.items input{padding:6px 8px;font-size:13px}
   #print-area .inv-table .nw{white-space:nowrap}
   #print-area .inv-table tr.inv-cancel td{color:#777;font-style:italic}
   #print-area .inv-table tr.inv-sub td{font-weight:600;background:#fafafa}
+  #print-area .mj{font-size:11px}
+  #print-area .mj-page{break-before:page;page-break-before:always}
+  #print-area .mj-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e5246;padding-bottom:6px;margin-bottom:10px}
+  #print-area .mj-head .doc-logo{height:20px;margin:0 0 6px}
+  #print-area .mj-title{font-size:14px;font-weight:700}
+  #print-area .mj-sub{font-size:9.5px;color:#666}
+  #print-area .mj-right{text-align:right;color:#666;font-size:10px;line-height:1.5}
+  #print-area .mj-kv{width:auto;margin-bottom:4px}
+  #print-area .mj-kv td{border:0;padding:2px 18px 2px 0;font-size:11px}
+  #print-area .mj-kv td:first-child{color:#666}
+  #print-area .mj-h{color:#1e5246;font-weight:700;font-size:10px;letter-spacing:.4px;text-transform:uppercase;margin:12px 0 4px}
+  #print-area .mj-text{font-size:11.5px;line-height:1.45}
+  #print-area .mj-muted{color:#777}
+  #print-area .mj-tbl{width:100%;border-collapse:collapse}
+  #print-area .mj-tbl th,#print-area .mj-tbl td{border:0;border-bottom:1px solid #ddd;padding:5px 4px;font-size:10.5px;background:none}
+  #print-area .mj-tbl th{color:#666;font-weight:600;text-align:left}
+  #print-area .mj-tbl .num{text-align:right;white-space:nowrap}
+  #print-area .mj-sum{margin-top:4px}
+  #print-area .mj-tbl tr.mj-total td{font-weight:700;border-top:1.5px solid #000;border-bottom:1px solid #ddd}
+  #print-area .mj-sign{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:22px;text-align:center;break-inside:avoid;page-break-inside:avoid}
+  #print-area .mj-line{border-top:1px solid #000;padding-top:3px;font-weight:600}
+  #print-area .mj-photos{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+  #print-area .mj-photos img{width:100%;height:62mm;object-fit:cover;border-radius:4px;break-inside:avoid;page-break-inside:avoid}
+  #print-area .jc-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;border-bottom:2px solid #000;padding-bottom:8px}
+  #print-area .jc-head .doc-logo{height:26px;margin:0}
+  #print-area .jc-no{text-align:right;font-size:11px}
+  #print-area .jc-title{text-align:center;font-size:18px;letter-spacing:1px;margin:12px 0 4px}
+  #print-area .jc-kv td{font-size:11px;padding:4px 6px}
+  #print-area .jc-kv td:nth-child(odd){background:#f3f3f3;font-weight:600;width:18%}
+  #print-area .jc-text td:first-child{width:24%}
   #print-area .inv-end{break-inside:avoid;page-break-inside:avoid}
   #print-area .inv-end .sign .line{margin-top:0}
   #print-area .sig-box{height:50px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
@@ -372,14 +402,45 @@ table.items input{padding:6px 8px;font-size:13px}
     </div>
 
     <div class="card">
-      <h2>Cetak Job Completion Guest Mobility</h2>
-      <div class="hint">Job Completion bulanan berisi rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Direct order yang ditagih bulanan (Darya, Maxim) punya tagihan sendiri per pemesan per bulan; tandai Lunas setelah transfer masuk. Bayar langsung lainnya (mis. Bayar langsung - Transfer) bisa dicetak per pemesan. Untuk menggabung beberapa bulan jadi satu Job Completion (mis. September + Oktober), pilih bulan awal di Periode dan bulan akhir di s/d. Klik Tarik Data dulu agar data terbaru.</div>
+      <h2>Cetak Job Completion</h2>
+      <div class="hint">Job Completion untuk Taxi / Guest Mobility, Shuttle Bus &amp; Buggy (Work Order Bot), dan Mekanik (Mechanic Apps). Pilih tagihan di "Ditagihkan ke". Untuk Shuttle Bus dan Mekanik, kolom ketiga berisi pilihan rekap bulanan per departemen atau satu work order (JC per WO). Taxi: rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Direct order yang ditagih bulanan (Darya, Maxim) punya tagihan sendiri per pemesan per bulan; tandai Lunas setelah transfer masuk. Bayar langsung lainnya (mis. Bayar langsung - Transfer) bisa dicetak per pemesan. Untuk menggabung beberapa bulan jadi satu Job Completion (mis. September + Oktober), pilih bulan awal di Periode dan bulan akhir di s/d. Klik Tarik Data dulu agar data terbaru.</div>
       <div class="row5">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>s/d (gabung bulan)</label><select id="iv-sampai"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
         <div><label id="iv-comp-l">Company</label><select id="iv-comp"></select></div>
         <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value, $('iv-sampai').value)">Cetak Job Completion</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Penyesuaian Rental EV</h2>
+      <div class="hint">Catat unit sewa yang rusak, dikembalikan, atau diganti unit lain. Unit lama berhenti ditagih mulai tanggal tsb (bulan itu dihitung prorata per hari) dan bulan berikutnya tidak ditagih. Unit pengganti ditagih terpisah mulai tanggal tsb. Unit rusak yang tidak diganti dianggap selesai. Sheet EV_Rental dan tagihan rental langsung dihitung ulang setelah disimpan.</div>
+      <div class="row4">
+        <div><label>Tanggal rusak / dikembalikan</label><input type="date" id="ra-tgl"></div>
+        <div><label>Departemen</label><input type="text" id="ra-dept" list="ra-dept-list" placeholder="Mis. IT, Landscape"></div>
+        <div><label>Kode unit</label><input type="text" id="ra-unit" placeholder="Mis. VFL-008"></div>
+        <div><label>Jenis</label>
+          <select id="ra-jenis" onchange="applyRaJenis()">
+            <option>Rusak</option>
+            <option>Dikembalikan</option>
+            <option value="Rusak - diganti">Rusak - diganti unit lain</option>
+          </select>
+        </div>
+      </div>
+      <datalist id="ra-dept-list"></datalist>
+      <div class="row4">
+        <div><label>Harga unit / bulan (opsional)</label><input type="text" id="ra-harga" class="money" inputmode="numeric" placeholder="Otomatis bila kode ada di BOQ" autocomplete="off"></div>
+        <div class="ra-ganti hidden"><label>Kode unit pengganti</label><input type="text" id="ra-ganti" placeholder="Mis. TYR-020"></div>
+        <div class="ra-ganti hidden"><label>Harga pengganti / bulan (opsional)</label><input type="text" id="ra-ganti-harga" class="money" inputmode="numeric" placeholder="Sama dengan unit lama" autocomplete="off"></div>
+        <div><label>Catatan (opsional)</label><input type="text" id="ra-cat" placeholder="Mis. ban pecah, dikirim ke bengkel"></div>
+      </div>
+      <button class="btn" id="btn-ra" onclick="addRentalAdj()">Simpan Penyesuaian</button>
+      <div class="tablewrap" style="margin-top:12px">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Departemen</th><th>Unit</th><th>Jenis</th><th>Pengganti</th><th>Catatan</th><th></th></tr></thead>
+          <tbody id="ra-body"><tr><td colspan="7" class="muted">Memuat...</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -823,6 +884,7 @@ async function init() {
   fillPeriodeFilter();
   $('t-tanggal').value = today();
   $('i-tanggal').value = today();
+  $('ra-tgl').value = today();
   $('p-tanggal').value = today();
   const rOpts = monthOptions(11, 1);
   $('r-periode').innerHTML = rOpts.map(p => `<option value="${p}">${esc(fmtPeriode(p))}</option>`).join('');
@@ -1353,6 +1415,7 @@ function setIncome(d) {
   Object.keys(INV_CACHE).forEach(k => delete INV_CACHE[k]);   // data invoice dimuat ulang setelah income berubah / ditarik
   fillInvoiceSelects();
   renderIncome();
+  renderRentalAdj();
 }
 
 // ---------- LUNASKAN TAGIHAN LAMA ----------
@@ -1456,10 +1519,89 @@ function fillIncomePeriode() {
 
 async function loadIncome() {
   $('income-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  loadRentalAdj();
   try {
     setIncome(await apiGet({ action: 'incomeList' }));
   } catch (e) {
     $('income-body').innerHTML = '<tr><td colspan="7" class="muted">Gagal memuat data</td></tr>';
+    toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- PENYESUAIAN RENTAL EV ----------
+let RENT_ADJ = [];
+
+function applyRaJenis() {
+  const ganti = $('ra-jenis').value === 'Rusak - diganti';
+  document.querySelectorAll('.ra-ganti').forEach(el => el.classList.toggle('hidden', !ganti));
+}
+
+function renderRentalAdj() {
+  const depts = [...new Set(INCOME.filter(r => String(r.Sync_Key || '').indexOf('RENT|') === 0).map(r => r.Pelanggan).filter(Boolean))].sort();
+  $('ra-dept-list').innerHTML = depts.map(d => `<option value="${esc(d)}">`).join('');
+  $('ra-body').innerHTML = RENT_ADJ.length ? RENT_ADJ.map(a => `<tr>
+      <td class="nw">${esc(fmtTgl(a.Tanggal))}</td><td>${esc(a.Department)}</td><td>${esc(a.Unit_Code)}</td><td>${esc(a.Jenis)}</td>
+      <td>${a.Unit_Pengganti ? esc(a.Unit_Pengganti) + (a.Harga_Pengganti ? '<div class="muted">' + rp(a.Harga_Pengganti) + '/bln</div>' : '') : '<span class="muted">-</span>'}</td>
+      <td>${esc(a.Catatan) || '<span class="muted">-</span>'}</td>
+      <td><button class="btn sec sm" onclick="delRentalAdj('${esc(a.Adj_ID)}')">Hapus</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada penyesuaian</td></tr>';
+}
+
+async function loadRentalAdj() {
+  try {
+    RENT_ADJ = await apiGet({ action: 'rentalAdj' }) || [];
+  } catch (e) {
+    RENT_ADJ = [];
+  }
+  renderRentalAdj();
+}
+
+async function addRentalAdj() {
+  const d = {
+    Tanggal: $('ra-tgl').value,
+    Department: $('ra-dept').value.trim(),
+    Unit_Code: $('ra-unit').value.trim(),
+    Jenis: $('ra-jenis').value,
+    Harga_Unit: toNum($('ra-harga').value),
+    Unit_Pengganti: $('ra-ganti').value.trim(),
+    Harga_Pengganti: toNum($('ra-ganti-harga').value),
+    Catatan: $('ra-cat').value.trim()
+  };
+  const miss = [];
+  if (!d.Tanggal) miss.push('tanggal');
+  if (!d.Department) miss.push('departemen');
+  if (!d.Unit_Code) miss.push('kode unit');
+  if (d.Jenis === 'Rusak - diganti' && !d.Unit_Pengganti) miss.push('kode unit pengganti');
+  if (miss.length) return toast('Belum diisi: ' + miss.join(', '));
+  let msg = `${d.Unit_Code} (${d.Department}) ${d.Jenis.toLowerCase()} tanggal ${fmtTgl(d.Tanggal)}.\nUnit berhenti ditagih mulai tanggal tsb.`;
+  if (d.Jenis === 'Rusak - diganti') msg += `\nUnit pengganti ${d.Unit_Pengganti} ditagih mulai tanggal tsb.`;
+  if (!confirm(msg + '\n\nSimpan dan hitung ulang tagihan rental?')) return;
+  const b = $('btn-ra');
+  b.disabled = true; b.textContent = 'Menyimpan & menghitung ulang...';
+  try {
+    const res = await apiPost('addRentalAdj', d);
+    RENT_ADJ = res.adj || [];
+    setIncome(res.income);
+    renderRentalAdj();
+    ['ra-unit', 'ra-harga', 'ra-ganti', 'ra-ganti-harga', 'ra-cat'].forEach(i => $(i).value = '');
+    toast('Penyesuaian tersimpan, tagihan rental dihitung ulang');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Penyesuaian';
+  }
+}
+
+async function delRentalAdj(id) {
+  const a = RENT_ADJ.find(x => x.Adj_ID === id);
+  if (!a || !confirm(`Hapus penyesuaian ${a.Unit_Code} (${a.Department}) ${fmtTgl(a.Tanggal)}?\nTagihan rental akan dihitung ulang.`)) return;
+  try {
+    const res = await apiPost('deleteRentalAdj', { Adj_ID: id });
+    RENT_ADJ = res.adj || [];
+    setIncome(res.income);
+    renderRentalAdj();
+    toast('Penyesuaian dihapus');
+  } catch (e) {
     toast('Gagal: ' + e.message);
   }
 }
@@ -1670,7 +1812,9 @@ async function delIncome(id) {
 // Tagihan taxi ke perusahaan / departemen (bukan bayar langsung) bisa dicetak sebagai invoice bulanan
 // Bayar langsung (Transfer, Cash, dll) juga bisa, dipisah per pemesan (mis. direct order bulanan by transfer)
 // Direct order ditagih bulanan per pemesan (CUST), mis. Darya dan Maxim
-const isInvoiceRow = r => /^TAXI\|\d{4}-\d{2}\|(BILL|DIRECT|CUST)\|/.test(String(r.Sync_Key || ''));
+// Shuttle Bus & Buggy (WO) dan Mekanik (MECH): per departemen per bulan
+const isInvoiceRow = r => /^(TAXI\|\d{4}-\d{2}\|(BILL|DIRECT|CUST)|WO\|\d{4}-\d{2}|MECH\|\d{4}-\d{2}|RENT\|\d{4}-\d{2})\|/.test(String(r.Sync_Key || ''));
+const isWorkJC = d => d && (d.kind === 'WO' || d.kind === 'MECH' || d.kind === 'RENT');
 
 // Rincian trip per tagihan disimpan sementara, dipakai untuk daftar company dan cetak invoice
 const INV_CACHE = {};
@@ -1730,6 +1874,18 @@ async function fillInvoiceCompany() {
   try {
     const d = await getInvoiceData(id);
     if (token !== INV_COMP_TOKEN) return;
+    if (d.kind === 'RENT') {
+      $('iv-comp-l').textContent = 'Sewa bulanan';
+      el.innerHTML = `<option value="">${esc(d.rows.length)} item sewa - ${esc(rp(d.total))}</option>`;
+      return;
+    }
+    if (isWorkJC(d)) {
+      // Shuttle Bus / Mekanik: rekap bulanan per departemen, atau JC per work order
+      $('iv-comp-l').textContent = 'Rekap / per WO';
+      el.innerHTML = `<option value="">Rekap bulanan (${d.rows.length} WO - ${esc(rp(d.total))})</option>` +
+        d.rows.map(r => `<option value="${esc(r.Id)}">${esc(r.Id)} · ${esc(fmtTgl(r.Tanggal))} · ${esc(String(d.kind === 'MECH' ? (r.Kendaraan || r.Pekerjaan) : (r.Tipe + (r.Status !== 'COMPLETED' ? ' (' + r.Status.toLowerCase() + ')' : ''))).slice(0, 40))} · ${esc(rp(r.Total))}</option>`).join('');
+      return;
+    }
     const list = companiesOf(d);
     if (d.flat) {
       el.innerHTML = `<option value="">Flat ${esc(rp(d.flat))} sesuai agreement (${doneCount(d.rows)} trip)</option>`;
@@ -1782,9 +1938,9 @@ function fillInvoicePelanggan() {
   sel.innerHTML = '<option value="">Hanya bulan ini</option>' + later.map(m => `<option value="${esc(m)}">${esc(fmtPeriode(m))}</option>`).join('');
   if (later.includes(keepTo)) sel.value = keepTo;
   const list = INCOME.filter(r => isInvoiceRow(r) && String(r.Tanggal).slice(0, 7) === p)
-    .sort((a, b) => String(a.Pelanggan).localeCompare(String(b.Pelanggan)));
+    .sort((a, b) => String(a.Sumber_Data).localeCompare(String(b.Sumber_Data)) || String(a.Pelanggan).localeCompare(String(b.Pelanggan)));
   $('iv-pel').innerHTML = list.length
-    ? list.map(r => `<option value="${esc(r.Income_ID)}">${esc(r.Pelanggan)} - ${esc(rp(r.Nominal))}${r.Status === 'Lunas' ? ' (lunas)' : ''}</option>`).join('')
+    ? list.map(r => `<option value="${esc(r.Income_ID)}">${esc(r.Sumber_Data)} · ${esc(r.Pelanggan)} - ${esc(rp(r.Nominal))}${r.Status === 'Lunas' ? ' (lunas)' : ''}</option>`).join('')
     : '<option value="">Tidak ada tagihan</option>';
   fillInvoiceCompany();
 }
@@ -1875,6 +2031,7 @@ async function printInvoice(id, comp, toYm) {
   btn.disabled = true; btn.textContent = 'Menyiapkan Job Completion...';
   try {
     const all = await getInvoiceRange(id, toYm);
+    if (isWorkJC(all)) { await printWorkJC(all, comp); return; }
     const multi = !!all.periodeEnd;                      // gabungan beberapa bulan
     const perEn = multi ? `${fmtPeriodeEn(all.periode)} - ${fmtPeriodeEn(all.periodeEnd)}` : fmtPeriodeEn(all.periode);
     const perId = multi ? `${fmtPeriode(all.periode)} - ${fmtPeriode(all.periodeEnd)}` : fmtPeriode(all.periode);
@@ -1960,11 +2117,7 @@ async function printInvoice(id, comp, toYm) {
           <table><tr><td>Bank</td><td>${esc(INV_BANK.bank)}</td></tr>
           <tr><td>Account No.</td><td><b>${esc(INV_BANK.no)}</b></td></tr>
           <tr><td>Account name</td><td>${esc(INV_BANK.name)}</td></tr></table></div>` : ''}
-        <div class="sign">
-          <div>Prepared by<br>${esc(INV_PREP_TITLE)}<div class="sig-box">${TTD_ADMIN_SVG}</div><div class="line">${esc(INV_PREP_NAME)}</div></div>
-          <div>Acknowledged by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
-          <div>Received by<br>${esc(billTo)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
-        </div>
+        ${jcSign('TAXI', billTo)}
         <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Nuanu Taxi Service</div>
       </div>`;
 
@@ -1977,6 +2130,310 @@ async function printInvoice(id, comp, toYm) {
     btn.textContent = 'Cetak Job Completion';
     btn.disabled = !$('iv-pel').value;
   }
+}
+
+// ---------- JOB COMPLETION SHUTTLE BUS / BUGGY & MEKANIK ----------
+// Approval Job Completion:
+// - Internal Transport (Shuttle Bus & Buggy, sewa bulanan, Mekanik): Internal Transport Supervisor + Head of Transport
+// - External Transport (Taxi / Guest Mobility, Last Mile): External Transport Supervisor + Head of Transport
+// Tanda tangan vektor supervisor diisi nanti (svg), tampil otomatis di atas nama.
+const MECH_SUP_SVG = '';      // tanda tangan I Gde Agus Veryanto
+const EXT_SUP_SVG = '';       // tanda tangan Ni Putu Angie Friska Nanda
+const JC_SUP = {
+  internal: { name: 'I Gde Agus Veryanto', title: 'Internal Transport Supervisor', svg: () => MECH_SUP_SVG },
+  external: { name: 'Ni Putu Angie Friska Nanda', title: 'External Transport Supervisor', svg: () => EXT_SUP_SVG }
+};
+const jcSupOf = kind => (kind === 'TAXI' || kind === 'LASTMILE') ? JC_SUP.external : JC_SUP.internal;
+const NOTE_WO = 'Please process the payment via cost transfer to the Transport Department. Work order details are based on Nuanu Work Order records.';
+const NOTE_MECH = 'Please process the payment via cost transfer to the Transport Department. Work details are based on Nuanu Mechanic records.';
+
+const woVehicle = r => `${r.Tipe || '-'}${r.Unit > 1 ? ' x' + r.Unit : ''}`;
+const woStatusLabel = r => r.Status === 'NO SHOW' ? 'No show charge' : r.Status === 'COMPLETED' ? '' : 'Cancellation charge';
+const nl2br = s => esc(s).replace(/\n/g, '<br>');
+
+function jcTop(title, sub, no, period) {
+  return `<div class="inv-top">
+      <div>${logoTag()}</div>
+      <div class="inv-title"><h1>${esc(title)}</h1><div class="p-sub">${sub}</div></div>
+      <table class="inv-meta">
+        <tr><td>Job Completion No.</td><td><b>${esc(no)}</b></td></tr>
+        <tr><td>Date</td><td>${esc(fmtTgl(today()))}</td></tr>
+        <tr><td>Period</td><td>${esc(period)}</td></tr>
+      </table>
+    </div>`;
+}
+
+function jcSign(kind, receivedBy) {
+  const sup = jcSupOf(kind);
+  return `<div class="sign">
+      <div>Approved by<br>${esc(sup.title)}<div class="sig-box">${sup.svg()}</div><div class="line">${esc(sup.name)}</div></div>
+      <div>Approved by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
+      <div>Received by<br>${esc(receivedBy)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
+    </div>`;
+}
+
+async function printWorkJC(all, woId) {
+  if (all.kind === 'MECH') return printMechJC(all, woId);
+  if (all.kind === 'RENT') return printRentJC(all);
+  const mech = false;
+  const dept = all.pelanggan;
+  const multi = !!all.periodeEnd;
+  const perEn = multi ? `${fmtPeriodeEn(all.periode)} - ${fmtPeriodeEn(all.periodeEnd)}` : fmtPeriodeEn(all.periode);
+  const src = mech ? 'Nuanu Mechanic' : 'Nuanu Work Order';
+
+  // ----- JC per work order -----
+  if (woId) {
+    const r = all.rows.find(x => x.Id === woId);
+    if (!r) return toast('Work order tidak ditemukan');
+    const noDef = mech ? (r.SO || 'JC/MT/' + r.Id) : 'JC/SB/' + r.Id;
+    const no = prompt(`Job Completion ${r.Id} (${dept}): ${rp(r.Total)}.\n\nNomor Job Completion:`, noDef);
+    if (no === null) return;
+    const N = no.trim() || noDef;
+    {
+      const lines = [['Base charge', r.Base], ['Extra hours', r.Extend], ['Last minute charge', r.LastMinute], [r.Status === 'NO SHOW' ? 'No show charge' : 'Cancellation charge', r.Cancel], ['Discount', -Math.abs(r.Diskon || 0)]].filter(x => x[1]);
+      $('print-area').innerHTML = `
+        ${jcTop('JOB COMPLETION', 'Nuanu Shuttle Bus &amp; Buggy &middot; Transport Department', N, fmtTgl(r.Tanggal))}
+        <div class="inv-to"><div class="muted-p">Bill to</div><div class="inv-to-name">${esc(dept)}</div></div>
+        <h3>Work Order Information</h3>
+        <table class="jc-kv">
+          <tr><td>WO ID</td><td>${esc(r.Id)}</td><td>Status</td><td>${esc(r.Status)}${woStatusLabel(r) ? ' (' + esc(woStatusLabel(r)) + ')' : ''}</td></tr>
+          <tr><td>Date</td><td>${esc(fmtTgl(r.Tanggal))}</td><td>Time</td><td>${esc(r.Jam)}${r.JamAkhir ? ' - ' + esc(r.JamAkhir) : ''}</td></tr>
+          <tr><td>Requested by</td><td>${esc(r.Requester || '-')}</td><td>Purpose</td><td>${esc(r.Keperluan || '-')}</td></tr>
+          <tr><td>Vehicle</td><td>${esc(woVehicle(r))}${r.Kendaraan ? ' &middot; ' + esc(r.Kendaraan) : ''}</td><td>Driver</td><td>${esc(r.Driver || '-')}</td></tr>
+          <tr><td>Pick-up</td><td>${esc(r.Pickup || '-')}</td><td>Drop-off</td><td>${esc(r.Dropoff || '-')}</td></tr>
+          ${r.SO || r.Penumpang ? `<tr><td>SO No.</td><td>${esc(r.SO || '-')}</td><td>Passengers</td><td>${esc(r.Penumpang || '-')}</td></tr>` : ''}
+          ${r.Catatan ? `<tr><td>Notes</td><td colspan="3">${esc(r.Catatan)}</td></tr>` : ''}
+        </table>
+        <h3>Charges</h3>
+        <table class="inv-table">
+          <tr><th>Description</th><th>Amount</th></tr>
+          ${lines.map(x => `<tr><td>${esc(x[0])}</td><td class="num">${rp(x[1])}</td></tr>`).join('')}
+          <tr class="inv-total"><td>Total Amount</td><td class="num">${rp(r.Total)}</td></tr>
+        </table>
+        <div class="inv-end">
+          <div class="inv-words">Amount in words: <i>${esc(amountWords(r.Total))}</i></div>
+          <div class="inv-note">${esc(NOTE_WO)}</div>
+          ${jcSign('WO', dept)}
+          <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Work Order Bot</div>
+        </div>`;
+    }
+    await waitImages();
+    setPageSize('A4');
+    printAs(`Job Completion ${r.Id} - ${dept}`);
+    return;
+  }
+
+  // ----- Rekap bulanan per departemen -----
+  const rows = all.rows;
+  if (!rows.length) return toast('Tidak ada work order untuk tagihan ini');
+  const total = rows.reduce((a, r) => a + Number(r.Total || 0), 0);
+  const noDef = String(all.noInvoice || '').replace(/^INV\//, 'JC/');
+  let msg = `Job Completion ${mech ? 'Mekanik' : 'Shuttle Bus & Buggy'} ${dept} periode ${multi ? fmtPeriode(all.periode) + ' - ' + fmtPeriode(all.periodeEnd) : fmtPeriode(all.periode)}: ${rows.length} WO, total ${rp(total)}.`;
+  if (!multi && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+  const no = prompt(msg + '\n\nNomor Job Completion:', noDef);
+  if (no === null) return;
+  const sub = (list, k) => list.reduce((a, r) => a + Number(r[k] || 0), 0);
+  const monthSub = (r, i, nCol, cells) => {
+    const ym = String(r.Tanggal).slice(0, 7), next = rows[i + 1];
+    if (!multi || (next && String(next.Tanggal).slice(0, 7) === ym)) return '';
+    const mr = rows.filter(x => String(x.Tanggal).slice(0, 7) === ym);
+    return `<tr class="inv-sub"><td colspan="${nCol}">Subtotal ${esc(fmtPeriodeEn(ym))} (${mr.length} WO)</td>${cells(mr)}</tr>`;
+  };
+  let table;
+  {
+    const br = [['Base charge', sub(rows, 'Base')], ['Extra hours', sub(rows, 'Extend')], ['Last minute', sub(rows, 'LastMinute')], ['Cancellation / no show', sub(rows, 'Cancel')], ['Discount', -sub(rows, 'Diskon')]].filter(x => x[1]);
+    table = `<table class="inv-table">
+      <tr><th>No</th><th>Date</th><th>WO ID</th><th>Time</th><th>Vehicle</th><th>Requested by / Purpose</th><th>Pick-up</th><th>Drop-off</th><th>Amount</th></tr>
+      ${rows.map((r, i) => `<tr${r.Status !== 'COMPLETED' ? ' class="inv-cancel"' : ''}>
+        <td>${i + 1}</td><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}</td><td class="nw">${esc(r.Jam)}${r.JamAkhir ? '-' + esc(r.JamAkhir) : ''}</td>
+        <td>${esc(woVehicle(r))}${r.Driver ? '<br><span class="muted-p">' + esc(r.Driver) + '</span>' : ''}</td>
+        <td>${esc(r.Requester || '-')}${r.Keperluan ? '<br><span class="muted-p">' + esc(r.Keperluan) + '</span>' : ''}${woStatusLabel(r) ? '<br><b>' + esc(woStatusLabel(r)) + '</b>' : ''}</td>
+        <td>${esc(r.Pickup || '-')}</td><td>${esc(r.Dropoff || '-')}</td><td class="num">${rp(r.Total)}</td>
+      </tr>${monthSub(r, i, 8, mr => `<td class="num">${rp(sub(mr, 'Total'))}</td>`)}`).join('')}
+      <tr class="inv-total"><td colspan="8">Total Amount</td><td class="num">${rp(total)}</td></tr>
+    </table>
+    ${br.length > 1 ? `<div class="inv-note">Breakdown: ${br.map(x => esc(x[0]) + ' ' + rp(x[1])).join(' &middot; ')}</div>` : ''}`;
+  }
+  const nCancel = mech ? 0 : rows.filter(r => r.Status !== 'COMPLETED').length;
+  $('print-area').innerHTML = `
+    ${jcTop('JOB COMPLETION', mech ? 'Nuanu Mechanic &middot; Transport Department' : 'Nuanu Shuttle Bus &amp; Buggy &middot; Transport Department', no.trim() || noDef, perEn)}
+    <div class="inv-to">
+      <div class="muted-p">Bill to</div>
+      <div class="inv-to-name">${esc(dept)}</div>
+      <div class="muted-p">${mech ? 'Mechanic services' : 'Shuttle bus &amp; buggy services'}, ${rows.length} work order${rows.length === 1 ? '' : 's'} in ${esc(perEn)}${nCancel ? ` &middot; incl. ${nCancel} cancellation / no show charge${nCancel === 1 ? '' : 's'}` : ''}</div>
+    </div>
+    ${table}
+    <div class="inv-end">
+      <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
+      <div class="inv-note">${esc(mech ? NOTE_MECH : NOTE_WO)}</div>
+      ${jcSign(all.kind, dept)}
+      <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: ${esc(mech ? 'Mechanic Apps' : 'Work Order Bot')}</div>
+    </div>`;
+  await waitImages();
+  setPageSize('A4 landscape');
+  printAs(`Job Completion ${mech ? 'Mechanic' : 'Shuttle'} ${dept} - ${perEn}`);
+}
+
+// ---------- JOB COMPLETION SEWA BULANAN BUGGY & EV BIKE ----------
+const NOTE_RENT = 'Monthly electric vehicle rental (subscription). Please process the payment via cost transfer to the Transport Department.';
+
+async function printRentJC(all) {
+  const dept = all.pelanggan, rows = all.rows;
+  const multi = !!all.periodeEnd;
+  const perEn = multi ? `${fmtPeriodeEn(all.periode)} - ${fmtPeriodeEn(all.periodeEnd)}` : fmtPeriodeEn(all.periode);
+  const total = rows.reduce((a, r) => a + Number(r.Total || 0), 0);
+  const noDef = String(all.noInvoice || '').replace(/^INV\//, 'JC/');
+  const no = prompt(`Job Completion sewa ${dept} periode ${multi ? fmtPeriode(all.periode) + ' - ' + fmtPeriode(all.periodeEnd) : fmtPeriode(all.periode)}: ${rows.length} item, total ${rp(total)}.\n\nNomor Job Completion:`, noDef);
+  if (no === null) return;
+  const req = all.requester && all.requester.toUpperCase() !== String(dept).toUpperCase() ? all.requester : '';
+  $('print-area').innerHTML = `
+    ${jcTop('JOB COMPLETION', 'Electric Vehicle Rental &middot; Transport Department', no.trim() || noDef, perEn)}
+    <div class="inv-to">
+      <div class="muted-p">Bill to</div>
+      <div class="inv-to-name">${esc(dept)}</div>
+      ${req ? `<div class="muted-p">Requester: ${esc(req)}</div>` : ''}
+      <div class="muted-p">Monthly rental (subscription) of electric vehicles, ${esc(perEn)}</div>
+    </div>
+    <table class="inv-table">
+      <tr><th>No</th><th>Category</th><th>Description</th><th>Qty</th><th>Unit</th><th>Unit price / month</th><th>Total</th></tr>
+      ${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.Kategori)}</td><td>${esc(r.Uraian)}</td><td class="num">${esc(r.Qty)}</td><td>${esc(r.Satuan)}</td><td class="num">${rp(r.Harga)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
+      <tr class="inv-total"><td colspan="6">Total Amount</td><td class="num">${rp(total)}</td></tr>
+    </table>
+    <div class="inv-end">
+      <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
+      <div class="inv-note">${esc(NOTE_RENT)}</div>
+      ${jcSign('RENT', req || dept)}
+      <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Bill of Quantities (EV rental)</div>
+    </div>`;
+  await waitImages();
+  setPageSize('A4');
+  printAs(`Job Completion Rental ${dept} - ${perEn}`);
+}
+
+// ---------- JOB COMPLETION MEKANIK (format Nuanu Mechanic) ----------
+const titleName = s => String(s || '').toLowerCase().replace(/\s*,\s*/g, ', ').replace(/\b\w/g, c => c.toUpperCase()).trim();
+
+// Foto pekerjaan dari kolom Photos Mechanic Apps (diperkecil di server), maks 4 diambil bersamaan
+async function loadMechPhotos(ids, onProgress) {
+  const list = [...new Set(ids.filter(Boolean))];
+  let next = 0, done = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const id = list[next++];
+      if (!FILE_CACHE['mp:' + id]) {
+        try { FILE_CACHE['mp:' + id] = await apiGet({ action: 'mechPhoto', id }); } catch (e) { FILE_CACHE['mp:' + id] = { error: e.message }; }
+      }
+      done++;
+      if (onProgress) onProgress(done, list.length);
+    }
+  };
+  await Promise.all([1, 2, 3, 4].map(worker));
+}
+
+function mechHead(title, rightHtml) {
+  return `<div class="mj-head">
+    <div>${logoTag()}<div class="mj-title">${esc(title)}</div><div class="mj-sub">Nuanu Mechanic - Transport Department</div></div>
+    <div class="mj-right">${rightHtml}</div>
+  </div>`;
+}
+
+function mechSign(requester, dept) {
+  const sup = JC_SUP.internal;
+  return `<div class="mj-sign">
+    <div><b>${esc(sup.title)}</b><div class="sig-box">${sup.svg()}</div><div class="mj-line">${esc(sup.name)}</div></div>
+    <div><b>${esc(INV_HEAD_TITLE)}</b><div class="sig-box">${TTD_HEAD_SVG}</div><div class="mj-line">${esc(INV_HEAD_NAME)}</div></div>
+    <div><b>Requester</b><div class="sig-box"></div><div class="mj-line">${esc(requester || dept)}</div></div>
+  </div>`;
+}
+
+// Satu halaman Job Completion per work order
+function mechPage(r, dept, withPhotos) {
+  const parts = r.Parts || [];
+  const fees = (r.FeeLines || []).length ? r.FeeLines : (r.Fee ? [{ name: 'Service', qty: 1, price: r.Fee, total: r.Fee }] : []);
+  const notes = [r.Catatan, r.Findings].filter(Boolean).join('\n');
+  const photos = withPhotos ? (r.Photos || []).map(id => FILE_CACHE['mp:' + id]).filter(f => f && f.base64) : [];
+  return `
+    ${mechHead('JOB COMPLETION', `${esc(r.Id)}${r.SO ? '<br>' + esc(r.SO) : ''}<br>${esc(fmtTgl(r.Selesai || r.Tanggal))}`)}
+    <table class="mj-kv">
+      <tr><td>Department</td><td>${esc(dept)}</td></tr>
+      <tr><td>Vehicle</td><td>${esc(r.Kendaraan || '-')}</td></tr>
+      <tr><td>Requested by</td><td>${esc(r.Requester || dept)}</td></tr>
+      <tr><td>Mechanics</td><td>${esc(titleName(r.Mekanik) || '-')}</td></tr>
+      <tr><td>Status</td><td>Completed</td></tr>
+    </table>
+    <div class="mj-h">Job description</div>
+    <div class="mj-text">${nl2br(r.Work && r.Work !== r.Pekerjaan ? r.Pekerjaan + '\n' + r.Work : (r.Pekerjaan || '-'))}</div>
+    ${r.Repair ? `<div class="mj-h">Repair / replacement performed</div><div class="mj-text">${nl2br(r.Repair)}</div>` : ''}
+    ${notes ? `<div class="mj-h">Notes / findings</div><div class="mj-text">${nl2br(notes)}</div>` : ''}
+    <div class="mj-h">Spare parts used</div>
+    ${parts.length ? `<table class="mj-tbl">
+      <tr><th>Part</th><th>Condition</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr>
+      ${parts.map(x => `<tr><td>${esc(x.name)}${x.id && x.id !== x.name ? ' <span class="mj-sub">(' + esc(x.id) + ')</span>' : ''}</td><td>${esc(x.cond || '')}</td><td class="num">${esc(x.qty)}</td><td class="num">${x.price ? rp(x.price) : '-'}</td><td class="num">${x.total ? rp(x.total) : '-'}</td></tr>`).join('')}
+    </table>` : '<div class="mj-text mj-muted">None</div>'}
+    <div class="mj-h">Service fee</div>
+    <table class="mj-tbl">
+      <tr><th>Service</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr>
+      ${fees.length ? fees.map(x => `<tr><td>${esc(x.name)}</td><td class="num">${esc(x.qty)}</td><td class="num">${x.price ? rp(x.price) : '-'}</td><td class="num">${x.total ? rp(x.total) : '-'}</td></tr>`).join('') : '<tr><td colspan="4" class="mj-muted">None</td></tr>'}
+    </table>
+    <table class="mj-tbl mj-sum">
+      <tr><td>Spare parts</td><td class="num">${rp(r.PartsTotal)}</td></tr>
+      <tr><td>Service fee</td><td class="num">${rp(r.Fee)}</td></tr>
+      <tr class="mj-total"><td>Total</td><td class="num">${rp(r.Total)}</td></tr>
+    </table>
+    ${mechSign(r.Requester, dept)}
+    ${photos.length ? `<div class="mj-h">Photos</div><div class="mj-photos">${photos.map(f => `<img src="data:${esc(f.mime)};base64,${f.base64}" alt="Photo">`).join('')}</div>` : ''}`;
+}
+
+async function printMechJC(all, woId) {
+  const dept = all.pelanggan;
+  const btn = $('btn-inv');
+  const progress = (d, t) => { if (btn) btn.textContent = `Memuat foto ${d}/${t}...`; };
+
+  // ----- JC per work order -----
+  if (woId) {
+    const r = all.rows.find(x => x.Id === woId);
+    if (!r) return toast('Work order tidak ditemukan');
+    if ((r.Photos || []).length) await loadMechPhotos(r.Photos, progress);
+    $('print-area').innerHTML = `<div class="mj">${mechPage(r, dept, true)}<div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div></div>`;
+    await waitImages();
+    setPageSize('A4');
+    printAs(`Job Completion ${r.Id} - ${dept}`);
+    return;
+  }
+
+  // ----- Rekap per departemen (ringkasan + halaman per WO) -----
+  const rows = all.rows;
+  if (!rows.length) return toast('Tidak ada work order untuk tagihan ini');
+  const multi = !!all.periodeEnd;
+  const perEn = multi ? `${fmtPeriodeEn(all.periode)} - ${fmtPeriodeEn(all.periodeEnd)}` : fmtPeriodeEn(all.periode);
+  const sum = k => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
+  const total = sum('Total');
+  const noDef = String(all.noInvoice || '').replace(/^INV\//, 'JC/');
+  let msg = `Job Completion Mekanik ${dept} periode ${multi ? fmtPeriode(all.periode) + ' - ' + fmtPeriode(all.periodeEnd) : fmtPeriode(all.periode)}: ${rows.length} WO, total ${rp(total)}.`;
+  if (!multi && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+  const no = prompt(msg + '\n\nNomor Job Completion:', noDef);
+  if (no === null) return;
+  const nPhotos = rows.reduce((a, r) => a + (r.Photos || []).length, 0);
+  const withPages = confirm(`Sertakan halaman Job Completion per WO (${rows.length} halaman${nPhotos ? ', ' + nPhotos + ' foto' : ''}) setelah ringkasan?\n\nOK = ringkasan + per WO\nCancel = ringkasan saja`);
+  if (withPages && nPhotos) await loadMechPhotos(rows.reduce((a, r) => a.concat(r.Photos || []), []), progress);
+
+  $('print-area').innerHTML = `<div class="mj">
+    ${mechHead('JOB COMPLETION REPORT', `${esc(no.trim() || noDef)}<br>${esc(perEn)}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
+    <table class="mj-kv"><tr><td>Department</td><td><b>${esc(dept)}</b></td></tr></table>
+    <table class="mj-tbl">
+      <tr><th>Date</th><th>WO ID</th><th>Vehicle</th><th>Job description</th><th class="num">Parts</th><th class="num">Service fee</th><th class="num">Total</th></tr>
+      ${rows.map(r => `<tr><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}${r.SO ? '<br><span class="mj-sub">' + esc(r.SO) + '</span>' : ''}</td><td>${esc(r.Kendaraan || '-')}</td><td>${nl2br(r.Pekerjaan || '-')}</td><td class="num">${rp(r.PartsTotal)}</td><td class="num">${rp(r.Fee)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
+      <tr class="mj-total"><td colspan="4">Total (${rows.length} job${rows.length === 1 ? '' : 's'})</td><td class="num">${rp(sum('PartsTotal'))}</td><td class="num">${rp(sum('Fee'))}</td><td class="num">${rp(total)}</td></tr>
+    </table>
+    <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
+    <div class="inv-note">${esc(NOTE_MECH)}</div>
+    ${mechSign(dept, dept)}
+    <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div>
+    ${withPages ? rows.map(r => `<div class="mj-page">${mechPage(r, dept, true)}</div>`).join('') : ''}
+  </div>`;
+  await waitImages();
+  setPageSize('A4');
+  printAs(`Job Completion Mechanic ${dept} - ${perEn}`);
 }
 
 // ---------- PR & WO KE DEPARTEMEN LAIN ----------
