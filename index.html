@@ -89,6 +89,12 @@ table.items input{padding:6px 8px;font-size:13px}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
+.auto-box{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.auto-box .muted{margin-top:2px}
+.send-file{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px}
+.send-file .ic{width:34px;height:40px;border-radius:4px;background:#fee2e2;color:var(--bad);font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:13px;color:var(--text)}
+.chk input{width:auto;margin:0}
 .subnav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
 .subnav button{border:1px solid var(--line);background:#fff;color:var(--text);padding:7px 14px;border-radius:99px;font-size:13px;cursor:pointer;font-family:inherit}
 .subnav button.active{background:#1e5246;border-color:#1e5246;color:#fff;font-weight:600}
@@ -466,13 +472,17 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         <b>Shuttle Bus &amp; Buggy / Mekanik</b>: kolom ketiga berisi pilihan rekap bulanan per departemen atau satu work order (JC per WO).<br>
         <b>Rental EV</b>: satu JC per departemen per bulan sesuai BOQ.<br>
         Klik Tarik Data dulu agar data terbaru.</div></details>
-      <div class="row5">
+      <div class="row4" style="grid-template-columns:1fr 1fr 1.4fr 1.4fr">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>s/d (gabung bulan)</label><select id="iv-sampai"></select></div>
         <div><label>Ditagihkan ke (PAYMENT)</label><select id="iv-pel" onchange="fillInvoiceCompany()"></select></div>
         <div><label id="iv-comp-l">Company</label><select id="iv-comp"></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value, $('iv-sampai').value)">Cetak Job Completion</button></div>
       </div>
+      <div class="btns" style="margin-top:14px">
+        <button class="btn" style="margin:0" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value, $('iv-sampai').value)">Cetak Job Completion</button>
+        <button class="btn sec" style="margin:0" id="btn-send" onclick="sendInvoice()">Kirim Email / Telegram</button>
+      </div>
+      <div class="muted" id="iv-sent" style="margin-top:8px"></div>
     </div>
     </div>
 
@@ -527,7 +537,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     <div class="card">
       <div class="card-head">
         <div>
-          <h2>Tarik Data Otomatis</h2>
+          <h2>Tarik Data</h2>
           <div class="muted">Taxi, air mineral, WO bus &amp; buggy, servis mekanik, rental EV (BOQ), dan komisi KDAB ditarik dari sheet masing-masing.</div>
         </div>
         <div class="btns">
@@ -537,6 +547,22 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
       </div>
       <div class="sync-box" id="sync-info">Belum pernah ditarik.</div>
       <div id="sync-cek"></div>
+      <div class="auto-box">
+        <div><b>Tarik data otomatis</b> <span class="tag auto" id="as-status">-</span></div>
+        <div class="muted">Berjalan di server Google walaupun aplikasi tidak dibuka. Bila ada sumber yang gagal ditarik, pemberitahuan dikirim ke grup Telegram (bila Telegram sudah diaktifkan).</div>
+        <div class="row3">
+          <div><label>Jadwal</label>
+            <select id="as-mode" onchange="applyAsMode()">
+              <option value="off">Mati</option>
+              <option value="daily">1x sehari</option>
+              <option value="twice">2x sehari (selisih 12 jam)</option>
+              <option value="6h">Setiap 6 jam</option>
+            </select>
+          </div>
+          <div id="as-hour-box"><label>Jam</label><select id="as-hour"></select></div>
+          <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0;width:100%" id="btn-as" onclick="saveAutoSync()">Simpan Jadwal</button></div>
+        </div>
+      </div>
     </div>
     <div class="card">
       <h2>Lunaskan Tagihan Lama</h2>
@@ -787,6 +813,32 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   </div>
 </div>
 
+<!-- MODAL KIRIM JOB COMPLETION -->
+<div class="modal hidden" id="send-modal" onclick="if (event.target === this) closeSend()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <b>Kirim Job Completion</b>
+      <button class="btn sec sm" onclick="closeSend()">Tutup</button>
+    </div>
+    <div class="send-file"><div class="ic">PDF</div><div><div id="sd-file">-</div><div class="muted" id="sd-meta"></div></div></div>
+    <div class="muted" id="sd-last"></div>
+    <label>Kepada (email, pisahkan dengan koma)</label>
+    <input type="text" id="sd-to" placeholder="nama@nuanu.com" autocomplete="off">
+    <label>CC (opsional)</label>
+    <input type="text" id="sd-cc" placeholder="finance@nuanu.com" autocomplete="off">
+    <label>Subjek</label>
+    <input type="text" id="sd-subject">
+    <label>Pesan</label>
+    <textarea id="sd-body" rows="7"></textarea>
+    <label class="chk"><input type="checkbox" id="sd-tg"> Kirim juga PDF ke grup Telegram Transport</label>
+    <div class="muted" style="margin-top:6px">Email tujuan disimpan otomatis untuk pengiriman berikutnya. Salinan PDF diarsipkan di Google Drive.</div>
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-sd" onclick="doSendJC()">Kirim</button>
+      <button class="btn sec" style="margin:0" onclick="downloadJcPdf()">Download PDF</button>
+    </div>
+  </div>
+</div>
+
 <div id="print-area"></div>
 <div class="toast" id="toast"></div>
 
@@ -834,6 +886,9 @@ let CURRENT = null;
 let INCOME = [];
 let LAST_SYNC = null;
 let INCOME_LOADED = false;
+let CONTACTS = [];
+let JC_SENT = {};
+let AUTO_SYNC = null;
 let PR = [];
 let PR_LOADED = false;
 let PR_EDIT = null;
@@ -1026,6 +1081,8 @@ async function init() {
   $('t-tanggal').value = today();
   $('i-tanggal').value = today();
   $('ra-tgl').value = today();
+  $('as-hour').innerHTML = Array.from({ length: 24 }, (_, h) => `<option value="${h}">${String(h).padStart(2, '0')}:00</option>`).join('');
+  $('as-hour').value = '6';
   $('p-tanggal').value = today();
   const rOpts = monthOptions(11, 1);
   $('r-periode').innerHTML = rOpts.map(p => `<option value="${p}">${esc(fmtPeriode(p))}</option>`).join('');
@@ -1034,7 +1091,7 @@ async function init() {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
     $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); } });
   try {
     MASTER = await apiGet({ action: 'master' });
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
@@ -1551,6 +1608,10 @@ function incomeTag(r) {
 function setIncome(d) {
   INCOME = d.rows || [];
   LAST_SYNC = d.lastSync || LAST_SYNC;
+  if (d.contacts) CONTACTS = d.contacts;
+  if (d.jcSent) JC_SENT = d.jcSent;
+  if (d.autoSync) AUTO_SYNC = d.autoSync;
+  renderAutoSync();
   fillIncomePeriode();
   INCOME_LOADED = true;
   renderSyncInfo();
@@ -1616,7 +1677,7 @@ function renderSyncInfo() {
   const t = s ? ((s.sumber || []).find(x => x.src === 'TAXI' && x.cek) || {}).cek : null;
   const temuan = t ? ((t.noCharge && t.noCharge.n ? 1 : 0) + (t.noPay && t.noPay.n ? 1 : 0) + (t.payVar || []).length + (t.nameVar || []).length) : 0;
   $('inc-last').innerHTML = s
-    ? `Terakhir ditarik ${esc(s.waktu)}` + (gagal ? ` &middot; <span class="neg">${gagal} sumber gagal</span>` : '') + (temuan ? ` &middot; <span class="neg">${temuan} data perlu dicek</span> (lihat Tarik Data)` : '')
+    ? `Terakhir ditarik ${esc(s.waktu)}${s.oleh === 'Otomatis' ? ' (otomatis)' : ''}` + (gagal ? ` &middot; <span class="neg">${gagal} sumber gagal</span>` : '') + (temuan ? ` &middot; <span class="neg">${temuan} data perlu dicek</span> (lihat Tarik Data)` : '')
     : 'Belum pernah ditarik';
   const badge = $('sync-badge');
   badge.textContent = gagal + temuan;
@@ -1628,7 +1689,7 @@ function renderSyncInfo() {
   const src = (s.sumber || []).map(x => x.ok
     ? `<div>${esc(x.label)}: <b>${x.transaksi}</b> transaksi${x.catatan ? ' <span class="muted">(' + esc(x.catatan) + ')</span>' : ''}</div>`
     : `<div class="neg">${esc(x.label)}: gagal - ${esc(x.error)}</div>`).join('');
-  $('sync-info').innerHTML = `Terakhir ditarik <b>${esc(s.waktu)}</b> &middot; baru ${s.baru}, diperbarui ${s.diperbarui}, dihapus ${s.dihapus}` +
+  $('sync-info').innerHTML = `Terakhir ditarik <b>${esc(s.waktu)}</b>${s.oleh === 'Otomatis' ? ' (otomatis)' : ''} &middot; baru ${s.baru}, diperbarui ${s.diperbarui}, dihapus ${s.dihapus}` +
     (s.perluCek ? `, <span class="neg">perlu dicek ${s.perluCek}</span>` : '') + src;
   renderDataCheck(s);
 }
@@ -1834,7 +1895,7 @@ function renderIncome() {
       <td>${esc(r.Sumber)}<div><span class="tag auto">${r.Auto ? 'Otomatis' : 'Manual'}</span></div></td>
       <td>${ket(r)}</td>
       <td class="num">${rp(r.Nominal)}</td>
-      <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}</td>
+      <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}${JC_SENT[r.Income_ID] ? `<div class="muted" style="margin-top:3px">JC terkirim ${esc(fmtTgl(JC_SENT[r.Income_ID].waktu))}</div>` : ''}</td>
       <td><div class="btns">
         ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
         ${!lang && r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
@@ -2016,6 +2077,7 @@ const doneCount = rows => rows.filter(r => !r.Batal).length;
 
 async function fillInvoiceCompany() {
   const id = $('iv-pel').value, el = $('iv-comp'), btn = $('btn-inv');
+  renderSentInfo();
   const token = ++INV_COMP_TOKEN;
   $('iv-comp-l').textContent = 'Company';
   if (!id) {
@@ -2136,6 +2198,7 @@ const printedAt = () => new Date().toLocaleString('en-GB', { day: '2-digit', mon
 const safeName = (s, max) => String(s ?? '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max || 80).trim();
 
 function printAs(title) {
+  if (JC_CAPTURE) { JC_CAPTURE.title = title; return; }   // mode kirim: dokumen disiapkan tanpa dialog cetak
   const old = document.title;
   document.title = safeName(title, 150);
   const restore = () => {
@@ -2938,6 +3001,261 @@ async function delPR(id) {
     toast('Data dihapus');
   } catch (e) {
     toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- TARIK DATA OTOMATIS ----------
+function applyAsMode() {
+  $('as-hour-box').classList.toggle('hidden', ['off', '6h'].includes($('as-mode').value));
+}
+
+function renderAutoSync() {
+  const a = AUTO_SYNC;
+  $('as-status').textContent = a ? a.label : 'Belum diatur';
+  $('as-status').className = 'tag ' + (a && a.mode !== 'off' ? 'cleared' : 'auto');
+  if (a) {
+    $('as-mode').value = a.mode;
+    if (a.hour !== undefined && !isNaN(a.hour)) $('as-hour').value = String(a.hour);
+  }
+  applyAsMode();
+}
+
+async function saveAutoSync() {
+  const b = $('btn-as');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    AUTO_SYNC = await apiPost('setAutoSync', { mode: $('as-mode').value, hour: Number($('as-hour').value) });
+    renderAutoSync();
+    toast('Jadwal tarik data otomatis: ' + AUTO_SYNC.label);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Jadwal';
+  }
+}
+
+// ---------- PDF DARI DOKUMEN CETAK (tanpa dialog print) ----------
+// Isi #print-area digambar per halaman A4 (SVG foreignObject -> canvas), lalu digabung jadi PDF dengan pdf-lib.
+const PX_MM = 96 / 25.4, PT_MM = 72 / 25.4;
+let JC_CAPTURE = null;
+let JC_PDF = null;
+
+function printCssText() {
+  let out = '';
+  [...document.styleSheets].forEach(sh => {
+    let rules;
+    try { rules = sh.cssRules; } catch (e) { return; }
+    [...rules].forEach(r => {
+      if (r.type !== CSSRule.MEDIA_RULE || !/print/.test(r.media.mediaText)) return;
+      [...r.cssRules].forEach(x => {
+        if (x.selectorText && x.selectorText.includes('#print-area')) out += x.cssText.replace(/#print-area/g, '#pdf-doc') + '\n';
+      });
+    });
+  });
+  return out;
+}
+
+function svgToImage(svg) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Gagal menggambar halaman PDF'));
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+
+async function makePrintPdf(onProgress) {
+  await loadPdfLib();
+  const land = /landscape/.test($('page-size').textContent);
+  const pw = land ? 297 : 210, ph = land ? 210 : 297, mg = 12;
+  const W = Math.round((pw - 2 * mg) * PX_MM), H = Math.round((ph - 2 * mg) * PX_MM);
+  const css = '*{box-sizing:border-box}#pdf-doc{background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:11px;color:#000;line-height:normal}\n' + printCssText();
+  // Diukur di iframe terpisah agar hanya CSS dokumen cetak yang berlaku (sama persis dengan saat digambar)
+  const host = document.createElement('iframe');
+  host.style.cssText = `position:fixed;left:-30000px;top:0;width:${W + 40}px;height:${H}px;border:0;background:#fff`;
+  document.body.appendChild(host);
+  try {
+    const idoc = host.contentDocument;
+    idoc.open();
+    idoc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body style="margin:0;background:#fff"><div id="pdf-doc" style="width:${W}px">${$('print-area').innerHTML}</div></body></html>`);
+    idoc.close();
+    const doc = idoc.getElementById('pdf-doc');
+    await Promise.all([...doc.querySelectorAll('img')].map(i => i.decode ? i.decode().catch(() => {}) : 0));
+    const top0 = doc.getBoundingClientRect().top, left0 = doc.getBoundingClientRect().left;
+    const total = Math.ceil(doc.getBoundingClientRect().height);
+    // Foto digambar langsung ke canvas (gambar di dalam SVG foreignObject tidak selalu sempat tampil)
+    const photos = [...doc.querySelectorAll('img')].map(im => {
+      const r = im.getBoundingClientRect();
+      const fit = host.contentWindow.getComputedStyle(im).objectFit;
+      im.style.visibility = 'hidden';
+      return { im, x: r.left - left0, y: r.top - top0, w: r.width, h: r.height, fit };
+    }).filter(f => f.w > 0 && f.h > 0 && f.im.naturalWidth);
+
+    // Titik potong halaman: page break paksa, dan batas bawah elemen yang tidak memotong baris tabel / blok tanda tangan / foto
+    const forced = [], cands = new Set(), avoid = [];
+    doc.querySelectorAll('*').forEach(el => {
+      const cs = host.contentWindow.getComputedStyle(el), r = el.getBoundingClientRect();
+      const t = r.top - top0, b = r.bottom - top0;
+      if (cs.breakBefore === 'page' || cs.pageBreakBefore === 'always') forced.push(t);
+      if (el.tagName === 'TR' || el.tagName === 'IMG' || cs.breakInside === 'avoid' || cs.pageBreakInside === 'avoid') avoid.push([t, b]);
+      cands.add(Math.round(b));
+    });
+    forced.sort((a, b) => a - b);
+    const cl = [...cands].sort((a, b) => a - b);
+    const ok = y => !avoid.some(([t, b]) => t < y - 1 && y + 1 < b);
+    const pages = [];
+    let st = 0;
+    while (st < total - 2 && pages.length < 200) {
+      const lim = st + H;
+      const f = forced.find(y => y > st + 2 && y <= lim);
+      let en;
+      if (f !== undefined) en = f;
+      else if (total <= lim) en = total;
+      else en = cl.filter(y => y > st + H * 0.25 && y <= lim && ok(y)).pop() || lim;
+      pages.push([st, en]);
+      st = en;
+    }
+
+    const xml = new XMLSerializer().serializeToString(doc);
+    const cssX = css.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const pdf = await PDFLib.PDFDocument.create();
+    const S = 2;   // resolusi 2x agar teks tajam
+    for (let i = 0; i < pages.length; i++) {
+      if (onProgress) onProgress(i + 1, pages.length);
+      const [a, b] = pages[i];
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><foreignObject x="0" y="0" width="${W}" height="${H}">` +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${W}px;height:${Math.ceil(b - a)}px;overflow:hidden;background:#fff"><style>${cssX}</style>` +
+        `<div style="margin-top:${-a}px">${xml}</div></div></foreignObject></svg>`;
+      const img = await svgToImage(svg);
+      const cv = document.createElement('canvas');
+      cv.width = W * S; cv.height = H * S;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(img, 0, 0, cv.width, cv.height);
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, W * S, (b - a) * S); ctx.clip();
+      photos.filter(f => f.y < b && f.y + f.h > a).forEach(f => {
+        const iw = f.im.naturalWidth, ih = f.im.naturalHeight;
+        let dx = f.x, dy = f.y - a, dw = f.w, dh = f.h, sx = 0, sy = 0, sw = iw, sh = ih;
+        if (f.fit === 'cover') {
+          const k = Math.max(dw / iw, dh / ih);
+          sw = dw / k; sh = dh / k; sx = (iw - sw) / 2; sy = (ih - sh) / 2;
+        } else if (f.fit === 'contain' || f.fit === 'scale-down') {
+          const k = Math.min(dw / iw, dh / ih);
+          const nw = iw * k, nh = ih * k;
+          dx += (dw - nw) / 2; dy += (dh - nh) / 2; dw = nw; dh = nh;
+        }
+        ctx.drawImage(f.im, sx, sy, sw, sh, dx * S, dy * S, dw * S, dh * S);
+      });
+      ctx.restore();
+      let blob;
+      try {
+        blob = await new Promise((res, rej) => cv.toBlob(x => x ? res(x) : rej(new Error('kosong')), 'image/jpeg', 0.9));
+      } catch (e) {
+        throw new Error('Browser ini tidak bisa membuat PDF otomatis. Gunakan Google Chrome atau Microsoft Edge.');
+      }
+      const jpg = await pdf.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+      const page = pdf.addPage([pw * PT_MM, ph * PT_MM]);
+      page.drawImage(jpg, { x: mg * PT_MM, y: mg * PT_MM, width: (pw - 2 * mg) * PT_MM, height: (ph - 2 * mg) * PT_MM });
+    }
+    const bytes = await pdf.save();
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return { bytes, base64: btoa(bin), pages: pages.length };
+  } finally {
+    host.remove();
+  }
+}
+
+// ---------- KIRIM JOB COMPLETION ----------
+const findContact = name => CONTACTS.find(c => String(c.Pelanggan).trim().toUpperCase() === String(name || '').trim().toUpperCase());
+
+function renderSentInfo() {
+  const s = JC_SENT[$('iv-pel').value];
+  $('iv-sent').textContent = s ? `Terakhir dikirim ${fmtTgl(s.waktu)} ${String(s.waktu).slice(11)}${s.email ? ' ke ' + s.email : ''}${s.telegram ? (s.email ? ' dan ' : ' ke ') + 'Telegram' : ''}` : '';
+}
+
+async function sendInvoice() {
+  const id = $('iv-pel').value;
+  if (!id) return toast('Pilih tagihan di "Ditagihkan ke" dulu');
+  const b = $('btn-send');
+  b.disabled = true;
+  let cap;
+  JC_CAPTURE = {};
+  try {
+    await printInvoice(id, $('iv-comp').value, $('iv-sampai').value);
+  } finally {
+    cap = JC_CAPTURE; JC_CAPTURE = null;
+  }
+  if (!cap || !cap.title) { b.disabled = false; return; }    // dibatalkan / tidak ada data
+  try {
+    b.textContent = 'Membuat PDF...';
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const row = INCOME.find(r => r.Income_ID === id) || {};
+    const area = $('print-area');
+    const totEl = [...area.querySelectorAll('.inv-total td.num, .mj-total td.num')].pop();
+    JC_PDF = { id, title: cap.title, pelanggan: row.Pelanggan || '', total: totEl ? totEl.textContent.trim() : '', bank: !!area.querySelector('.inv-bank'), ...pdf };
+    openSend();
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Kirim Email / Telegram';
+  }
+}
+
+function openSend() {
+  const d = JC_PDF;
+  const c = findContact(d.pelanggan);
+  $('sd-file').textContent = safeName(d.title, 150) + '.pdf';
+  $('sd-meta').textContent = `${d.pages} halaman · ${Math.max(1, Math.round(d.bytes.length / 1024))} KB${d.total ? ' · total ' + d.total : ''}`;
+  const s = JC_SENT[d.id];
+  $('sd-last').textContent = s ? `Tagihan ini sudah pernah dikirim ${fmtTgl(s.waktu)} ${String(s.waktu).slice(11)}${s.email ? ' ke ' + s.email : ''}.` : '';
+  $('sd-to').value = c ? c.Email : '';
+  $('sd-cc').value = c ? c.CC : '';
+  $('sd-subject').value = d.title;
+  $('sd-body').value = `Dear ${d.pelanggan || 'Sir/Madam'},\n\nPlease find attached the ${d.title}${d.total ? ' with a total amount of ' + d.total : ''}.\n${d.bank ? 'Kindly transfer the total amount to the bank account stated in the attachment.' : 'Kindly review and process the payment via cost transfer to the Transport Department.'}\n\nThank you.\n\nBest regards,\nTransport Department\nNuanu`;
+  $('sd-tg').checked = false;
+  $('send-modal').classList.remove('hidden');
+  if (!c) setTimeout(() => $('sd-to').focus(), 50);
+}
+
+function closeSend() {
+  $('send-modal').classList.add('hidden');
+}
+
+function downloadJcPdf() {
+  if (!JC_PDF) return;
+  const url = URL.createObjectURL(new Blob([JC_PDF.bytes], { type: 'application/pdf' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = safeName(JC_PDF.title, 150) + '.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+async function doSendJC() {
+  const d = JC_PDF;
+  if (!d) return;
+  const to = $('sd-to').value.trim(), tg = $('sd-tg').checked;
+  if (!to && !tg) return toast('Isi email penerima atau centang kirim ke Telegram');
+  const b = $('btn-sd');
+  b.disabled = true; b.textContent = 'Mengirim...';
+  try {
+    const res = await apiPost('sendJC', {
+      pdf: d.base64, fileName: safeName(d.title, 150), to, cc: $('sd-cc').value.trim(),
+      subject: $('sd-subject').value.trim(), body: $('sd-body').value, telegram: tg, caption: d.title,
+      pelanggan: d.pelanggan, incomeId: d.id
+    });
+    CONTACTS = res.contacts || CONTACTS;
+    JC_SENT = res.jcSent || JC_SENT;
+    closeSend();
+    renderIncome();
+    renderSentInfo();
+    toast('Job Completion terkirim' + (res.email ? ' ke ' + to : '') + (res.telegram ? (res.email ? ' dan' : ' ke') + ' Telegram' : ''));
+  } catch (e) {
+    toast('Gagal kirim: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Kirim';
   }
 }
 
