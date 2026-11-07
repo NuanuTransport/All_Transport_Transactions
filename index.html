@@ -89,6 +89,41 @@ table.items input{padding:6px 8px;font-size:13px}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
+.subnav{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.subnav button{border:1px solid var(--line);background:#fff;color:var(--text);padding:7px 14px;border-radius:99px;font-size:13px;cursor:pointer;font-family:inherit}
+.subnav button.active{background:#1e5246;border-color:#1e5246;color:#fff;font-weight:600}
+.subnav .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:99px;background:#fee2e2;color:var(--bad);font-size:11px;font-weight:700}
+.subnav button.active .badge{background:#fff}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.page-head h2{margin:0;font-size:18px}
+.page-head .muted{margin-top:2px}
+.page-head .ctrl{display:flex;gap:8px;align-items:center}
+.page-head select{width:auto;min-width:170px}
+.stat .d{font-size:11px;margin-top:4px;color:var(--muted)}
+.stat .d.up{color:var(--ok)}
+.stat .d.down{color:var(--bad)}
+.chart-box{position:relative;height:280px;margin-top:8px;display:flex;flex-direction:column}
+.ch-plot{flex:1;min-height:0;position:relative}
+.ch-plot svg{display:block;font-size:11px}
+.ch-plot svg text{fill:var(--muted)}
+.ch-plot svg text.cat{fill:#374151}
+.ch-plot .hit{fill:transparent;cursor:pointer}
+.ch-plot .hit.on{fill:rgba(17,24,39,.04)}
+.ch-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#374151;margin-bottom:6px}
+.ch-legend i,.ch-tip i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.ch-tip{position:absolute;z-index:3;pointer-events:none;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.6;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.ch-tip .t{font-weight:600;margin-bottom:2px}
+.ch-tip .f{border-top:1px solid rgba(255,255,255,.2);margin-top:4px;padding-top:4px}
+.chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px}
+details.guide{margin:0 0 10px;font-size:12px;color:var(--muted)}
+details.guide summary{cursor:pointer;color:var(--pri);font-weight:600}
+details.guide div{margin-top:6px;line-height:1.6}
+details.tbl{margin-top:10px}
+details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:600;margin-bottom:6px}
+.top-list{margin-top:10px}
+.top-list div{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+.top-list div:last-child{border-bottom:0}
+.top-list span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:700px){.row,.row3,.row4,.row5,.grid2{grid-template-columns:1fr}.kv{grid-template-columns:130px 1fr}}
 @media print{
   @page{size:A4;margin:14mm}
@@ -183,22 +218,25 @@ table.items input{padding:6px 8px;font-size:13px}
   <div class="brand-sep"></div>
   <div>
     <h1>Transport Finance</h1>
-    <p>Cash advance, pemakaian, income, dan ringkasan bulanan</p>
+    <p>Income, purchase, dan cash advance Transport Department</p>
   </div>
 </header>
 
 <nav>
-  <button data-v="list" class="active" onclick="show('list')">Daftar CA</button>
-  <button data-v="new" onclick="show('new')">Buat CA</button>
+  <button data-v="summary" class="active" onclick="show('summary')">Dashboard</button>
   <button data-v="income" onclick="show('income')">Income</button>
   <button data-v="pr" onclick="show('pr')">Purchase</button>
-  <button data-v="summary" onclick="show('summary')">Ringkasan</button>
+  <button data-v="list" onclick="show('list')">Cash Advance</button>
 </nav>
 
 <main>
 
   <!-- DAFTAR CA -->
-  <section id="view-list">
+  <section id="view-list" class="hidden">
+    <div class="page-head">
+      <div><h2>Cash Advance</h2><div class="muted">CA bulanan, top up ke admin, pemakaian, dan clearing</div></div>
+      <div class="ctrl"><button class="btn" style="margin:0" onclick="show('new')">+ Buat CA</button></div>
+    </div>
     <div class="stats">
       <div class="stat"><div class="l">CA aktif</div><div class="v" id="s-open">-</div></div>
       <div class="stat"><div class="l">Saldo di manager</div><div class="v" id="s-mgr">-</div></div>
@@ -229,7 +267,7 @@ table.items input{padding:6px 8px;font-size:13px}
 
     <div class="card">
       <h2>Download Nota CA per Periode</h2>
-      <div class="hint">Semua foto / file nota pemakaian CA bertanggal 1 sampai akhir bulan pada periode yang dipilih, digabung jadi satu file PDF. Halaman awal berisi daftar nota, lalu satu nota per halaman.</div>
+      <div class="hint">Semua nota pemakaian CA dalam satu bulan digabung jadi satu PDF (halaman daftar, lalu satu nota per halaman).</div>
       <div class="row3">
         <div><label>Periode</label><select id="z-periode"></select></div>
         <div><label>Grup</label><select id="z-grup"></select></div>
@@ -241,6 +279,7 @@ table.items input{padding:6px 8px;font-size:13px}
 
   <!-- BUAT CA -->
   <section id="view-new" class="hidden">
+    <div class="actions"><button class="btn sec" onclick="show('list')">&larr; Kembali</button></div>
     <div class="card">
       <h2>CA Bulanan Baru</h2>
       <div class="muted">Dana CA dipegang manager. Admin menerima dana lewat Top Up di halaman detail CA.</div>
@@ -368,6 +407,9 @@ table.items input{padding:6px 8px;font-size:13px}
 
   <!-- INCOME -->
   <section id="view-income" class="hidden">
+    <div class="page-head">
+      <div><h2>Income</h2><div class="muted">Tagihan, penjualan langsung, job completion, dan rental EV</div></div>
+    </div>
     <div class="stats">
       <div class="stat"><div class="l">Tagihan belum dibayar (semua periode)</div><div class="v" id="i-open">-</div><div class="muted" id="i-open-n"></div></div>
       <div class="stat"><div class="l">Tagihan belum dibayar &gt; 30 hari</div><div class="v" id="i-old">-</div><div class="muted" id="i-old-n"></div></div>
@@ -375,35 +417,55 @@ table.items input{padding:6px 8px;font-size:13px}
       <div class="stat"><div class="l" id="i-lang-l">Penjualan langsung bulan ini</div><div class="v pos" id="i-lang">-</div><div class="muted" id="i-lang-n"></div></div>
     </div>
 
+    <div class="subnav" id="sub-income">
+      <button data-s="daftar" class="active" onclick="setSub('income','daftar')">Daftar Income</button>
+      <button data-s="jc" onclick="setSub('income','jc')">Job Completion</button>
+      <button data-s="rental" onclick="setSub('income','rental')">Rental EV</button>
+      <button data-s="sync" onclick="setSub('income','sync')">Tarik Data &amp; Pelunasan<span class="badge hidden" id="sync-badge"></span></button>
+      <button data-s="manual" onclick="setSub('income','manual')">Input Manual</button>
+    </div>
+
+    <div class="sub" data-g="income" data-s="daftar">
     <div class="card">
       <div class="card-head">
-        <div>
-          <h2>Tarik Data Otomatis</h2>
-          <div class="muted">Taxi (Nuanu Taxi Service), air mineral, WO bus &amp; buggy (Work Order Bot), servis mekanik (Mechanic Apps), dan komisi KDAB ditarik dari sheet masing-masing. Tidak perlu diinput manual.</div>
-        </div>
-        <div class="btns">
-          <button class="btn" style="margin:0" id="btn-sync" onclick="syncIncome()">Tarik Data Sekarang</button>
-          <button class="btn sec" style="margin:0" id="btn-tg" onclick="sendUnpaidReport()">Kirim Laporan Tagihan ke Telegram</button>
-        </div>
+        <div><h2>Daftar Income</h2><div class="muted" id="inc-last">-</div></div>
+        <button class="btn sec" style="margin:0" data-sync onclick="syncIncome()">Tarik Data</button>
       </div>
-      <div class="sync-box" id="sync-info">Belum pernah ditarik.</div>
-      <div id="sync-cek"></div>
+      <div class="tabs" id="inc-tabs">
+        <button data-t="tagihan" class="active" onclick="setIncTab('tagihan')">Tagihan</button>
+        <button data-t="langsung" onclick="setIncTab('langsung')">Penjualan langsung</button>
+      </div>
+      <div class="filters">
+        <select id="ff-periode" onchange="renderIncome()"><option value="">Semua periode</option></select>
+        <select id="ff-divisi" onchange="renderIncome()"></select>
+        <select id="ff-sumber" onchange="renderIncome()"><option value="">Semua sumber data</option></select>
+        <select id="ff-status" onchange="renderIncome()">
+          <option value="">Semua status</option>
+          <option>Belum dibayar</option>
+          <option>Lunas</option>
+        </select>
+        <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan" oninput="renderIncome()">
+      </div>
+      <div class="hint" id="inc-hint"></div>
+      <div class="tablewrap">
+        <table>
+          <thead id="income-head"></thead>
+          <tbody id="income-body"></tbody>
+        </table>
+      </div>
+      <button class="btn sec" onclick="loadIncome()">Refresh</button>
+    </div>
     </div>
 
-    <div class="card">
-      <h2>Lunaskan Tagihan Lama</h2>
-      <div class="hint">Untuk tagihan bulan-bulan sebelumnya yang sudah dibayar. Semua tagihan Belum dibayar sampai bulan yang dipilih akan ditandai Lunas (tanggal bayar = tanggal tagihan).</div>
-      <div class="row3">
-        <div><label>Sampai bulan</label><select id="b-sampai"></select></div>
-        <div><label>Sumber data</label><select id="b-sumber"><option value="">Semua sumber</option></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn ok" style="margin:0;width:100%" id="btn-bulk" onclick="payBulk()">Tandai Lunas</button></div>
-      </div>
-      <div class="muted" id="b-info" style="margin-top:8px"></div>
-    </div>
-
+    <div class="sub hidden" data-g="income" data-s="jc">
     <div class="card">
       <h2>Cetak Job Completion</h2>
-      <div class="hint">Job Completion untuk Taxi / Guest Mobility, Shuttle Bus &amp; Buggy (Work Order Bot), dan Mekanik (Mechanic Apps). Pilih tagihan di "Ditagihkan ke". Untuk Shuttle Bus dan Mekanik, kolom ketiga berisi pilihan rekap bulanan per departemen atau satu work order (JC per WO). Taxi: rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2) dan Bill to diisi nama company (kolom COMPANY). Direct order yang ditagih bulanan (Darya, Maxim) punya tagihan sendiri per pemesan per bulan; tandai Lunas setelah transfer masuk. Bayar langsung lainnya (mis. Bayar langsung - Transfer) bisa dicetak per pemesan. Untuk menggabung beberapa bulan jadi satu Job Completion (mis. September + Oktober), pilih bulan awal di Periode dan bulan akhir di s/d. Klik Tarik Data dulu agar data terbaru.</div>
+      <div class="hint">Pilih periode dan tujuan tagihan, lalu cetak. Untuk menggabung beberapa bulan (mis. September + Oktober), isi bulan akhir di "s/d".</div>
+      <details class="guide"><summary>Panduan</summary><div>
+        <b>Taxi / Guest Mobility</b>: rincian trip dari sheet Nuanu Taxi Service. Tagihan ke perusahaan / departemen dipisah sesuai kolom PAYMENT (mis. YDSN 1 dan YDSN 2), Bill to diisi nama company. Direct order bulanan (Darya, Maxim) punya tagihan sendiri per pemesan per bulan; tandai Lunas setelah transfer masuk. Bayar langsung lainnya bisa dicetak per pemesan.<br>
+        <b>Shuttle Bus &amp; Buggy / Mekanik</b>: kolom ketiga berisi pilihan rekap bulanan per departemen atau satu work order (JC per WO).<br>
+        <b>Rental EV</b>: satu JC per departemen per bulan sesuai BOQ.<br>
+        Klik Tarik Data dulu agar data terbaru.</div></details>
       <div class="row5">
         <div><label>Periode</label><select id="iv-periode" onchange="fillInvoicePelanggan()"></select></div>
         <div><label>s/d (gabung bulan)</label><select id="iv-sampai"></select></div>
@@ -412,10 +474,26 @@ table.items input{padding:6px 8px;font-size:13px}
         <div style="display:flex;align-items:flex-end"><button class="btn" style="margin:0;width:100%" id="btn-inv" onclick="printInvoice($('iv-pel').value, $('iv-comp').value, $('iv-sampai').value)">Cetak Job Completion</button></div>
       </div>
     </div>
+    </div>
 
+    <div class="sub hidden" data-g="income" data-s="rental">
+    <div class="card">
+      <div class="card-head">
+        <div><h2>Tagihan Rental EV per Departemen</h2><div class="muted" id="rc-info">-</div></div>
+        <select id="rc-periode" style="width:auto;min-width:170px" onchange="renderRentChart()"></select>
+      </div>
+      <div class="chart-box" id="rc-box"></div>
+      <details class="tbl"><summary>Lihat tabel</summary>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Departemen</th><th class="num">Nominal</th><th>Status</th></tr></thead>
+          <tbody id="rc-body"></tbody>
+        </table></div>
+      </details>
+    </div>
     <div class="card">
       <h2>Penyesuaian Rental EV</h2>
-      <div class="hint">Catat unit sewa yang rusak, dikembalikan, atau diganti unit lain. Unit lama berhenti ditagih mulai tanggal tsb (bulan itu dihitung prorata per hari) dan bulan berikutnya tidak ditagih. Unit pengganti ditagih terpisah mulai tanggal tsb. Unit rusak yang tidak diganti dianggap selesai. Sheet EV_Rental dan tagihan rental langsung dihitung ulang setelah disimpan.</div>
+      <div class="hint">Catat unit sewa yang rusak, dikembalikan, atau diganti. Tagihan rental dihitung ulang otomatis setelah disimpan.</div>
+      <details class="guide"><summary>Cara hitung</summary><div>Unit lama ditagih sampai sehari sebelum tanggal yang diisi (bulan itu prorata per hari), bulan berikutnya tidak ditagih. Unit pengganti ditagih terpisah mulai tanggal tersebut. Unit rusak yang tidak diganti dianggap selesai.</div></details>
       <div class="row4">
         <div><label>Tanggal rusak / dikembalikan</label><input type="date" id="ra-tgl"></div>
         <div><label>Departemen</label><input type="text" id="ra-dept" list="ra-dept-list" placeholder="Mis. IT, Landscape"></div>
@@ -443,7 +521,36 @@ table.items input{padding:6px 8px;font-size:13px}
         </table>
       </div>
     </div>
+    </div>
 
+    <div class="sub hidden" data-g="income" data-s="sync">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>Tarik Data Otomatis</h2>
+          <div class="muted">Taxi, air mineral, WO bus &amp; buggy, servis mekanik, rental EV (BOQ), dan komisi KDAB ditarik dari sheet masing-masing.</div>
+        </div>
+        <div class="btns">
+          <button class="btn" style="margin:0" id="btn-sync" data-sync onclick="syncIncome()">Tarik Data Sekarang</button>
+          <button class="btn sec" style="margin:0" id="btn-tg" onclick="sendUnpaidReport()">Kirim Laporan Tagihan ke Telegram</button>
+        </div>
+      </div>
+      <div class="sync-box" id="sync-info">Belum pernah ditarik.</div>
+      <div id="sync-cek"></div>
+    </div>
+    <div class="card">
+      <h2>Lunaskan Tagihan Lama</h2>
+      <div class="hint">Tandai Lunas semua tagihan Belum dibayar sampai bulan yang dipilih (tanggal bayar = tanggal tagihan).</div>
+      <div class="row3">
+        <div><label>Sampai bulan</label><select id="b-sampai"></select></div>
+        <div><label>Sumber data</label><select id="b-sumber"><option value="">Semua sumber</option></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn ok" style="margin:0;width:100%" id="btn-bulk" onclick="payBulk()">Tandai Lunas</button></div>
+      </div>
+      <div class="muted" id="b-info" style="margin-top:8px"></div>
+    </div>
+    </div>
+
+    <div class="sub hidden" data-g="income" data-s="manual">
     <div class="card">
       <h2>Catat Income Manual</h2>
       <div class="hint">Untuk income di luar sumber otomatis, misalnya Last Mile atau shuttle charter.</div>
@@ -468,37 +575,14 @@ table.items input{padding:6px 8px;font-size:13px}
       </div>
       <button class="btn" id="btn-income" onclick="addIncome()">Simpan Income</button>
     </div>
-
-    <div class="card">
-      <h2>Daftar Income</h2>
-      <div class="tabs" id="inc-tabs">
-        <button data-t="tagihan" class="active" onclick="setIncTab('tagihan')">Tagihan</button>
-        <button data-t="langsung" onclick="setIncTab('langsung')">Penjualan langsung</button>
-      </div>
-      <div class="filters">
-        <select id="ff-periode" onchange="renderIncome()"><option value="">Semua periode</option></select>
-        <select id="ff-divisi" onchange="renderIncome()"></select>
-        <select id="ff-sumber" onchange="renderIncome()"><option value="">Semua sumber data</option></select>
-        <select id="ff-status" onchange="renderIncome()">
-          <option value="">Semua status</option>
-          <option>Belum dibayar</option>
-          <option>Lunas</option>
-        </select>
-        <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan" oninput="renderIncome()">
-      </div>
-      <div class="hint" id="inc-hint"></div>
-      <div class="tablewrap">
-        <table>
-          <thead id="income-head"></thead>
-          <tbody id="income-body"></tbody>
-        </table>
-      </div>
-      <button class="btn sec" onclick="loadIncome()">Refresh</button>
     </div>
   </section>
 
   <!-- PR & WO KE DEPARTEMEN LAIN -->
   <section id="view-pr" class="hidden">
+    <div class="page-head">
+      <div><h2>Purchase</h2><div class="muted">PR, WO ke departemen lain, dan pengambilan barang di store</div></div>
+    </div>
     <div class="stats">
       <div class="stat"><div class="l">Menunggu nominal (PO / tagihan / harga)</div><div class="v" id="p-wait">-</div></div>
       <div class="stat"><div class="l">Pengeluaran bulan ini</div><div class="v" id="p-month">-</div></div>
@@ -536,6 +620,41 @@ table.items input{padding:6px 8px;font-size:13px}
       </div>
     </div>
 
+    <div class="subnav" id="sub-pr">
+      <button data-s="daftar" class="active" onclick="setSub('pr','daftar')">Daftar Purchase</button>
+      <button data-s="baru" onclick="setSub('pr','baru')">+ Catat Baru</button>
+    </div>
+    <div class="sub" data-g="pr" data-s="daftar">
+    <div class="card">
+      <h2>Daftar Purchase</h2>
+      <div class="filters">
+        <select id="pf-jenis" onchange="renderPR()">
+          <option value="">Semua jenis</option>
+          <option value="PR">PR</option>
+          <option value="WO Departemen">WO ke departemen lain</option>
+          <option value="Store">Pengambilan store</option>
+        </select>
+        <select id="pf-status" onchange="renderPR()">
+          <option value="">Semua status</option>
+          <option value="Menunggu PO">Menunggu nominal</option>
+          <option value="PO Release">Sudah bernominal</option>
+          <option value="Batal">Batal</option>
+        </select>
+        <select id="pf-periode" onchange="renderPR()"><option value="">Semua periode</option></select>
+        <select id="pf-divisi" onchange="renderPR()"></select>
+        <input type="text" id="pf-cari" placeholder="Cari no / vendor / keterangan" oninput="renderPR()">
+      </div>
+      <div class="hint">Klik baris untuk mengisi nominal (PO / tagihan) atau membatalkan. Periode = bulan PO / tagihan (atau bulan input bila belum ada nominal).</div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Tanggal</th><th>Jenis / No / Keterangan</th><th>Divisi / Kategori</th><th>Vendor / Dept tujuan</th><th>PO / Tagihan</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
+          <tbody id="pr-body"></tbody>
+        </table>
+      </div>
+      <button class="btn sec" onclick="loadPR()">Refresh</button>
+    </div>
+    </div>
+    <div class="sub hidden" data-g="pr" data-s="baru">
     <div class="card">
       <h2>Catat Purchase (PR / WO Keluar / Pengambilan Store)</h2>
       <div class="hint" id="p-hint"></div>
@@ -574,79 +693,82 @@ table.items input{padding:6px 8px;font-size:13px}
       <button class="btn" id="btn-pr" onclick="addPR()">Simpan</button>
     </div>
 
-    <div class="card">
-      <h2>Daftar Purchase</h2>
-      <div class="filters">
-        <select id="pf-jenis" onchange="renderPR()">
-          <option value="">Semua jenis</option>
-          <option value="PR">PR</option>
-          <option value="WO Departemen">WO ke departemen lain</option>
-          <option value="Store">Pengambilan store</option>
-        </select>
-        <select id="pf-status" onchange="renderPR()">
-          <option value="">Semua status</option>
-          <option value="Menunggu PO">Menunggu nominal</option>
-          <option value="PO Release">Sudah bernominal</option>
-          <option value="Batal">Batal</option>
-        </select>
-        <select id="pf-periode" onchange="renderPR()"><option value="">Semua periode</option></select>
-        <select id="pf-divisi" onchange="renderPR()"></select>
-        <input type="text" id="pf-cari" placeholder="Cari no / vendor / keterangan" oninput="renderPR()">
-      </div>
-      <div class="hint">Klik baris untuk mengisi nominal (PO / tagihan) atau membatalkan. Periode = bulan PO / tagihan (atau bulan input bila belum ada nominal).</div>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Tanggal</th><th>Jenis / No / Keterangan</th><th>Divisi / Kategori</th><th>Vendor / Dept tujuan</th><th>PO / Tagihan</th><th class="num">Nominal</th><th>Status</th><th></th></tr></thead>
-          <tbody id="pr-body"></tbody>
-        </table>
-      </div>
-      <button class="btn sec" onclick="loadPR()">Refresh</button>
     </div>
   </section>
 
-  <!-- RINGKASAN -->
-  <section id="view-summary" class="hidden">
-    <div class="card">
-      <div class="row">
-        <div><label>Periode</label><select id="r-periode" onchange="loadSummary()"></select></div>
-        <div style="display:flex;align-items:flex-end"><button class="btn sec" style="margin:0" onclick="loadSummary()">Refresh</button></div>
+  <!-- DASHBOARD -->
+  <section id="view-summary">
+    <div class="page-head">
+      <div><h2>Dashboard</h2><div class="muted">Income dan pengeluaran Transport Department</div></div>
+      <div class="ctrl">
+        <select id="r-periode" onchange="loadSummary()"></select>
+        <button class="btn sec" style="margin:0" onclick="loadSummary()">Refresh</button>
       </div>
     </div>
     <div class="stats">
-      <div class="stat"><div class="l">Income sudah dibayar</div><div class="v pos" id="r-income">-</div></div>
-      <div class="stat"><div class="l">Belum dibayar</div><div class="v" id="r-piutang">-</div></div>
-      <div class="stat"><div class="l">Pengeluaran</div><div class="v" id="r-expense">-</div></div>
-      <div class="stat"><div class="l">Selisih (total income - pengeluaran)</div><div class="v" id="r-net">-</div></div>
+      <div class="stat"><div class="l">Income sudah dibayar</div><div class="v pos" id="r-income">-</div><div class="d" id="r-income-d"></div></div>
+      <div class="stat"><div class="l">Belum dibayar</div><div class="v" id="r-piutang">-</div><div class="d" id="r-piutang-d"></div></div>
+      <div class="stat"><div class="l">Pengeluaran</div><div class="v" id="r-expense">-</div><div class="d" id="r-expense-d"></div></div>
+      <div class="stat"><div class="l">Selisih (income - pengeluaran)</div><div class="v" id="r-net">-</div><div class="d" id="r-net-d"></div></div>
     </div>
+    <div class="warn-text" id="r-prwait" style="margin:-6px 0 12px"></div>
+
     <div class="card">
-      <h2>Per Divisi</h2>
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Divisi</th><th class="num">Sudah dibayar</th><th class="num">Belum dibayar</th><th class="num">Pengeluaran</th><th class="num">Selisih</th></tr></thead>
-          <tbody id="r-divisi"></tbody>
-        </table>
-      </div>
-      <div class="muted">Pengeluaran = pemakaian CA + PR &amp; WO ke departemen lain yang sudah bernominal + HPP air mineral. Selisih = (sudah dibayar + belum dibayar) - pengeluaran.</div>
-      <div class="warn-text" id="r-prwait"></div>
+      <h2>Tren 12 Bulan</h2>
+      <div class="muted">Income (sudah dibayar + belum dibayar) dibanding pengeluaran per bulan. Arahkan kursor ke batang untuk angka.</div>
+      <div class="chart-box" id="box-trend" style="height:300px"></div>
+      <details class="tbl"><summary>Lihat tabel</summary>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Bulan</th><th class="num">Sudah dibayar</th><th class="num">Belum dibayar</th><th class="num">Pengeluaran</th><th class="num">Selisih</th></tr></thead>
+          <tbody id="r-trend"></tbody>
+        </table></div>
+      </details>
     </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Per Divisi</h2>
+        <div class="muted" id="r-div-sub">Income dan pengeluaran bulan ini</div>
+        <div class="chart-box" id="box-div"></div>
+        <details class="tbl"><summary>Lihat tabel</summary>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Divisi</th><th class="num">Sudah dibayar</th><th class="num">Belum dibayar</th><th class="num">Pengeluaran</th><th class="num">Selisih</th></tr></thead>
+            <tbody id="r-divisi"></tbody>
+          </table></div>
+          <div class="muted">Pengeluaran = pemakaian CA + PR / WO / store yang sudah bernominal + HPP air mineral.</div>
+        </details>
+      </div>
+      <div class="card">
+        <h2>Tagihan Belum Dibayar</h2>
+        <div class="muted">Semua periode, dikelompokkan menurut umur tagihan</div>
+        <div class="chart-box" id="box-aging" style="height:210px"></div>
+        <div class="muted" style="margin-top:10px">Pelanggan dengan tagihan terbesar</div>
+        <div class="top-list" id="r-top"></div>
+      </div>
+    </div>
+
     <div class="grid2">
       <div class="card">
         <h2>Income per Sumber</h2>
-        <div class="tablewrap">
-          <table>
+        <div class="muted" id="r-src-sub">-</div>
+        <div class="chart-box" id="box-src"></div>
+        <details class="tbl"><summary>Lihat tabel</summary>
+          <div class="tablewrap"><table>
             <thead><tr><th>Sumber</th><th class="num">Transaksi</th><th class="num">Nominal</th></tr></thead>
             <tbody id="r-sumber"></tbody>
-          </table>
-        </div>
+          </table></div>
+        </details>
       </div>
       <div class="card">
         <h2>Pengeluaran per Kategori</h2>
-        <div class="tablewrap">
-          <table>
+        <div class="muted" id="r-kat-sub">-</div>
+        <div class="chart-box" id="box-kat"></div>
+        <details class="tbl"><summary>Lihat tabel</summary>
+          <div class="tablewrap"><table>
             <thead><tr><th>Kategori</th><th class="num">Baris</th><th class="num">Nominal</th></tr></thead>
             <tbody id="r-kategori"></tbody>
-          </table>
-        </div>
+          </table></div>
+        </details>
       </div>
     </div>
   </section>
@@ -719,7 +841,7 @@ const FILE_CACHE = {};
 let MODAL_TOKEN = 0;
 
 const $ = id => document.getElementById(id);
-const rp = n => (Number(n) < 0 ? '-Rp ' : 'Rp ') + Math.abs(Number(n || 0)).toLocaleString('id-ID');
+const rp = n => (Number(n) < 0 ? '-Rp ' : 'Rp ') + Math.round(Math.abs(Number(n || 0))).toLocaleString('id-ID');
 const rpCls = n => `<span class="${Number(n) < 0 ? 'neg' : ''}">${rp(n)}</span>`;
 const rpNet = n => `<span class="${Number(n) < 0 ? 'neg' : 'pos'}">${rp(n)}</span>`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -788,11 +910,30 @@ async function apiPost(action, data) {
 
 function show(view) {
   ['list', 'new', 'detail', 'income', 'pr', 'summary'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === view));
+  const navV = (view === 'new' || view === 'detail') ? 'list' : view;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
   window.scrollTo(0, 0);
   if (view === 'income' && !INCOME_LOADED) loadIncome();
   if (view === 'pr' && !PR_LOADED) loadPR();
   if (view === 'summary') loadSummary();
+  redrawCharts();
+}
+
+// Sub menu di dalam halaman (Income, Purchase). Pilihan terakhir diingat di browser.
+function setSub(group, name) {
+  document.querySelectorAll(`#sub-${group} button`).forEach(b => b.classList.toggle('active', b.dataset.s === name));
+  document.querySelectorAll(`.sub[data-g="${group}"]`).forEach(el => el.classList.toggle('hidden', el.dataset.s !== name));
+  try { localStorage.setItem('tf-sub-' + group, name); } catch (e) {}
+  if (group === 'income' && name === 'rental') renderRentChart();
+  redrawCharts();
+}
+
+function restoreSubs() {
+  ['income', 'pr'].forEach(g => {
+    let v = null;
+    try { v = localStorage.getItem('tf-sub-' + g); } catch (e) {}
+    if (v && document.querySelector(`#sub-${g} button[data-s="${v}"]`)) setSub(g, v);
+  });
 }
 
 function fillSelect(el, items, placeholder) {
@@ -918,7 +1059,9 @@ async function init() {
     $('b-sumber').addEventListener('change', renderBulkInfo);
     $('b-sampai').addEventListener('change', renderBulkInfo);
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
-    await loadList();
+    restoreSubs();
+    show('summary');
+    loadList();
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -1416,6 +1559,9 @@ function setIncome(d) {
   fillInvoiceSelects();
   renderIncome();
   renderRentalAdj();
+  fillRentPeriode();
+  if (!$('view-income').classList.contains('hidden')) renderRentChart();
+  if (!$('view-summary').classList.contains('hidden') && LAST_TREND) renderAging();
 }
 
 // ---------- LUNASKAN TAGIHAN LAMA ----------
@@ -1466,6 +1612,15 @@ async function payBulk() {
 
 function renderSyncInfo() {
   const s = LAST_SYNC;
+  const gagal = s ? (s.sumber || []).filter(x => !x.ok).length : 0;
+  const t = s ? ((s.sumber || []).find(x => x.src === 'TAXI' && x.cek) || {}).cek : null;
+  const temuan = t ? ((t.noCharge && t.noCharge.n ? 1 : 0) + (t.noPay && t.noPay.n ? 1 : 0) + (t.payVar || []).length + (t.nameVar || []).length) : 0;
+  $('inc-last').innerHTML = s
+    ? `Terakhir ditarik ${esc(s.waktu)}` + (gagal ? ` &middot; <span class="neg">${gagal} sumber gagal</span>` : '') + (temuan ? ` &middot; <span class="neg">${temuan} data perlu dicek</span> (lihat Tarik Data)` : '')
+    : 'Belum pernah ditarik';
+  const badge = $('sync-badge');
+  badge.textContent = gagal + temuan;
+  badge.classList.toggle('hidden', !(gagal + temuan));
   if (!s) {
     $('sync-info').innerHTML = 'Belum pernah ditarik. Klik <b>Tarik Data Sekarang</b>.';
     return;
@@ -1690,8 +1845,8 @@ function renderIncome() {
 }
 
 async function syncIncome() {
-  const b = $('btn-sync');
-  b.disabled = true; b.textContent = 'Menarik data...';
+  const btns = [...document.querySelectorAll('[data-sync]')];
+  btns.forEach(b => { b._t = b._t || b.textContent; b.disabled = true; b.textContent = 'Menarik data...'; });
   try {
     setIncome(await apiPost('syncIncome', {}));
     const s = LAST_SYNC || {};
@@ -1700,7 +1855,7 @@ async function syncIncome() {
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
-    b.disabled = false; b.textContent = 'Tarik Data Sekarang';
+    btns.forEach(b => { b.disabled = false; b.textContent = b._t; });
   }
 }
 
@@ -2621,6 +2776,7 @@ async function addStore() {
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     setPR(await apiPost('addPR', d));
+    setSub('pr', 'daftar');
     ['p-no', 'p-ket'].forEach(i => $(i).value = '');
     $('p-unit').value = '';
     resetItems('p-items');
@@ -2658,6 +2814,7 @@ async function addPR() {
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     setPR(await apiPost('addPR', d));
+    setSub('pr', 'daftar');
     ['p-no', 'p-vendor', 'p-ket', 'p-nominal'].forEach(i => $(i).value = '');
     toast(d.Nominal > 0 ? `Tersimpan, masuk pengeluaran ${fmtPeriode(d.Tanggal.slice(0, 7))}` : (wo ? 'WO tersimpan, menunggu tagihan' : 'PR tersimpan, menunggu PO'));
   } catch (e) {
@@ -2784,12 +2941,195 @@ async function delPR(id) {
   }
 }
 
-// ---------- RINGKASAN ----------
+// ---------- GRAFIK (SVG ringan, tanpa library luar) ----------
+const C = {
+  paid: '#2a78d6',      // income sudah dibayar
+  unpaid: '#9cc0ee',    // income belum dibayar (biru muda, entitas yang sama)
+  exp: '#eb6834',       // pengeluaran
+  aging: ['#c9c8c3', '#f6c9b4', '#f19a76', '#eb6834', '#b8441a'],
+  grid: '#eef0f2', axis: '#e5e7eb', text: '#6b7280'
+};
+const CH = {};          // grafik terdaftar, digambar ulang saat lebar layar berubah
+let LAST_TREND = null;
+
+// Rp singkat untuk sumbu grafik: 1,5 M / 150 jt / 800 rb
+function rpShort(n) {
+  const a = Math.abs(n), sg = n < 0 ? '-' : '';
+  const f = (v, u) => sg + (Math.round(v * 10) / 10).toLocaleString('id-ID') + ' ' + u;
+  if (a >= 1e9) return f(a / 1e9, 'M');
+  if (a >= 1e6) return f(a / 1e6, 'jt');
+  if (a >= 1e3) return f(a / 1e3, 'rb');
+  return sg + a;
+}
+const monShort = p => { const [y, m] = p.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('id-ID', { month: 'short' }) + " '" + String(y).slice(2); };
+
+function niceMax(v) {
+  if (v <= 0) return { max: 1, step: 1 };
+  const raw = v / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(k => k * mag).find(x => x >= raw);
+  return { max: Math.ceil(v / step) * step, step };
+}
+
+// Batang dengan ujung membulat 4px di sisi nilai, rata di sisi baseline
+function barPath(x, y, w, h, horiz, round) {
+  const r = round ? Math.min(4, (horiz ? h : w) / 2, horiz ? w : h) : 0;
+  if (!r) return `M${x},${y}h${w}v${h}h${-w}Z`;
+  return horiz
+    ? `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - r)}Z`
+    : `M${x},${y + h}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}Z`;
+}
+
+// opt: { labels, series:[{label,color,data,stack}], horizontal, legend, colors (warna per batang, 1 seri), tipTitle(i), tipLine(series,i), tipFooter(i), empty }
+function barChart(boxId, opt) {
+  CH[boxId] = opt;
+  const box = $(boxId);
+  if (!box.offsetParent) return;   // sedang tersembunyi: digambar saat ditampilkan (redrawCharts)
+  const n = opt.labels.length;
+  const total = opt.series.reduce((a, s) => a + s.data.reduce((x, v) => x + Math.abs(v || 0), 0), 0);
+  const legend = opt.legend && opt.series.length > 1
+    ? `<div class="ch-legend">${opt.series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join('')}</div>` : '';
+  if (!n || !total) {
+    box.innerHTML = legend + `<div class="chart-empty">${esc(opt.empty || 'Belum ada data')}</div>`;
+    return;
+  }
+  const horiz = !!opt.horizontal;
+  if (horiz) box.style.height = Math.max(140, n * (opt.series.some(s => s.stack) || opt.series.length === 1 ? 28 : 40) + 40 + (legend ? 26 : 0)) + 'px';
+  box.innerHTML = legend + '<div class="ch-plot"></div><div class="ch-tip hidden"></div>';
+  const plot = box.querySelector('.ch-plot'), tip = box.querySelector('.ch-tip');
+  const W = plot.clientWidth || 300, H = plot.clientHeight || 200;
+
+  // kelompok batang: seri dengan stack sama ditumpuk
+  const groups = [];
+  opt.series.forEach((s, si) => {
+    const key = s.stack || ('_' + si);
+    let g = groups.find(x => x.key === key);
+    if (!g) { g = { key, idx: [] }; groups.push(g); }
+    g.idx.push(si);
+  });
+  let maxV = 0;
+  for (let i = 0; i < n; i++) groups.forEach(g => { maxV = Math.max(maxV, g.idx.reduce((a, si) => a + Math.max(0, opt.series[si].data[i] || 0), 0)); });
+  const { max, step } = niceMax(maxV);
+
+  const maxLbl = horiz ? Math.min(150, Math.max(...opt.labels.map(l => String(l).length)) * 6.6 + 8) : 0;
+  const M = horiz ? { l: maxLbl, r: 22, t: 4, b: 22 } : { l: 52, r: 6, t: 8, b: 22 };
+  const pw = W - M.l - M.r, ph = H - M.t - M.b;
+  const band = (horiz ? ph : pw) / n;
+  const gw = band * (groups.length > 1 ? 0.78 : 0.62);
+  const bw = Math.min(horiz ? 22 : 34, (gw - (groups.length - 1) * 2) / groups.length);
+  const scale = v => (v / max) * (horiz ? pw : ph);
+  let svg = `<svg width="${W}" height="${H}" role="img">`;
+
+  // grid + label sumbu nilai
+  for (let v = 0; v <= max + 1e-9; v += step) {
+    const p = scale(v);
+    svg += horiz
+      ? `<line x1="${M.l + p}" x2="${M.l + p}" y1="${M.t}" y2="${M.t + ph}" stroke="${v ? C.grid : C.axis}"/><text x="${M.l + p}" y="${H - 6}" text-anchor="middle">${rpShort(v)}</text>`
+      : `<line x1="${M.l}" x2="${M.l + pw}" y1="${M.t + ph - p}" y2="${M.t + ph - p}" stroke="${v ? C.grid : C.axis}"/><text x="${M.l - 6}" y="${M.t + ph - p + 4}" text-anchor="end">${rpShort(v)}</text>`;
+  }
+  // label kategori (vertikal: dijarangkan bila sempit)
+  const lw = Math.max(...opt.labels.map(l => String(l).length)) * 5.6 + 6;
+  const every = horiz ? 1 : Math.ceil(n / Math.max(1, Math.floor(pw / Math.max(46, lw))));
+  opt.labels.forEach((l, i) => {
+    if (i % every) return;
+    const c = M.t + band * i + band / 2;
+    let t = String(l);
+    if (horiz && t.length * 6.6 > maxLbl - 8) t = t.slice(0, Math.floor((maxLbl - 8) / 6.6) - 1) + '…';
+    svg += horiz
+      ? `<text x="${M.l - 8}" y="${c + 4}" text-anchor="end" class="cat">${esc(t)}</text>`
+      : `<text x="${M.l + band * i + band / 2}" y="${H - 6}" text-anchor="middle" class="cat">${esc(t)}</text>`;
+  });
+  // batang
+  for (let i = 0; i < n; i++) {
+    const start = (horiz ? M.t : M.l) + band * i + (band - (bw * groups.length + 2 * (groups.length - 1))) / 2;
+    groups.forEach((g, gi) => {
+      let acc = 0;
+      const vals = g.idx.map(si => Math.max(0, opt.series[si].data[i] || 0));
+      const top = vals.map((v, k) => v > 0 ? k : -1).filter(k => k >= 0).pop();
+      g.idx.forEach((si, k) => {
+        const v = vals[k];
+        if (!(v > 0)) return;
+        const s = opt.series[si];
+        const color = (opt.colors && opt.colors[i]) || s.color;
+        let len = scale(v);
+        const gap = k !== top && len > 3 ? 2 : 0;
+        const off = scale(acc);
+        acc += v;
+        const pos = start + gi * (bw + 2);
+        svg += horiz
+          ? `<path d="${barPath(M.l + off, pos, Math.max(1, len - gap), bw, true, k === top)}" fill="${color}"/>`
+          : `<path d="${barPath(pos, M.t + ph - off - len + gap, bw, Math.max(1, len - gap), false, k === top)}" fill="${color}"/>`;
+      });
+    });
+    // area hover satu kategori penuh
+    svg += horiz
+      ? `<rect class="hit" data-i="${i}" x="${M.l}" y="${M.t + band * i}" width="${pw}" height="${band}"/>`
+      : `<rect class="hit" data-i="${i}" x="${M.l + band * i}" y="${M.t}" width="${band}" height="${ph}"/>`;
+  }
+  svg += '</svg>';
+  plot.innerHTML = svg;
+
+  const showTip = (el, ev) => {
+    const i = Number(el.dataset.i);
+    plot.querySelectorAll('.hit').forEach(h => h.classList.toggle('on', h === el));
+    const title = opt.tipTitle ? opt.tipTitle(i) : opt.labels[i];
+    const lines = opt.series.map(s => opt.tipLine ? opt.tipLine(s, i)
+      : `<div><i style="background:${(opt.colors && opt.colors[i]) || s.color}"></i>${opt.series.length > 1 ? esc(s.label) + ': ' : ''}<b>${rp(s.data[i] || 0)}</b></div>`).join('');
+    tip.innerHTML = `<div class="t">${esc(title)}</div>${lines}${opt.tipFooter ? '<div class="f">' + opt.tipFooter(i) + '</div>' : ''}`;
+    tip.classList.remove('hidden');
+    const r = box.getBoundingClientRect();
+    let x = ev.clientX - r.left + 14, y = ev.clientY - r.top + 14;
+    if (x + tip.offsetWidth > r.width) x = ev.clientX - r.left - tip.offsetWidth - 14;
+    if (x < 0) x = 4;
+    if (y + tip.offsetHeight > r.height) y = Math.max(0, r.height - tip.offsetHeight);
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  };
+  plot.querySelectorAll('.hit').forEach(h => {
+    h.addEventListener('mousemove', ev => showTip(h, ev));
+    h.addEventListener('click', ev => showTip(h, ev));
+  });
+  plot.addEventListener('mouseleave', () => { tip.classList.add('hidden'); plot.querySelectorAll('.hit').forEach(h => h.classList.remove('on')); });
+}
+
+function redrawCharts() {
+  Object.keys(CH).forEach(id => { if ($(id) && $(id).offsetParent) barChart(id, CH[id]); });
+}
+let CH_RESIZE = null;
+window.addEventListener('resize', () => { clearTimeout(CH_RESIZE); CH_RESIZE = setTimeout(redrawCharts, 150); });
+
+// Bagi list jadi top N + "Lainnya"
+function topN(entries, n) {
+  entries.sort((a, b) => b[1] - a[1]);
+  if (entries.length <= n) return entries;
+  const rest = entries.slice(n - 1).reduce((a, e) => a + e[1], 0);
+  return entries.slice(0, n - 1).concat([['Lainnya', rest]]);
+}
+
+function deltaText(id, cur, prev, goodUp) {
+  const el = $(id);
+  if (!prev && !cur) { el.textContent = ''; el.className = 'd'; return; }
+  const diff = cur - prev;
+  if (!prev) { el.textContent = 'Bulan lalu Rp 0'; el.className = 'd'; return; }
+  const pct = Math.round(diff / Math.abs(prev) * 100);
+  const up = diff >= 0;
+  el.textContent = `${up ? '▲' : '▼'} ${Math.abs(pct)}% dari bulan lalu (${rpShort(prev)})`;
+  el.className = 'd ' + (diff === 0 ? '' : (up === goodUp ? 'up' : 'down'));
+}
+
+// ---------- DASHBOARD ----------
 async function loadSummary() {
   const p = $('r-periode').value;
-  ['r-divisi', 'r-sumber', 'r-kategori'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Memuat...</td></tr>');
+  ['r-divisi', 'r-sumber', 'r-kategori', 'r-trend'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Memuat...</td></tr>');
+  $('r-div-sub').textContent = 'Income dan pengeluaran ' + fmtPeriode(p);
+  $('r-src-sub').textContent = fmtPeriode(p);
+  $('r-kat-sub').textContent = fmtPeriode(p);
   try {
-    const d = await apiGet({ action: 'summary', periode: p });
+    const [d, t] = await Promise.all([
+      apiGet({ action: 'summary', periode: p }),
+      apiGet({ action: 'trend', periode: p, n: 12 }).catch(() => null)
+    ]);
+    if (!INCOME_LOADED) loadIncome();   // untuk grafik umur tagihan
+
+    // Per divisi
     let ti = 0, tp = 0, te = 0;
     const keys = Object.keys(d.divisi);
     $('r-divisi').innerHTML = keys.map(k => {
@@ -2808,10 +3148,105 @@ async function loadSummary() {
     $('r-sumber').innerHTML = sk.length ? sk.map(k => `<tr><td>${esc(k)}</td><td class="num">${d.sumber[k].n}</td><td class="num">${rp(d.sumber[k].t)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">Belum ada income</td></tr>';
     const kk = Object.keys(d.kategori);
     $('r-kategori').innerHTML = kk.length ? kk.map(k => `<tr><td>${esc(k)}</td><td class="num">${d.kategori[k].n}</td><td class="num">${rp(d.kategori[k].t)}</td></tr>`).join('') : '<tr><td colspan="3" class="muted">Belum ada pengeluaran</td></tr>';
+
+    // Tren + perbandingan bulan lalu
+    LAST_TREND = t;
+    const m = (t && t.months) || [];
+    const prev = m.length > 1 ? m[m.length - 2] : null;
+    if (prev) {
+      deltaText('r-income-d', ti, prev.income, true);
+      deltaText('r-piutang-d', tp, prev.piutang, false);
+      deltaText('r-expense-d', te, prev.expense, false);
+      deltaText('r-net-d', ti + tp - te, prev.income + prev.piutang - prev.expense, true);
+    }
+    $('r-trend').innerHTML = m.length ? m.slice().reverse().map(x => `<tr><td>${esc(fmtPeriode(x.ym))}</td><td class="num">${rp(x.income)}</td><td class="num">${rp(x.piutang)}</td><td class="num">${rp(x.expense)}</td><td class="num">${rpNet(x.income + x.piutang - x.expense)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">Tidak ada data</td></tr>';
+
+    barChart('box-trend', {
+      labels: m.map(x => monShort(x.ym)),
+      legend: true,
+      series: [
+        { label: 'Sudah dibayar', color: C.paid, stack: 'inc', data: m.map(x => x.income) },
+        { label: 'Belum dibayar', color: C.unpaid, stack: 'inc', data: m.map(x => x.piutang) },
+        { label: 'Pengeluaran', color: C.exp, data: m.map(x => x.expense) }
+      ],
+      tipTitle: i => fmtPeriode(m[i].ym),
+      tipFooter: i => 'Selisih: <b>' + rp(m[i].income + m[i].piutang - m[i].expense) + '</b>'
+    });
+
+    const dk = keys.filter(k => d.divisi[k].income + d.divisi[k].piutang + d.divisi[k].expense > 0)
+      .sort((a, b) => (d.divisi[b].income + d.divisi[b].piutang) - (d.divisi[a].income + d.divisi[a].piutang));
+    barChart('box-div', {
+      labels: dk, horizontal: true, legend: true,
+      series: [
+        { label: 'Income', color: C.paid, data: dk.map(k => d.divisi[k].income + d.divisi[k].piutang) },
+        { label: 'Pengeluaran', color: C.exp, data: dk.map(k => d.divisi[k].expense) }
+      ],
+      tipFooter: i => { const x = d.divisi[dk[i]]; return 'Selisih: <b>' + rp(x.income + x.piutang - x.expense) + '</b>'; }
+    });
+
+    const se = topN(sk.map(k => [k, d.sumber[k].t]), 8);
+    barChart('box-src', { labels: se.map(e => e[0]), horizontal: true, series: [{ label: 'Income', color: C.paid, data: se.map(e => e[1]) }], empty: 'Belum ada income' });
+    const ke = topN(kk.map(k => [k, d.kategori[k].t]), 8);
+    barChart('box-kat', { labels: ke.map(e => e[0]), horizontal: true, series: [{ label: 'Pengeluaran', color: C.exp, data: ke.map(e => e[1]) }], empty: 'Belum ada pengeluaran' });
+
+    renderAging();
   } catch (e) {
-    ['r-divisi', 'r-sumber', 'r-kategori'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Gagal memuat data</td></tr>');
+    ['r-divisi', 'r-sumber', 'r-kategori', 'r-trend'].forEach(i => $(i).innerHTML = '<tr><td colspan="5" class="muted">Gagal memuat data</td></tr>');
     toast('Gagal: ' + e.message);
   }
+}
+
+// Umur tagihan belum dibayar (semua periode) + pelanggan dengan tagihan terbesar
+function renderAging() {
+  if (!INCOME_LOADED) { $('r-top').innerHTML = '<div class="muted">Memuat...</div>'; return; }
+  const unpaid = INCOME.filter(r => !isLangsung(r) && r.Status !== 'Lunas');
+  const B = [['Berjalan', 0, 0], ['0-30 hr', 0, 0], ['31-60 hr', 0, 0], ['61-90 hr', 0, 0], ['> 90 hr', 0, 0]];
+  const BT = ['Bulan berjalan (belum tutup bulan)', 'Umur 0-30 hari', 'Umur 31-60 hari', 'Umur 61-90 hari', 'Umur lebih dari 90 hari'];
+  unpaid.forEach(r => {
+    const u = Number(r.Umur || 0);
+    const i = r.Berjalan ? 0 : u <= 30 ? 1 : u <= 60 ? 2 : u <= 90 ? 3 : 4;
+    B[i][1] += Number(r.Nominal || 0); B[i][2]++;
+  });
+  const per = {};
+  unpaid.forEach(r => { const k = r.Pelanggan || '(tanpa nama)'; per[k] = (per[k] || 0) + Number(r.Nominal || 0); });
+  const top = Object.entries(per).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  $('r-top').innerHTML = top.length ? top.map(e => `<div><span>${esc(e[0])}</span><span class="num">${rp(e[1])}</span></div>`).join('') : '<div class="muted">Tidak ada tagihan belum dibayar</div>';
+  barChart('box-aging', {
+    labels: B.map(b => b[0]),
+    series: [{ label: 'Belum dibayar', color: C.aging[3], data: B.map(b => b[1]) }],
+    colors: C.aging,
+    tipTitle: i => BT[i],
+    tipLine: (sr, i) => `<div><b>${rp(B[i][1])}</b> &middot; ${B[i][2]} tagihan</div>`,
+    empty: 'Tidak ada tagihan belum dibayar'
+  });
+}
+
+// ---------- GRAFIK RENTAL EV ----------
+const isRentRow = r => String(r.Sync_Key || '').indexOf('RENT|') === 0;
+
+function fillRentPeriode() {
+  const el = $('rc-periode');
+  const keep = el.value;
+  const list = [...new Set(INCOME.filter(isRentRow).map(periodeOf))].sort().reverse();
+  el.innerHTML = list.length ? list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('') : '<option value="">Belum ada data</option>';
+  el.value = list.includes(keep) ? keep : (list.includes(thisMonth()) ? thisMonth() : (list[0] || ''));
+}
+
+function renderRentChart() {
+  const p = $('rc-periode').value;
+  const rows = INCOME.filter(r => isRentRow(r) && periodeOf(r) === p).sort((a, b) => b.Nominal - a.Nominal);
+  const tot = sumNom(rows), lunas = sumNom(rows.filter(r => r.Status === 'Lunas'));
+  $('rc-info').textContent = rows.length ? `${rows.length} departemen · total ${rp(tot)} · lunas ${rp(lunas)} · belum dibayar ${rp(tot - lunas)}` : 'Belum ada tagihan rental';
+  $('rc-body').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.Pelanggan)}</td><td class="num">${rp(r.Nominal)}</td><td>${incomeTag(r)}</td></tr>`).join('') +
+    `<tr class="total"><td>Total</td><td class="num">${rp(tot)}</td><td></td></tr>` : '<tr><td colspan="3" class="muted">Tidak ada data</td></tr>';
+  barChart('rc-box', {
+    labels: rows.map(r => r.Pelanggan), horizontal: true, legend: true,
+    series: [
+      { label: 'Lunas', color: C.paid, stack: 's', data: rows.map(r => r.Status === 'Lunas' ? Number(r.Nominal) : 0) },
+      { label: 'Belum dibayar', color: C.unpaid, stack: 's', data: rows.map(r => r.Status === 'Lunas' ? 0 : Number(r.Nominal)) }
+    ],
+    empty: 'Belum ada tagihan rental'
+  });
 }
 
 // ---------- DOWNLOAD NOTA CA PER PERIODE (DIGABUNG JADI 1 PDF) ----------
