@@ -1834,7 +1834,12 @@ function openIncome(id) {
     rows.push(['Terakhir ditarik', esc(r.Last_Sync) || '-']);
     if (r.Catatan_Sync) rows.push(['Perlu dicek', `<span class="neg">${esc(r.Catatan_Sync)}</span>`]);
     const jobs = mechJobs(r);
-    if (jobs.length) rows.push(['Pekerjaan', `<ul class="job-list">${jobs.map(j => `<li><b>${esc(j.unit || '-')}</b> &middot; ${esc(j.job)}<div class="muted">${esc(fmtTgl(j.tgl))} &middot; ${esc(j.wo)} &middot; ${rp(j.total)}</div></li>`).join('')}</ul>`]);
+    if (jobs.length) {
+      const okSO = v => /^SO\s*\/\s*\d{4}\s*\/\s*\d+/i.test(String(v || '').trim());
+      const nSO = jobs.filter(j => okSO(j.so)).length;
+      rows.push(['SO per WO', `${nSO} dari ${jobs.length} WO sudah ada SO di Mechanic Apps` + (nSO < jobs.length ? ' <span class="tag over">' + (jobs.length - nSO) + ' belum</span>' : '')]);
+      rows.push(['Pekerjaan', `<ul class="job-list">${jobs.map(j => `<li><b>${esc(j.unit || '-')}</b> &middot; ${esc(j.job)}<div class="muted">${esc(fmtTgl(j.tgl))} &middot; ${esc(j.wo)} &middot; ${rp(j.total)} &middot; ${!j.so ? '<span class="neg">belum ada SO</span>' : okSO(j.so) ? 'SO ' + esc(j.so.toUpperCase()) : '<span class="neg">SO: ' + esc(j.so) + ' (cek, bukan format SO)</span>'}</div></li>`).join('')}</ul>`]);
+    }
     if (url) rows.push(['Sheet sumber', `<a href="${esc(url)}" target="_blank" rel="noopener">Buka sheet ${esc(r.Sumber_Data)}</a>`]);
   }
   showModal('Detail Income', rows, r.Bukti_URL, 'Bukti');
