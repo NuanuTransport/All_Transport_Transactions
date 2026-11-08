@@ -2860,9 +2860,13 @@ function setPageSize(size) {
 
 // Gabung Job Completion beberapa bulan untuk tagihan yang sama (Sync_Key sama, hanya bulannya berbeda).
 // Bulan tanpa tagihan untuk pelanggan tersebut dilewati.
+// No SO dari daftar income (diisi admin) untuk dicetak di Job Completion; beberapa bulan digabung = semua No SO-nya
+const soOf = list => [...new Set(list.map(r => String((r && r.No_SO) || '').trim()).filter(Boolean))].join(', ');
+
 async function getInvoiceRange(id, toYm) {
-  const first = await getInvoiceData(id);
+  const first0 = await getInvoiceData(id);
   const base = INCOME.find(r => r.Income_ID === id);
+  const first = Object.assign({}, first0, { soNo: soOf([base]) });
   if (!toYm || !base || toYm <= first.periode) return first;
   const p = String(base.Sync_Key || '').split('|');
   const same = r => {
@@ -2883,7 +2887,8 @@ async function getInvoiceRange(id, toYm) {
     nominalIncome: sum('nominalIncome'),
     periodeEnd: last.periode,
     months: parts.map(d => ({ periode: d.periode, flat: Number(d.flat || 0) })),
-    noInvoice: String(first.noInvoice || '').replace('/' + yymm(first.periode) + '/', '/' + yymm(first.periode) + '-' + yymm(last.periode) + '/')
+    noInvoice: String(first.noInvoice || '').replace('/' + yymm(first.periode) + '/', '/' + yymm(first.periode) + '-' + yymm(last.periode) + '/'),
+    soNo: soOf(list)
   });
 }
 
@@ -2939,6 +2944,7 @@ async function printInvoice(id, comp, toYm) {
           <tr><td>Job Completion No.</td><td><b>${esc(no.trim() || noDefault)}</b></td></tr>
           <tr><td>Date</td><td>${esc(fmtTgl(tglCetak))}</td></tr>
           <tr><td>Period</td><td>${esc(perEn)}</td></tr>
+          ${all.soNo ? `<tr><td>SO No.</td><td><b>${esc(all.soNo)}</b></td></tr>` : ''}
         </table>
       </div>
 
@@ -3013,7 +3019,7 @@ const woVehicle = r => `${r.Tipe || '-'}${r.Unit > 1 ? ' x' + r.Unit : ''}`;
 const woStatusLabel = r => r.Status === 'NO SHOW' ? 'No show charge' : r.Status === 'COMPLETED' ? '' : 'Cancellation charge';
 const nl2br = s => esc(s).replace(/\n/g, '<br>');
 
-function jcTop(title, sub, no, period) {
+function jcTop(title, sub, no, period, so) {
   return `<div class="inv-top">
       <div>${logoTag()}</div>
       <div class="inv-title"><h1>${esc(title)}</h1><div class="p-sub">${sub}</div></div>
@@ -3021,6 +3027,7 @@ function jcTop(title, sub, no, period) {
         <tr><td>Job Completion No.</td><td><b>${esc(no)}</b></td></tr>
         <tr><td>Date</td><td>${esc(fmtTgl(today()))}</td></tr>
         <tr><td>Period</td><td>${esc(period)}</td></tr>
+        ${so ? `<tr><td>SO No.</td><td><b>${esc(so)}</b></td></tr>` : ''}
       </table>
     </div>`;
 }
@@ -3047,7 +3054,7 @@ async function printWorkJC(all, woId) {
   if (woId) {
     const r = all.rows.find(x => x.Id === woId);
     if (!r) return toast('Work order tidak ditemukan');
-    const noDef = mech ? (r.SO || 'JC/MT/' + r.Id) : 'JC/SB/' + r.Id;
+    const noDef = mech ? (okSO(r.SO) ? String(r.SO).toUpperCase() : 'JC/MT/' + r.Id) : 'JC/SB/' + r.Id;
     const no = prompt(`Job Completion ${r.Id} (${dept}): ${rp(r.Total)}.\n\nNomor Job Completion:`, noDef);
     if (no === null) return;
     const N = no.trim() || noDef;
@@ -3118,7 +3125,7 @@ async function printWorkJC(all, woId) {
   }
   const nCancel = mech ? 0 : rows.filter(r => r.Status !== 'COMPLETED').length;
   $('print-area').innerHTML = `
-    ${jcTop('JOB COMPLETION', mech ? 'Nuanu Mechanic &middot; Transport Department' : 'Nuanu Shuttle Bus &amp; Buggy &middot; Transport Department', no.trim() || noDef, perEn)}
+    ${jcTop('JOB COMPLETION', mech ? 'Nuanu Mechanic &middot; Transport Department' : 'Nuanu Shuttle Bus &amp; Buggy &middot; Transport Department', no.trim() || noDef, perEn, all.soNo)}
     <div class="inv-to">
       <div class="muted-p">Bill to</div>
       <div class="inv-to-name">${esc(dept)}</div>
@@ -3149,7 +3156,7 @@ async function printRentJC(all) {
   if (no === null) return;
   const req = all.requester && all.requester.toUpperCase() !== String(dept).toUpperCase() ? all.requester : '';
   $('print-area').innerHTML = `
-    ${jcTop('JOB COMPLETION', 'Electric Vehicle Rental &middot; Transport Department', no.trim() || noDef, perEn)}
+    ${jcTop('JOB COMPLETION', 'Electric Vehicle Rental &middot; Transport Department', no.trim() || noDef, perEn, all.soNo)}
     <div class="inv-to">
       <div class="muted-p">Bill to</div>
       <div class="inv-to-name">${esc(dept)}</div>
@@ -3215,7 +3222,7 @@ function mechPage(r, dept, withPhotos) {
   const notes = [r.Catatan, r.Findings].filter(Boolean).join('\n');
   const photos = withPhotos ? (r.Photos || []).map(id => FILE_CACHE['mp:' + id]).filter(f => f && f.base64) : [];
   return `
-    ${mechHead('JOB COMPLETION', `${esc(r.Id)}${r.SO ? '<br>' + esc(r.SO) : ''}<br>${esc(fmtTgl(r.Selesai || r.Tanggal))}`)}
+    ${mechHead('JOB COMPLETION', `${esc(r.Id)}${okSO(r.SO) ? '<br>' + esc(String(r.SO).toUpperCase()) : ''}<br>${esc(fmtTgl(r.Selesai || r.Tanggal))}`)}
     <table class="mj-kv">
       <tr><td>Department</td><td>${esc(dept)}</td></tr>
       <tr><td>Vehicle</td><td>${esc(r.Kendaraan || '-')}</td></tr>
@@ -3280,11 +3287,11 @@ async function printMechJC(all, woId) {
   if (withPages && nPhotos) await loadMechPhotos(rows.reduce((a, r) => a.concat(r.Photos || []), []), progress);
 
   $('print-area').innerHTML = `<div class="mj">
-    ${mechHead('JOB COMPLETION REPORT', `${esc(no.trim() || noDef)}<br>${esc(perEn)}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
+    ${mechHead('JOB COMPLETION REPORT', `${esc(no.trim() || noDef)}<br>${esc(perEn)}${all.soNo ? '<br>' + esc(all.soNo) : ''}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
     <table class="mj-kv"><tr><td>Department</td><td><b>${esc(dept)}</b></td></tr></table>
     <table class="mj-tbl">
-      <tr><th>Date</th><th>WO ID</th><th>Vehicle</th><th>Job description</th><th class="num">Parts</th><th class="num">Service fee</th><th class="num">Total</th></tr>
-      ${rows.map(r => `<tr><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}${r.SO ? '<br><span class="mj-sub">' + esc(r.SO) + '</span>' : ''}</td><td>${esc(r.Kendaraan || '-')}</td><td>${nl2br(r.Pekerjaan || '-')}</td><td class="num">${rp(r.PartsTotal)}</td><td class="num">${rp(r.Fee)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
+      <tr><th>Date</th><th>WO ID / SO No.</th><th>Vehicle</th><th>Job description</th><th class="num">Parts</th><th class="num">Service fee</th><th class="num">Total</th></tr>
+      ${rows.map(r => `<tr><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}${okSO(r.SO) ? '<br><span class="mj-sub">' + esc(String(r.SO).toUpperCase()) + '</span>' : ''}</td><td>${esc(r.Kendaraan || '-')}</td><td>${nl2br(r.Pekerjaan || '-')}</td><td class="num">${rp(r.PartsTotal)}</td><td class="num">${rp(r.Fee)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
       <tr class="mj-total"><td colspan="4">Total (${rows.length} job${rows.length === 1 ? '' : 's'})</td><td class="num">${rp(sum('PartsTotal'))}</td><td class="num">${rp(sum('Fee'))}</td><td class="num">${rp(total)}</td></tr>
     </table>
     <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
