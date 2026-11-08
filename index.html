@@ -137,6 +137,7 @@ body.open nav [data-v="users"]{display:none!important}
 .res-under{color:var(--bad);font-weight:600}
 .res-over{color:#b45309;font-weight:600}
 body.viewer [onclick*="openAlloc(-1)"],body.viewer #btn-al,body:not(.head) #btn-al-del{display:none!important}
+body.viewer [onclick*="openBatch("],body.viewer #btn-ab,body:not(.head) #btn-ab-del{display:none!important}
 .al-ev{font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)}
 .al-ev:last-child{border-bottom:0}
 .al-ev .src{display:inline-block;min-width:26px;font-size:10px;font-weight:700;border-radius:4px;padding:0 4px;margin-right:4px;text-align:center;background:#eef3f1;color:#1e5246}
@@ -865,6 +866,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
+        <button data-m="life" onclick="setAlMode('life')">Masa guna</button>
       </div>
       <div class="filters" id="al-filters">
         <select id="al-cat" onchange="renderAlloc()"><option value="">Semua kategori</option></select>
@@ -899,6 +901,38 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <tbody id="al-cost-body"></tbody>
         </table></div>
         <div class="muted" style="margin-top:8px">Sumber: Mechanic Apps (work order + maintenance terjadwal; sparepart maintenance dihargai dari tab Spare_Parts), pemakaian CA dan purchase yang diisi kode unit.</div>
+      </div>
+      <div id="al-life" class="hidden">
+        <div class="card-head" style="margin-bottom:6px">
+          <div class="muted" id="al-life-info">-</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="al-life-flag" onchange="renderUnitLife()" style="width:auto">
+              <option value="">Semua status</option>
+              <option>Pertimbangkan ganti</option><option>Pantau</option><option>Baik</option>
+              <option value="-">Belum ada data beli</option>
+            </select>
+            <button class="btn sec" style="margin:0" id="al-life-tbtn" onclick="toggleBatchView()">Batch pembelian</button>
+            <button class="btn sec" style="margin:0" onclick="exportUnitLife()">Download Excel</button>
+          </div>
+        </div>
+        <div id="al-life-units">
+          <div class="stats" id="al-life-stats"></div>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Kode</th><th>Jenis</th><th>Batch / beli</th><th class="num">Umur</th><th class="num">Nilai perolehan</th><th class="num">Nilai buku</th><th class="num">Servis sejak beli</th><th class="num">Servis 12 bln</th><th class="num">Per bulan</th><th>Status</th></tr></thead>
+            <tbody id="al-life-body"></tbody>
+          </table></div>
+        </div>
+        <div id="al-life-batch" class="hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <div class="muted">Satu baris per pembelian. Kode unit boleh rentang, mis. <code>LV23-001..LV23-010</code>, dipisah koma.</div>
+            <button class="btn" style="margin:0" onclick="openBatch('')">+ Tambah batch</button>
+          </div>
+          <div class="tablewrap"><table>
+            <thead><tr><th>Batch</th><th>Jenis</th><th>Tgl beli</th><th>Vendor / PO</th><th class="num">Qty</th><th class="num">Harga / unit</th><th class="num">Impor / unit</th><th class="num">Umur</th><th>Kode unit</th><th></th></tr></thead>
+            <tbody id="al-batch-body"></tbody>
+          </table></div>
+        </div>
+        <div class="muted" style="margin-top:8px" id="al-life-note"></div>
       </div>
       <div id="al-hist" class="hidden">
         <div class="tablewrap"><table>
@@ -1130,6 +1164,39 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
       <button class="btn sec" style="margin:0" id="btn-al-del" onclick="deleteAlloc()">Hapus Unit</button>
     </div>
     <div id="al-m-extra"></div>
+  </div>
+</div>
+
+<!-- MODAL BATCH PEMBELIAN (MASA GUNA) -->
+<div class="modal hidden" id="ab-modal" onclick="if (event.target === this) closeBatch()">
+  <div class="modal-box" style="max-width:620px">
+    <div class="modal-head"><b id="ab-title">Batch pembelian</b><button class="btn sec sm" onclick="closeBatch()">Tutup</button></div>
+    <div class="row">
+      <div><label>Jenis kendaraan</label><input type="text" id="ab-Jenis" autocomplete="off" placeholder="Mis. Bus 23 seat"></div>
+      <div><label>Tanggal beli (tanggal PO)</label><input type="date" id="ab-Tanggal_Beli"></div>
+    </div>
+    <div class="row">
+      <div><label>Vendor</label><input type="text" id="ab-Vendor" autocomplete="off"></div>
+      <div><label>No PO</label><input type="text" id="ab-No_PO" autocomplete="off" placeholder="PO/2025/01014"></div>
+    </div>
+    <div class="row">
+      <div><label>Jumlah unit</label><input type="number" id="ab-Qty" min="0" step="1"></div>
+      <div><label>Umur pakai (tahun)</label><input type="number" id="ab-Umur_Pakai_Th" min="0.5" step="0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Harga per unit (Rp)</label><input type="text" id="ab-Harga_Unit" inputmode="numeric" class="money"></div>
+      <div><label>Biaya impor per unit (Rp)</label><input type="text" id="ab-Biaya_Impor_Unit" inputmode="numeric" class="money" placeholder="0 bila beli lokal"></div>
+    </div>
+    <label>Kode unit</label><input type="text" id="ab-Kode_Unit" autocomplete="off" placeholder="LV23-001..LV23-010, LV0-003" oninput="abPreview()">
+    <div class="muted" id="ab-preview" style="margin-top:4px"></div>
+    <div class="row">
+      <div><label>Status kode</label><select id="ab-Status_Kode"><option value="OK">Sudah dicek</option><option value="Perkiraan">Perkiraan</option></select></div>
+      <div><label>Catatan</label><input type="text" id="ab-Catatan" autocomplete="off"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn" style="margin:0;flex:1" id="btn-ab" onclick="saveBatch()">Simpan</button>
+      <button class="btn sec" style="margin:0" id="btn-ab-del" onclick="deleteBatch()">Hapus</button>
+    </div>
   </div>
 </div>
 
@@ -1392,7 +1459,7 @@ async function refreshAll() {
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
   if (CUR_VIEW === 'summary') jobs.push(loadSummary());
   if (CUR_VIEW === 'users') jobs.push(loadUsers());
-  if (ALLOC_LOADED || CUR_VIEW === 'alloc') { UC = null; jobs.push(loadAlloc().then(() => { if (AL_MODE === 'cost') return loadUnitCost(); if (AL_MODE === 'hist') return loadUnitHist(); })); }
+  if (ALLOC_LOADED || CUR_VIEW === 'alloc') { UC = null; LIFE = null; jobs.push(loadAlloc().then(() => { if (AL_MODE === 'cost') return loadUnitCost(); if (AL_MODE === 'hist') return loadUnitHist(); if (AL_MODE === 'life') return loadUnitLife(); })); }
   if (CUR_VIEW === 'detail' && CURRENT && CURRENT.header) jobs.push(openDetail(CURRENT.header.CA_ID));
   try {
     await Promise.all(jobs.map(j => Promise.resolve(j).catch(() => null)));
@@ -1582,7 +1649,7 @@ const AKSI_LABEL = {
   addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
-  addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
+  addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', saveAssetBatch: 'Ubah / tambah batch pembelian', deleteAssetBatch: 'Hapus batch pembelian', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
 };
 
 function renderLog() {
@@ -2767,9 +2834,11 @@ function setAlMode(m) {
   $('al-boq').classList.toggle('hidden', m !== 'boq');
   $('al-cost').classList.toggle('hidden', m !== 'cost');
   $('al-hist').classList.toggle('hidden', m !== 'hist');
+  $('al-life').classList.toggle('hidden', m !== 'life');
   $('al-filters').classList.toggle('hidden', m === 'boq');
   if (m === 'cost' && !UC) loadUnitCost();
   if (m === 'hist') loadUnitHist();
+  if (m === 'life' && !LIFE) loadUnitLife();
   renderAlloc();
 }
 
@@ -2816,6 +2885,7 @@ function renderAlloc() {
   if (AL_MODE === 'boq') renderAllocBoq();
   if (AL_MODE === 'cost') renderUnitCost();
   if (AL_MODE === 'hist') renderUnitHist();
+  if (AL_MODE === 'life') renderUnitLife();
 }
 
 // ---------- BIAYA PER UNIT ----------
@@ -2993,7 +3063,7 @@ async function loadUnitExtra(code) {
     if (!AL_EDIT || ucKey(AL_EDIT.Code) !== key) return;
     const u = UC && UC.units.find(x => ucKey(x.code) === key);
     const per = UC ? fmtPeriode(UC.dari) + (UC.dari !== UC.sampai ? ' - ' + fmtPeriode(UC.sampai) : '') : '';
-    $('al-m-extra').innerHTML =
+    $('al-m-extra').innerHTML = lifeInfoHtml(code) +
       '<div class="al-sec-title">Riwayat pemindahan</div>' +
       (hist && hist.length ? hist.map(h => `<div class="al-ev">${esc(fmtTgl(h.Tanggal_Efektif))} · <b>${esc(h.Perubahan)}</b>: ${esc(h.Dari || '-')} → ${esc(h.Ke || '-')}${h.Catatan ? ' <span class="muted">· ' + esc(h.Catatan) + '</span>' : ''}${h.Oleh ? ' <span class="muted">· ' + esc(h.Oleh) + '</span>' : ''}</div>`).join('') : '<div class="muted">Belum ada riwayat</div>') +
       `<div class="al-sec-title">Servis &amp; biaya (${esc(per)})</div>` +
@@ -3041,6 +3111,193 @@ async function deleteAlloc() {
   } catch (e) {
     toast('Gagal: ' + e.message);
   }
+}
+
+// ---------- MASA GUNA ----------
+// Nilai perolehan = harga + biaya impor per unit (sheet Aset_Batch). Nilai buku: garis lurus sampai 0 di akhir umur pakai.
+let LIFE = null, AB_EDIT = null, LIFE_BATCH = false;
+const lifeFlagTag = f => f ? `<span class="tag ${f === 'Baik' ? 'cond-good' : f === 'Pantau' ? 'cond-mt' : 'cond-bad'}">${esc(f)}</span>` : '<span class="tag st-off">Belum ada data beli</span>';
+const lifeAge = m => m == null ? '-' : (m >= 12 ? Math.floor(m / 12) + ' th ' : '') + (m % 12 || m < 12 ? (m % 12) + ' bln' : '');
+
+async function loadUnitLife() {
+  $('al-life-body').innerHTML = '<tr><td colspan="10" class="muted">Menghitung umur, nilai buku, dan biaya servis...</td></tr>';
+  try {
+    LIFE = await apiGet({ action: 'unitLife' });
+    renderUnitLife();
+  } catch (e) {
+    $('al-life-body').innerHTML = `<tr><td colspan="10" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function lifeRows() {
+  if (!LIFE) return [];
+  const map = alByCode();
+  const fc = $('al-cat').value, fd = $('al-dept').value, fs = $('al-status').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase(), ff = $('al-life-flag').value;
+  const rank = { 'Pertimbangkan ganti': 0, 'Pantau': 1, 'Baik': 2, '': 3 };
+  return LIFE.units.map(u => Object.assign({ a: map[ucKey(u.code)] }, u)).filter(u => (!fc || (u.a && alCat(u.a.Type) === fc)) && (!fd || u.dept === fd) &&
+    (!fs || alStatus(u.status) === fs) && (!fk || alCond(u.condition) === fk) && (!ff || (ff === '-' ? !u.flag : u.flag === ff)) &&
+    (!q || [u.code, u.type, u.dept, u.batch, u.jenis, u.vendor].join(' ').toLowerCase().includes(q)))
+    .sort((x, y) => (rank[x.flag] - rank[y.flag]) || ((y.ratio12 || 0) - (x.ratio12 || 0)) || ((x.remM == null ? 1e9 : x.remM) - (y.remM == null ? 1e9 : y.remM)) || x.code.localeCompare(y.code));
+}
+
+function renderUnitLife() {
+  if (!LIFE) return;
+  if (LIFE_BATCH) return renderBatches();
+  const rows = lifeRows(), has = rows.filter(u => u.batch);
+  const S = k => has.reduce((a, u) => a + (u[k] || 0), 0);
+  const cnt = f => rows.filter(u => u.flag === f).length;
+  $('al-life-info').innerHTML = `${rows.length} unit · ${has.length} punya data pembelian · data servis tersedia sejak <b>${esc(LIFE.dataStart ? fmtPeriode(LIFE.dataStart) : '-')}</b>`;
+  $('al-life-stats').innerHTML = `
+    <div class="stat"><div class="l">Nilai perolehan</div><div class="v">${rp(S('acq'))}</div><div class="muted">harga ${rp(S('harga'))} + impor ${rp(S('impor'))}</div></div>
+    <div class="stat"><div class="l">Nilai buku sekarang</div><div class="v">${rp(S('book'))}</div><div class="muted">${S('acq') ? Math.round(S('book') / S('acq') * 100) : 0}% dari nilai perolehan</div></div>
+    <div class="stat"><div class="l">Servis 12 bulan</div><div class="v">${rp(rows.reduce((a, u) => a + u.maint12, 0))}</div><div class="muted">sejak beli ${rp(rows.reduce((a, u) => a + u.maintLife, 0))}</div></div>
+    <div class="stat"><div class="l">Perlu perhatian</div><div class="v">${cnt('Pertimbangkan ganti') ? `<span class="neg">${cnt('Pertimbangkan ganti')}</span>` : 0} / ${cnt('Pantau')}</div><div class="muted">pertimbangkan ganti / pantau</div></div>`;
+  $('al-life-body').innerHTML = rows.length ? rows.map(u => `<tr class="click" onclick="openUnitDetail('${esc(u.code)}')">
+    <td><span class="al-code">${esc(u.code)}</span><div class="al-sub">${esc(u.dept || '-')}</div></td>
+    <td>${esc(u.type)}</td>
+    <td style="white-space:nowrap">${u.batch ? `${esc(u.batch)}${u.kodePasti ? '' : ' <span class="tag st-off" title="Kode unit di batch ini masih perkiraan">?</span>'}<div class="al-sub">${esc(fmtTgl(u.tglBeli))}</div>` : '<span class="muted">-</span>'}</td>
+    <td class="num">${u.batch ? esc(lifeAge(u.ageM)) + `<div class="al-sub">${u.remM > 0 ? 'sisa ' + esc(lifeAge(u.remM)) : 'habis'} · umur ${u.umur} th</div>` : '-'}</td>
+    <td class="num">${u.batch ? rp(u.acq) + (u.impor ? `<div class="al-sub">impor ${rp(u.impor)}</div>` : '') : '-'}</td>
+    <td class="num">${u.batch ? rp(u.book) : '-'}</td>
+    <td class="num">${rp(u.maintLife)}${u.batch && u.acq ? `<div class="al-sub">${(u.ratio * 100).toFixed(1)}% harga</div>` : ''}</td>
+    <td class="num">${rp(u.maint12)}</td>
+    <td class="num">${u.batch ? rp(u.perBulan) : '-'}</td>
+    <td>${lifeFlagTag(u.flag)}${u.alasan && u.flag ? `<div class="al-sub">${esc(u.alasan)}</div>` : ''}</td>
+  </tr>`).join('') : '<tr><td colspan="10" class="muted">Tidak ada data</td></tr>';
+  $('al-life-note').innerHTML = 'Nilai buku = nilai perolehan dikurangi penyusutan garis lurus sesuai umur pakai. Servis dari Mechanic Apps (WO + maintenance), CA dan purchase yang diisi kode unit. ' +
+    'Pertimbangkan ganti bila umur pakai habis, servis 12 bulan ≥ 50% nilai buku, atau total servis ≥ 60% harga beli. Pantau bila sisa umur ≤ 12 bulan, servis 12 bulan ≥ 25% nilai buku, atau total servis ≥ 30% harga beli.' +
+    (LIFE.dataStart ? ` Catatan servis baru ada sejak ${esc(fmtPeriode(LIFE.dataStart))}, jadi biaya sebelum itu belum terhitung.` : '');
+}
+
+function toggleBatchView(on) {
+  LIFE_BATCH = on === undefined ? !LIFE_BATCH : on;
+  $('al-life-units').classList.toggle('hidden', LIFE_BATCH);
+  $('al-life-batch').classList.toggle('hidden', !LIFE_BATCH);
+  $('al-life-flag').classList.toggle('hidden', LIFE_BATCH);
+  $('al-life-tbtn').textContent = LIFE_BATCH ? 'Kembali ke daftar unit' : 'Batch pembelian';
+  renderUnitLife();
+}
+
+function renderBatches() {
+  const B = LIFE.batches || [];
+  const q = $('al-cari').value.trim().toLowerCase();
+  const rows = B.filter(b => !q || [b.Batch_ID, b.Jenis, b.Vendor, b.No_PO, b.Kode_Unit].join(' ').toLowerCase().includes(q));
+  const tot = rows.reduce((a, b) => a + b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit), 0);
+  $('al-life-info').innerHTML = `${rows.length} batch · ${rows.reduce((a, b) => a + b.Qty, 0)} unit · nilai perolehan <b>${rp(tot)}</b>`;
+  $('al-batch-body').innerHTML = rows.length ? rows.map(b => {
+    const warn = !b.Kode_Unit ? '<span class="neg">kode belum diisi</span>' : b.found !== b.Qty ? `<span class="neg">${b.found} dari ${b.Qty} unit ditemukan di sheet alokasi</span>` : `${b.found} unit cocok`;
+    return `<tr class="click" onclick="abRow('${esc(b.Batch_ID)}')">
+      <td style="white-space:nowrap"><b>${esc(b.Batch_ID)}</b></td><td>${esc(b.Jenis)}</td><td style="white-space:nowrap">${esc(fmtTgl(b.Tanggal_Beli))}</td>
+      <td>${esc(b.Vendor)}<div class="al-sub">${esc(b.No_PO)}</div></td>
+      <td class="num">${b.Qty}</td><td class="num">${rp(b.Harga_Unit)}</td><td class="num">${b.Biaya_Impor_Unit ? rp(b.Biaya_Impor_Unit) : '-'}</td><td class="num">${b.Umur_Pakai_Th} th</td>
+      <td><code style="white-space:nowrap">${esc(b.Kode_Unit || '-').replace(/,\s*/g, ',<br>')}</code>${b.Status_Kode === 'OK' ? '' : ' <span class="tag st-off">perkiraan</span>'}<div class="al-sub">${warn}</div></td>
+      <td><button class="btn sec sm" style="margin:0" onclick="event.stopPropagation(); openBatch('${esc(b.Batch_ID)}')">Edit</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="10" class="muted">Belum ada batch</td></tr>';
+}
+
+// Pratinjau kode yang cocok (logika sama dengan codeMatcher_ di Code.gs)
+function abMatcher(spec) {
+  const split = k => { const m = k.match(/^(.*?)(\d+)$/); return m ? { p: m[1].replace(/-+$/, ''), n: Number(m[2]) } : { p: k, n: null }; };
+  const parts = String(spec || '').split(/[,;\n]+/).map(t => t.trim()).filter(Boolean).map(t => {
+    const ab = t.split(/\s*(?:\.\.|–|—|\bs\/d\b|\bsd\b)\s*/i).map(ucKey);
+    if (ab.length === 2 && ab[0] && ab[1]) {
+      const a = split(ab[0]), b = split(/^\d+$/.test(ab[1]) ? a.p + ab[1] : ab[1]);
+      if (a.n != null && b.n != null && a.p === b.p) return { p: a.p, lo: Math.min(a.n, b.n), hi: Math.max(a.n, b.n) };
+    }
+    const one = split(ucKey(t));
+    return one.n == null ? { eq: one.p } : { p: one.p, lo: one.n, hi: one.n };
+  });
+  return code => { const k = ucKey(code), s = split(k); return parts.some(x => x.eq ? x.eq === k : (s.n != null && s.p === x.p && s.n >= x.lo && s.n <= x.hi)); };
+}
+function abPreview() {
+  const spec = $('ab-Kode_Unit').value.trim();
+  if (!spec) { $('ab-preview').textContent = ''; return; }
+  const m = abMatcher(spec), hit = ALLOC.units.filter(u => m(u.Code)).map(u => u.Code);
+  const qty = Number($('ab-Qty').value) || 0;
+  $('ab-preview').innerHTML = hit.length ? `${hit.length} unit cocok${qty && qty !== hit.length ? ` <span class="neg">(qty ${qty})</span>` : ''}: ${esc(hit.slice(0, 40).join(', '))}${hit.length > 40 ? '…' : ''}` : '<span class="neg">Tidak ada kode yang cocok di sheet alokasi</span>';
+}
+
+function openBatch(id) {
+  AB_EDIT = id ? (LIFE.batches || []).find(b => b.Batch_ID === id) : null;
+  const b = AB_EDIT || { Jenis: '', Tanggal_Beli: '', Vendor: '', No_PO: '', Qty: 1, Umur_Pakai_Th: 6, Harga_Unit: '', Biaya_Impor_Unit: 0, Kode_Unit: '', Status_Kode: 'OK', Catatan: '' };
+  $('ab-title').textContent = AB_EDIT ? 'Batch ' + AB_EDIT.Batch_ID : 'Batch pembelian baru';
+  ['Jenis', 'Tanggal_Beli', 'Vendor', 'No_PO', 'Qty', 'Umur_Pakai_Th', 'Kode_Unit', 'Status_Kode', 'Catatan'].forEach(k => $('ab-' + k).value = b[k] == null ? '' : b[k]);
+  ['Harga_Unit', 'Biaya_Impor_Unit'].forEach(k => $('ab-' + k).value = b[k] === '' ? '' : Number(b[k] || 0).toLocaleString('id-ID'));
+  $('btn-ab-del').classList.toggle('hidden', !AB_EDIT);
+  abPreview();
+  $('ab-modal').classList.remove('hidden');
+}
+const abRow = id => openBatch(id);
+function closeBatch() { $('ab-modal').classList.add('hidden'); }
+
+async function saveBatch() {
+  const d = {};
+  ['Jenis', 'Tanggal_Beli', 'Vendor', 'No_PO', 'Kode_Unit', 'Status_Kode', 'Catatan'].forEach(k => d[k] = $('ab-' + k).value.trim());
+  d.Qty = Number($('ab-Qty').value) || 0;
+  d.Umur_Pakai_Th = Number($('ab-Umur_Pakai_Th').value) || 0;
+  ['Harga_Unit', 'Biaya_Impor_Unit'].forEach(k => d[k] = Number(String($('ab-' + k).value).replace(/[^\d]/g, '')) || 0);
+  if (!d.Jenis) return toast('Isi jenis kendaraan');
+  if (!d.Tanggal_Beli) return toast('Isi tanggal beli');
+  if (!(d.Umur_Pakai_Th > 0)) return toast('Isi umur pakai');
+  if (AB_EDIT) d.Batch_ID = AB_EDIT.Batch_ID;
+  const b = $('btn-ab');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    await apiPost('saveAssetBatch', d);
+    closeBatch();
+    toast(AB_EDIT ? 'Batch diperbarui' : 'Batch ditambahkan');
+    await loadUnitLife();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan';
+  }
+}
+
+async function deleteBatch() {
+  if (!AB_EDIT || !confirm(`Hapus batch ${AB_EDIT.Batch_ID} (${AB_EDIT.Jenis})?`)) return;
+  try {
+    await apiPost('deleteAssetBatch', { Batch_ID: AB_EDIT.Batch_ID });
+    closeBatch();
+    toast('Batch dihapus');
+    await loadUnitLife();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function lifeInfoHtml(code) {
+  const u = LIFE && LIFE.units.find(x => ucKey(x.code) === ucKey(code));
+  if (!u || !u.batch) return '';
+  return `<div class="al-sec-title">Masa guna</div><div>${esc(u.batch)} · beli ${esc(fmtTgl(u.tglBeli))} (${esc(u.vendor || '-')}) · umur ${esc(lifeAge(u.ageM))}, sisa ${u.remM > 0 ? esc(lifeAge(u.remM)) : 'habis'} · nilai perolehan ${rp(u.acq)} · nilai buku <b>${rp(u.book)}</b> · ${lifeFlagTag(u.flag)}</div>`;
+}
+
+function exportUnitLife() {
+  if (!LIFE) return toast('Data masa guna belum dimuat');
+  const rows = lifeRows();
+  const today = LIFE.today;
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const flagEn = { 'Baik': 'Good', 'Pantau': 'Monitor', 'Pertimbangkan ganti': 'Consider replacement', '': 'No purchase data' };
+  const R = [[{ v: 'Vehicle Useful Life - as of ' + today, s: 'title' }],
+    [{ v: 'Book value: straight-line depreciation to zero over useful life. Service cost from Mechanic Apps, cash advance and purchases with unit code' + (LIFE.dataStart ? ' (records available since ' + monEn(LIFE.dataStart) + ')' : '') + '.', s: 'sub' }], [],
+    H(['Unit code', 'Type', 'Department', 'Batch', 'Purchase date', 'Vendor', '>Useful life (yr)', '>Age (mo)', '>Remaining (mo)', '>Price', '>Import cost', '>Acquisition value', '>Book value', '>Service since purchase', '>Service 12 mo', '>Per month', '>Service / price', 'Status', 'Reason'])];
+  rows.forEach(u => R.push([u.code, u.type, u.dept, u.batch || '', u.tglBeli ? { v: u.tglBeli, s: 'date' } : '', u.vendor || '',
+    u.batch ? { v: u.umur, s: 'int' } : '', u.batch ? { v: u.ageM, s: 'int' } : '', u.batch ? { v: u.remM, s: 'int' } : '',
+    u.batch ? u.harga : '', u.batch ? u.impor : '', u.batch ? u.acq : '', u.batch ? u.book : '', u.maintLife, u.maint12, u.batch ? u.perBulan : '',
+    u.batch && u.acq ? (u.ratio * 100).toFixed(1) + '%' : '', flagEn[u.flag || ''], u.alasan && u.flag ? u.alasan : '']));
+  const B = [[{ v: 'Purchase Batches', s: 'title' }], [],
+    H(['Batch', 'Type', 'Purchase date', 'Vendor', 'PO number', '>Qty', '>Price / unit', '>Import / unit', '>Acquisition total', '>Useful life (yr)', 'Unit codes', 'Code status', '>Matched units', 'Note'])];
+  (LIFE.batches || []).forEach(b => B.push([b.Batch_ID, b.Jenis, b.Tanggal_Beli ? { v: b.Tanggal_Beli, s: 'date' } : '', b.Vendor, b.No_PO, { v: b.Qty, s: 'int' }, b.Harga_Unit, b.Biaya_Impor_Unit,
+    b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit), { v: b.Umur_Pakai_Th, s: 'int' }, b.Kode_Unit, b.Status_Kode === 'OK' ? 'Verified' : 'Estimated', { v: b.found, s: 'int' }, b.Catatan]));
+  const blob = buildXlsx([
+    { name: 'Useful life', cols: [12, 22, 20, 9, 13, 22, 10, 9, 11, 15, 14, 16, 15, 15, 14, 13, 11, 20, 40], rows: R, freeze: 4, filter: `A4:S${R.length}` },
+    { name: 'Batches', cols: [9, 22, 13, 26, 30, 7, 15, 14, 17, 10, 26, 11, 10, 50], rows: B, freeze: 3, filter: `A3:N${B.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), x = document.createElement('a');
+  x.href = url; x.download = `Vehicle_Useful_Life_${today}.xlsx`;
+  document.body.appendChild(x); x.click(); x.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // ---------- LANGGANAN RENTAL EV PER DEPARTEMEN ----------
