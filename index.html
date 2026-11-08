@@ -1162,6 +1162,7 @@ async function parseRes(r) {
   const j = JSON.parse(txt);
   if (!j.ok) {
     if (String(j.error).indexOf('AUTH:') === 0) { sessionExpired(); throw new Error(String(j.error).slice(5).trim()); }
+    if (j.error === 'Action tidak dikenal') throw new Error('Apps Script masih versi lama. Buka Deploy > Manage deployments > Edit > Version: New version > Deploy.');
     throw new Error(j.error);
   }
   return j.data;
