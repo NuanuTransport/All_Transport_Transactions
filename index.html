@@ -89,7 +89,17 @@ table.items input{padding:6px 8px;font-size:13px}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
-.user-chip{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#c9ddd6;flex-wrap:wrap;justify-content:flex-end}
+.hdr-actions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.hdr-time{font-size:11px;color:#c9ddd6}
+.hdr-btn{background:#fff;color:#1e5246;border:0;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.hdr-btn:hover{background:#eef3f1}
+.hdr-btn:disabled{opacity:.7;cursor:default}
+.hdr-btn .ic{display:inline-block;font-size:15px;line-height:1}
+.hdr-btn.busy .ic{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:560px){header p,.hdr-time{display:none}.hdr-btn{padding:7px 10px}}
+.user-chip.hidden{display:none!important}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:12px;color:#c9ddd6;flex-wrap:wrap;justify-content:flex-end}
 .user-chip b{color:#fff;font-size:13px}
 .user-chip button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;font-family:inherit}
 .user-chip button:hover{background:rgba(255,255,255,.22)}
@@ -259,10 +269,14 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     <h1>Transport Finance</h1>
     <p>Income, purchase, dan cash advance Transport Department</p>
   </div>
-  <div class="user-chip hidden" id="user-chip">
-    <span><b id="uc-nama">-</b> &middot; <span id="uc-peran">-</span></span>
-    <button onclick="openPin()">Ganti PIN</button>
-    <button onclick="logout()">Keluar</button>
+  <div class="hdr-actions">
+    <span class="hdr-time" id="hdr-time"></span>
+    <button class="hdr-btn" id="btn-refresh" onclick="refreshAll()" title="Muat ulang data dari sheet"><span class="ic">&#x21bb;</span> Refresh</button>
+    <div class="user-chip hidden" id="user-chip">
+      <span><b id="uc-nama">-</b> &middot; <span id="uc-peran">-</span></span>
+      <button onclick="openPin()">Ganti PIN</button>
+      <button onclick="logout()">Keluar</button>
+    </div>
   </div>
 </header>
 
@@ -311,7 +325,6 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <tbody id="list-body"></tbody>
         </table>
       </div>
-      <button class="btn sec" onclick="loadList()">Refresh</button>
     </div>
 
     <div class="card">
@@ -508,7 +521,6 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <tbody id="income-body"></tbody>
         </table>
       </div>
-      <button class="btn sec" onclick="loadIncome()">Refresh</button>
     </div>
     </div>
 
@@ -726,7 +738,6 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <tbody id="pr-body"></tbody>
         </table>
       </div>
-      <button class="btn sec" onclick="loadPR()">Refresh</button>
     </div>
     </div>
     <div class="sub hidden" data-g="pr" data-s="baru">
@@ -813,7 +824,6 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
       <div><h2>Dashboard</h2><div class="muted">Income dan pengeluaran Transport Department</div></div>
       <div class="ctrl">
         <select id="r-periode" onchange="loadSummary()"></select>
-        <button class="btn sec" style="margin:0" onclick="loadSummary()">Refresh</button>
         <button class="btn" style="margin:0" onclick="openExport()">Export Excel</button>
       </div>
     </div>
@@ -1184,6 +1194,31 @@ async function apiPost(action, data) {
   return parseRes(r);
 }
 
+// ---------- REFRESH (tombol di header) ----------
+// Muat ulang semua data yang sudah pernah dibuka + data halaman yang sedang tampil, dan kosongkan cache rincian.
+// Catatan: Refresh membaca ulang sheet All Transport Transactions. Untuk mengambil data baru dari sheet sumber
+// (taxi, WO, mekanik, BOQ) gunakan Tarik Data.
+async function refreshAll() {
+  const b = $('btn-refresh');
+  if (b.disabled) return;
+  b.disabled = true; b.classList.add('busy');
+  Object.keys(INV_CACHE).forEach(k => delete INV_CACHE[k]);
+  const jobs = [loadList()];
+  if (INCOME_LOADED || ['income', 'summary'].includes(CUR_VIEW)) jobs.push(loadIncome());
+  if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
+  if (CUR_VIEW === 'summary') jobs.push(loadSummary());
+  if (CUR_VIEW === 'users') jobs.push(loadUsers());
+  if (CUR_VIEW === 'detail' && CURRENT && CURRENT.header) jobs.push(openDetail(CURRENT.header.CA_ID));
+  try {
+    await Promise.all(jobs.map(j => Promise.resolve(j).catch(() => null)));
+    const t = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    $('hdr-time').textContent = 'Diperbarui ' + t;
+    toast('Data diperbarui ' + t + '. Untuk data baru dari sheet sumber, gunakan Tarik Data.');
+  } finally {
+    b.disabled = false; b.classList.remove('busy');
+  }
+}
+
 // ---------- LOGIN ----------
 let TOKEN = null, USER = null, AUTH_ON = false, ROLE_INFO = {};
 try { TOKEN = localStorage.getItem('tf-token'); } catch (e) {}
@@ -1378,6 +1413,7 @@ function renderLog() {
 
 function show(view) {
   ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
   window.scrollTo(0, 0);
@@ -2641,6 +2677,7 @@ const isWorkJC = d => d && (d.kind === 'WO' || d.kind === 'MECH' || d.kind === '
 
 // Rincian trip per tagihan disimpan sementara, dipakai untuk daftar company dan cetak invoice
 const INV_CACHE = {};
+let CUR_VIEW = 'summary';
 let INV_COMP_TOKEN = 0;
 
 async function getInvoiceData(id) {
