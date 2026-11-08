@@ -121,6 +121,28 @@ body.viewer #ra-card,body.viewer #sub-income [data-s="sync"],body.viewer #sub-in
 body:not(.head) [onclick*="delIncome("],body:not(.head) [onclick*="delPR("],body:not(.head) [onclick*="delTopup("],body:not(.head) [onclick*="delUsage("],
 body:not(.head) [onclick*="delRentalAdj("],body:not(.head) [onclick*="unpayIncome("],body:not(.head) [onclick*="clearSO("],body:not(.head) .auto-box,body:not(.head) nav [data-v="users"]{display:none!important}
 body.open nav [data-v="users"]{display:none!important}
+.rs-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+.rs-chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;background:#fff}
+.rs-chip b{font-size:13px}
+.rs-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.rs-tabs button{border:0;background:none;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+.rs-tabs button.active{color:#1e5246;border-bottom-color:#1e5246;font-weight:600}
+details.rs-dept{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
+details.rs-dept>summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+details.rs-dept>summary::-webkit-details-marker{display:none}
+details.rs-dept>summary::before{content:'\25B8';color:var(--muted);font-size:12px;transition:transform .15s}
+details.rs-dept[open]>summary::before{transform:rotate(90deg)}
+.rs-name{font-weight:600;min-width:150px}
+.rs-units{font-size:12px;color:var(--muted);flex:1;min-width:200px}
+.rs-amt{font-weight:600;white-space:nowrap}
+.rs-body{padding:0 12px 12px}
+.rs-chg{font-size:11px;padding:1px 7px;border-radius:99px;white-space:nowrap}
+.rs-chg.up{background:#dcfce7;color:#166534}
+.rs-chg.down{background:#fee2e2;color:#991b1b}
+.rs-chg.new{background:#dbeafe;color:#1e40af}
+.rs-code{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:11px;background:#f3f4f6;border-radius:4px;padding:1px 5px;margin:1px 2px 1px 0}
+#rs-mtable td,#rs-mtable th{text-align:center;white-space:nowrap}
+#rs-mtable td:first-child,#rs-mtable th:first-child{text-align:left}
 .ket-clip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:420px}
 .job-list{margin:0;padding:0;list-style:none}
 .job-list li{padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
@@ -561,6 +583,23 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <tbody id="rc-body"></tbody>
         </table></div>
       </details>
+    </div>
+    <div class="card" id="rs-card">
+      <div class="card-head">
+        <div><h2>Langganan per Departemen</h2><div class="muted" id="rs-info">-</div></div>
+        <div class="ctrl" style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" id="rs-cari" placeholder="Cari departemen / kode unit" oninput="renderRentSubs()" style="width:auto;min-width:200px">
+          <button class="btn sec" style="margin:0" onclick="exportRentSubs()">Download Excel</button>
+        </div>
+      </div>
+      <div class="rs-chips" id="rs-chips"></div>
+      <div class="rs-tabs">
+        <button class="active" data-m="dept" onclick="setRsMode('dept')">Per departemen</button>
+        <button data-m="matrix" onclick="setRsMode('matrix')">Tabel jenis kendaraan</button>
+      </div>
+      <div id="rs-dept"></div>
+      <div id="rs-matrix" class="hidden"><div class="tablewrap"><table id="rs-mtable"></table></div></div>
+      <div class="muted" style="margin-top:8px">Sumber: sheet BOQ (melalui Tarik Data) dan Penyesuaian Rental EV. Perubahan dibandingkan dengan bulan sebelumnya.</div>
     </div>
     <div class="card" id="ra-card">
       <h2>Penyesuaian Rental EV</h2>
@@ -2268,6 +2307,7 @@ async function loadRentalAdj() {
     RENT_ADJ = [];
   }
   renderRentalAdj();
+  if (INCOME_LOADED && $('rc-periode').value) renderRentSubs();
 }
 
 async function addRentalAdj() {
@@ -2497,6 +2537,138 @@ async function addIncome() {
   } finally {
     b.disabled = false; b.textContent = 'Simpan Income';
   }
+}
+
+// ---------- LANGGANAN RENTAL EV PER DEPARTEMEN ----------
+// Data dari income RENT (kolom Rincian = salinan BOQ saat Tarik Data) + Penyesuaian Rental EV.
+let RS_MODE = 'dept';
+const RS_TYPES = [
+  ['Buggy 4 seat', /4\s*seat/i], ['Buggy 6 seat', /6\s*seat|club\s*car/i], ['Buggy 8 seat', /8\s*seat/i], ['Buggy Cargo', /cargo/i],
+  ['Tyranno', /tyran/i], ['VFly', /v[\s-]?fly|vfl\b/i], ['Cooty', /coot|scoot/i], ['Yadea', /yadea/i], ['Volta', /volta/i],
+  ['Kucher', /kuch?er/i], ['Alva', /alva/i], ['Goda', /goda|gda-/i], ['Bus 13 seat', /13\s*seat/i], ['Bus 23 seat', /23\s*seat/i]
+];
+function rsType(it) {
+  const t = (it.Uraian || '') + ' ' + (it.Kategori || '');
+  for (const [name, re] of RS_TYPES) if (re.test(t)) return name;
+  if (/buggy/i.test(t)) return 'Buggy (lainnya)';
+  if (/bike/i.test(t)) return 'EV bike (lainnya)';
+  return 'Lainnya';
+}
+const rsCodes = t => [...new Set((String(t || '').toUpperCase().match(/\b[A-Z]{2,4}\d?\s?-\s?\d{2,3}\b/g) || []).map(c => c.replace(/\s/g, '')))];
+const rsClean = t => String(t || '').replace(/^period\s+\w+\s+\d{4},?\s*/i, '').replace(/,?\s*monthly rent\s*$/i, '').trim();
+const prevYm = ym => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 2, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+
+// Satu bulan: [{dept, row, items:[{type, codes, desc, qty, harga, total, adj}], units:{type:qty}, total}]
+function rsData(ym) {
+  return INCOME.filter(r => isRentRow(r) && periodeOf(r) === ym).map(r => {
+    let d = {};
+    try { d = JSON.parse(r.Rincian || '{}'); } catch (e) {}
+    const items = (d.items || []).map(it => {
+      const adj = it.Kategori === 'Penyesuaian';
+      return { type: adj ? 'Penyesuaian' : rsType(it), codes: rsCodes(it.Uraian), desc: rsClean(it.Uraian), qty: Number(it.Qty) || 0, harga: Number(it.Harga) || 0, total: Number(it.Total) || 0, adj };
+    });
+    const units = {};
+    items.filter(i => !i.adj).forEach(i => { units[i.type] = (units[i.type] || 0) + i.qty; });
+    return { dept: r.Pelanggan, row: r, items, units, total: Number(r.Nominal) || 0, requester: d.requester || '' };
+  }).sort((a, b) => b.total - a.total);
+}
+
+function setRsMode(m) {
+  RS_MODE = m;
+  document.querySelectorAll('.rs-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  $('rs-dept').classList.toggle('hidden', m !== 'dept');
+  $('rs-matrix').classList.toggle('hidden', m !== 'matrix');
+}
+
+function renderRentSubs() {
+  const ym = $('rc-periode').value;
+  if (!ym) { $('rs-info').textContent = 'Belum ada data rental. Klik Tarik Data.'; $('rs-dept').innerHTML = ''; $('rs-chips').innerHTML = ''; $('rs-mtable').innerHTML = ''; return; }
+  const q = $('rs-cari').value.trim().toLowerCase();
+  const all = rsData(ym), prev = {};
+  rsData(prevYm(ym)).forEach(x => prev[String(x.dept).toUpperCase()] = x);
+  const list = all.filter(x => !q || (x.dept + ' ' + x.items.map(i => i.codes.join(' ') + ' ' + i.desc).join(' ')).toLowerCase().includes(q));
+
+  const tot = {};
+  all.forEach(x => Object.entries(x.units).forEach(([t, n]) => tot[t] = (tot[t] || 0) + n));
+  const types = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+  const nUnit = types.reduce((a, t) => a + tot[t], 0);
+  const adjMonth = RENT_ADJ.filter(a => String(a.Tanggal).slice(0, 7) === ym);
+  $('rs-info').textContent = `${fmtPeriode(ym)} · ${all.length} departemen · ${nUnit} unit · total ${rp(all.reduce((a, x) => a + x.total, 0))}` + (adjMonth.length ? ` · ${adjMonth.length} penyesuaian` : '');
+  $('rs-chips').innerHTML = types.map(t => `<span class="rs-chip">${esc(t)} <b>${tot[t]}</b></span>`).join('');
+
+  // Per departemen
+  $('rs-dept').innerHTML = list.length ? list.map(x => {
+    const p = prev[String(x.dept).toUpperCase()];
+    const chg = [];
+    if (!p) chg.push('<span class="rs-chg new">Baru bulan ini</span>');
+    else {
+      new Set([...Object.keys(x.units), ...Object.keys(p.units)]).forEach(t => {
+        const d = (x.units[t] || 0) - (p.units[t] || 0);
+        if (d) chg.push(`<span class="rs-chg ${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : ''}${d} ${esc(t)}</span>`);
+      });
+    }
+    const adj = RENT_ADJ.filter(a => String(a.Department).toUpperCase() === String(x.dept).toUpperCase() && String(a.Tanggal).slice(0, 7) <= ym);
+    const nU = Object.values(x.units).reduce((a, b) => a + b, 0);
+    return `<details class="rs-dept">
+      <summary>
+        <span class="rs-name">${esc(x.dept)}</span>
+        <span class="rs-units">${Object.entries(x.units).map(([t, n]) => n + ' ' + esc(t)).join(' · ')}</span>
+        ${chg.join(' ')}
+        <span class="rs-amt">${rp(x.total)}</span>
+        ${incomeTag(x.row)}
+      </summary>
+      <div class="rs-body">
+        <div class="tablewrap"><table>
+          <thead><tr><th>Jenis</th><th>Uraian (BOQ)</th><th>Kode unit</th><th class="num">Qty</th><th class="num">Harga / bln</th><th class="num">Total</th></tr></thead>
+          <tbody>${x.items.map(i => `<tr${i.adj ? ' class="muted"' : ''}>
+            <td>${esc(i.type)}</td><td>${esc(i.desc)}</td>
+            <td>${i.codes.length ? i.codes.map(c => `<span class="rs-code">${esc(c)}</span>`).join('') : '<span class="muted">-</span>'}</td>
+            <td class="num">${i.qty}</td><td class="num">${rp(i.harga)}</td><td class="num">${i.total < 0 ? '<span class="neg">' + rp(i.total) + '</span>' : rp(i.total)}</td></tr>`).join('')}
+            <tr class="total"><td colspan="3">${nU} unit</td><td></td><td></td><td class="num">${rp(x.total)}</td></tr>
+          </tbody>
+        </table></div>
+        ${adj.length ? `<div class="muted" style="margin-top:8px"><b>Riwayat penyesuaian:</b> ${adj.map(a => `${esc(fmtTgl(a.Tanggal))} ${esc(a.Unit_Code)} ${esc(String(a.Jenis).toLowerCase())}${a.Unit_Pengganti ? ' → ' + esc(a.Unit_Pengganti) : ''}`).join('; ')}</div>` : ''}
+        ${x.requester && x.requester.toUpperCase() !== String(x.dept).toUpperCase() ? `<div class="muted" style="margin-top:4px">Requester: ${esc(x.requester)}</div>` : ''}
+        <div class="btns" style="margin-top:8px">
+          <button class="btn sec sm" style="margin:0" onclick="printInvoice('${esc(x.row.Income_ID)}')">Job Completion</button>
+          <button class="btn sec sm" style="margin:0" onclick="openIncome('${esc(x.row.Income_ID)}')">Detail tagihan</button>
+        </div>
+      </div>
+    </details>`;
+  }).join('') : '<div class="muted">Tidak ada data</div>';
+
+  // Tabel jenis kendaraan per departemen
+  const ttl = types.map(t => list.reduce((a, x) => a + (x.units[t] || 0), 0));
+  $('rs-mtable').innerHTML = `<thead><tr><th>Departemen</th>${types.map(t => `<th>${esc(t)}</th>`).join('')}<th>Total unit</th><th class="num">Nominal</th></tr></thead><tbody>` +
+    list.map(x => `<tr><td>${esc(x.dept)}</td>${types.map(t => `<td>${x.units[t] || '<span class="muted">·</span>'}</td>`).join('')}<td><b>${Object.values(x.units).reduce((a, b) => a + b, 0)}</b></td><td class="num">${rp(x.total)}</td></tr>`).join('') +
+    `<tr class="total"><td>Total</td>${ttl.map(n => `<td>${n}</td>`).join('')}<td>${ttl.reduce((a, b) => a + b, 0)}</td><td class="num">${rp(list.reduce((a, x) => a + x.total, 0))}</td></tr></tbody>`;
+}
+
+function exportRentSubs() {
+  const ym = $('rc-periode').value;
+  if (!ym) return toast('Belum ada data rental');
+  const all = rsData(ym);
+  const per = monEn(ym);
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const tot = {};
+  all.forEach(x => Object.entries(x.units).forEach(([t, n]) => tot[t] = (tot[t] || 0) + n));
+  const types = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+  const M = [[{ v: 'EV Rental Subscription - ' + per, s: 'title' }], [{ v: 'Units per department (source: BOQ)', s: 'sub' }], [],
+    H(['Department', ...types.map(t => '>' + t), '>Total units', '>Amount', 'Status'])];
+  all.forEach(x => M.push([x.dept, ...types.map(t => x.units[t] ? { v: x.units[t], s: 'int' } : ''), { v: Object.values(x.units).reduce((a, b) => a + b, 0), s: 'int' }, x.total, x.row.Status === 'Lunas' ? 'Paid' : 'Outstanding']));
+  M.push([{ v: 'Total', s: 'b' }, ...types.map(t => ({ v: tot[t], s: 'moneyb' })), { v: types.reduce((a, t) => a + tot[t], 0), s: 'moneyb' }, { v: all.reduce((a, x) => a + x.total, 0), s: 'moneyb' }, { v: '', s: 'b' }]);
+  const D = [[{ v: 'EV Rental Subscription Detail - ' + per, s: 'title' }], [],
+    H(['Department', 'Vehicle type', 'Description (BOQ)', 'Unit codes', '>Qty', '>Price / month', '>Total'])];
+  all.forEach(x => x.items.forEach(i => D.push([x.dept, i.adj ? 'Adjustment' : i.type, i.desc, i.codes.join(', '), { v: i.qty, s: 'int' }, i.harga, i.total])));
+  D.push([{ v: 'Total', s: 'b' }, ...Array(5).fill({ v: '', s: 'b' }), { v: all.reduce((a, x) => a + x.total, 0), s: 'moneyb' }]);
+  const blob = buildXlsx([
+    { name: 'By department', cols: [26, ...types.map(() => 12), 12, 16, 13], rows: M, freeze: 4 },
+    { name: 'Detail', cols: [24, 16, 50, 22, 7, 15, 15], rows: D, freeze: 3, filter: `A3:G${D.length - 1}` }
+  ]);
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `EV_Rental_Subscription_${ym}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // Rincian pekerjaan per WO untuk income mekanik (disimpan di kolom Rincian saat Tarik Data)
@@ -4445,6 +4617,7 @@ function fillRentPeriode() {
 }
 
 function renderRentChart() {
+  renderRentSubs();
   const p = $('rc-periode').value;
   const rows = INCOME.filter(r => isRentRow(r) && periodeOf(r) === p).sort((a, b) => b.Nominal - a.Nominal);
   const tot = sumNom(rows), lunas = sumNom(rows.filter(r => r.Status === 'Lunas'));
