@@ -121,6 +121,22 @@ body.viewer #ra-card,body.viewer #sub-income [data-s="sync"],body.viewer #sub-in
 body:not(.head) [onclick*="delIncome("],body:not(.head) [onclick*="delPR("],body:not(.head) [onclick*="delTopup("],body:not(.head) [onclick*="delUsage("],
 body:not(.head) [onclick*="delRentalAdj("],body:not(.head) [onclick*="unpayIncome("],body:not(.head) [onclick*="clearSO("],body:not(.head) .auto-box,body:not(.head) nav [data-v="users"]{display:none!important}
 body.open nav [data-v="users"]{display:none!important}
+.al-code{font-weight:600;white-space:nowrap}
+.al-sub{font-size:11px;color:var(--muted)}
+.tag.cond-good{background:#dcfce7;color:#166534}
+.tag.cond-mt{background:#ffedd5;color:#9a3412}
+.tag.cond-bad{background:#fee2e2;color:#991b1b}
+.tag.st-rent{background:#dbeafe;color:#1e40af}
+.tag.st-off{background:#f3f4f6;color:#6b7280}
+.al-dept{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.al-dept h3{margin:0;font-size:14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.al-dept .rs-units{margin:2px 0 6px}
+.al-unit{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:3px 7px;margin:2px 4px 2px 0;font-size:12px;cursor:pointer;background:#fff}
+.al-unit:hover{border-color:#1e5246}
+.res-ok{color:var(--ok);font-weight:600}
+.res-under{color:var(--bad);font-weight:600}
+.res-over{color:#b45309;font-weight:600}
+body.viewer [onclick*="openAlloc(-1)"],body.viewer #btn-al,body:not(.head) #btn-al-del{display:none!important}
 .rs-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
 .rs-chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;background:#fff}
 .rs-chip b{font-size:13px}
@@ -308,6 +324,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   <button data-v="income" onclick="show('income')">Income</button>
   <button data-v="pr" onclick="show('pr')">Purchase</button>
   <button data-v="list" onclick="show('list')">Cash Advance</button>
+  <button data-v="alloc" onclick="show('alloc')">Alokasi EV</button>
   <button data-v="users" onclick="show('users')">Pengguna</button>
 </nav>
 
@@ -822,6 +839,51 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     </div>
   </section>
 
+  <!-- ALOKASI EV (sheet Buggy Allocation) -->
+  <section id="view-alloc" class="hidden">
+    <div class="page-head">
+      <div><h2>Alokasi EV</h2><div class="muted">Unit bus, buggy, EV bike, dan cooty per departemen (sheet Buggy Allocation)</div></div>
+      <div class="ctrl">
+        <a class="btn sec" style="margin:0;text-decoration:none" id="al-sheet" href="#" target="_blank" rel="noopener">Buka sheet</a>
+        <button class="btn" style="margin:0" onclick="openAlloc(-1)">+ Tambah Unit</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="l">Total unit</div><div class="v" id="al-total">-</div><div class="muted" id="al-total-n"></div></div>
+      <div class="stat"><div class="l">Dipakai departemen lain</div><div class="v" id="al-ext">-</div><div class="muted" id="al-ext-n"></div></div>
+      <div class="stat"><div class="l">Maintenance / rusak</div><div class="v" id="al-mt">-</div><div class="muted" id="al-mt-n"></div></div>
+      <div class="stat"><div class="l">Status Rent</div><div class="v" id="al-rent">-</div><div class="muted" id="al-rent-n"></div></div>
+    </div>
+    <div class="card">
+      <div class="rs-tabs" id="al-tabs">
+        <button class="active" data-m="list" onclick="setAlMode('list')">Daftar unit</button>
+        <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
+        <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
+      </div>
+      <div class="filters" id="al-filters">
+        <select id="al-cat" onchange="renderAlloc()"><option value="">Semua kategori</option></select>
+        <select id="al-dept" onchange="renderAlloc()"><option value="">Semua departemen</option></select>
+        <select id="al-status" onchange="renderAlloc()"><option value="">Semua status</option></select>
+        <select id="al-cond" onchange="renderAlloc()"><option value="">Semua kondisi</option></select>
+        <input type="text" id="al-cari" placeholder="Cari kode / PIC / stiker / catatan" oninput="renderAlloc()">
+      </div>
+      <div id="al-list">
+        <div class="tablewrap"><table>
+          <thead><tr><th>Kode</th><th>Jenis</th><th>Departemen</th><th>PIC</th><th>Status</th><th>Kondisi</th><th>Catatan</th><th></th></tr></thead>
+          <tbody id="al-body"></tbody>
+        </table></div>
+      </div>
+      <div id="al-deptview" class="hidden"></div>
+      <div id="al-boq" class="hidden">
+        <div class="muted" id="al-boq-info" style="margin-bottom:8px"></div>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Departemen</th><th>Jenis</th><th class="num">Alokasi</th><th class="num">Ditagih (BOQ)</th><th>Hasil</th><th>Unit dialokasikan</th></tr></thead>
+          <tbody id="al-boq-body"></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
   <!-- PENGGUNA & LOG AKTIVITAS (Head) -->
   <section id="view-users" class="hidden">
     <div class="page-head">
@@ -986,6 +1048,50 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     <label>Ulangi PIN baru</label><input type="password" id="pn-baru2" class="pin" inputmode="numeric" maxlength="6" autocomplete="new-password">
     <div class="auth-err" id="pn-err"></div>
     <button class="btn" style="width:100%" id="btn-pn" onclick="doChangePin()">Simpan PIN</button>
+  </div>
+</div>
+
+<!-- MODAL UNIT ALOKASI -->
+<div class="modal hidden" id="al-modal" onclick="if (event.target === this) closeAlloc()">
+  <div class="modal-box" style="max-width:620px">
+    <div class="modal-head"><b id="al-m-title">Unit</b><button class="btn sec sm" onclick="closeAlloc()">Tutup</button></div>
+    <div id="al-sec-box"><label>Bagian di sheet</label><select id="al-f-section"></select></div>
+    <div class="row">
+      <div><label>Kode unit</label><input type="text" id="al-f-Code" autocomplete="off" placeholder="Mis. TYR-031"></div>
+      <div><label>Jenis</label><input type="text" id="al-f-Type" list="al-type-list" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <div><label>No unit</label><input type="text" id="al-f-No" autocomplete="off"></div>
+      <div><label>No stiker</label><input type="text" id="al-f-Sticker" autocomplete="off"></div>
+    </div>
+    <div class="row">
+      <div><label>Departemen</label><input type="text" id="al-f-Department" list="al-dept-list" autocomplete="off"></div>
+      <div><label>Status</label><input type="text" id="al-f-Status" list="al-status-list" autocomplete="off" placeholder="Active / Rent / Inactive"></div>
+    </div>
+    <div class="row">
+      <div><label>Kondisi</label><input type="text" id="al-f-Condition" list="al-cond-list" autocomplete="off" placeholder="Good / Maintenance / Broken"></div>
+      <div><label>Odometer</label><input type="text" id="al-f-Odometer" autocomplete="off" placeholder="Mis. 3887km (8 Sept'26)"></div>
+    </div>
+    <div class="row">
+      <div><label>PIC</label><input type="text" id="al-f-PIC" autocomplete="off"></div>
+      <div><label>Kontak</label><input type="text" id="al-f-Contact" autocomplete="off" placeholder="(+62)81..."></div>
+    </div>
+    <label>Detail (warna body, raincover, charger, dll)</label><input type="text" id="al-f-Detail" autocomplete="off">
+    <div class="row">
+      <div><label>Agreement</label><input type="text" id="al-f-Agreement" autocomplete="off"></div>
+      <div><label>Payment status</label><input type="text" id="al-f-Payment" autocomplete="off"></div>
+    </div>
+    <label>Catatan</label><input type="text" id="al-f-Note" autocomplete="off" placeholder="Mis. Stay at P3">
+    <div class="row">
+      <div><label>No mesin</label><input type="text" id="al-f-Engine" autocomplete="off"></div>
+      <div><label>No rangka</label><input type="text" id="al-f-Chassis" autocomplete="off"></div>
+    </div>
+    <datalist id="al-type-list"></datalist><datalist id="al-dept-list"></datalist><datalist id="al-status-list"></datalist><datalist id="al-cond-list"></datalist>
+    <div class="muted" id="al-m-info" style="margin-top:8px"></div>
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-al" onclick="saveAlloc()">Simpan ke Sheet</button>
+      <button class="btn sec" style="margin:0" id="btn-al-del" onclick="deleteAlloc()">Hapus Unit</button>
+    </div>
   </div>
 </div>
 
@@ -1248,6 +1354,7 @@ async function refreshAll() {
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
   if (CUR_VIEW === 'summary') jobs.push(loadSummary());
   if (CUR_VIEW === 'users') jobs.push(loadUsers());
+  if (ALLOC_LOADED || CUR_VIEW === 'alloc') jobs.push(loadAlloc());
   if (CUR_VIEW === 'detail' && CURRENT && CURRENT.header) jobs.push(openDetail(CURRENT.header.CA_ID));
   try {
     await Promise.all(jobs.map(j => Promise.resolve(j).catch(() => null)));
@@ -1437,7 +1544,7 @@ const AKSI_LABEL = {
   addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
-  addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
+  addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
 };
 
 function renderLog() {
@@ -1452,7 +1559,7 @@ function renderLog() {
 }
 
 function show(view) {
-  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
@@ -1461,6 +1568,7 @@ function show(view) {
   if (view === 'pr' && !PR_LOADED) loadPR();
   if (view === 'summary') loadSummary();
   if (view === 'users') loadUsers();
+  if (view === 'alloc' && !ALLOC_LOADED) loadAlloc();
   redrawCharts();
 }
 
@@ -1581,7 +1689,7 @@ async function init() {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
     $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); closeExport(); closePay(); closeSO(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); closeExport(); closePay(); closeSO(); closeAlloc(); } });
   $('us-peran').addEventListener('change', roleInfo);
   // Cek login dulu. Selama belum ada akun, aplikasi terbuka seperti biasa.
   try {
@@ -2536,6 +2644,210 @@ async function addIncome() {
     toast('Gagal: ' + e.message);
   } finally {
     b.disabled = false; b.textContent = 'Simpan Income';
+  }
+}
+
+// ---------- ALOKASI EV (sheet Buggy Allocation) ----------
+let ALLOC = { units: [], sections: [] }, ALLOC_LOADED = false, AL_MODE = 'list', AL_EDIT = null;
+const AL_INTERNAL = /^(transport|internal\s*tran\w*|last\s*mile.*|vsp|work\s*order|mechanic|-|)$/i;
+function alCat(type) {
+  const t = String(type || '').toLowerCase();
+  if (/bus/.test(t)) return 'Bus';
+  if (/buggy|club\s*car/.test(t)) return 'Buggy';
+  if (/coot|skuter|scooter/.test(t)) return 'Cooty / Skuter';
+  if (/tyran|vfly|bike|goda|yadea|volta|motor|alva|maka|vinfast|kucher/.test(t)) return 'EV Bike / Motor';
+  return 'Lainnya';
+}
+// Jenis kendaraan disamakan dengan istilah BOQ (untuk dicocokkan)
+function alType(type) {
+  const t = String(type || '');
+  if (/security|jep/i.test(t)) return 'Buggy 6 seat';
+  if (/box/i.test(t)) return 'Buggy (lainnya)';
+  return rsType({ Uraian: t });
+}
+const alCond = c => /good|baik/i.test(c) ? 'Good' : /maint/i.test(c) ? 'Maintenance' : /broken|rusak/i.test(c) ? 'Broken' : (c || '-');
+const alStatus = s => String(s || '').trim() || '-';
+const alNorm = d => String(d || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const AL_ALIAS = { accomodasi: 'accommodation', acomodasi: 'accommodation', accomodation: 'accommodation', nuanuexperiance: 'nuanuexperience', experience: 'nuanuexperience',
+  enfiro: 'environment', enviro: 'environment', landscaping: 'landscape', hk: 'housekeeping', hkcleaner: 'housekeeping', nrea: 'nre', infrastruktur: 'infrastructure', srmanagement: 'seniormanagement' };
+const alKey = d => { const n = alNorm(d); return AL_ALIAS[n] || n; };
+function lev(a, b) {
+  const m = a.length, n = b.length, dp = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return dp[m][n];
+}
+function alSameDept(a, b) {
+  const x = alKey(a), y = alKey(b);
+  if (!x || !y) return false;
+  return x === y || (x.length > 4 && y.length > 4 && (x.startsWith(y) || y.startsWith(x) || lev(x, y) <= 2));
+}
+
+async function loadAlloc() {
+  $('al-body').innerHTML = '<tr><td colspan="8" class="muted">Memuat dari sheet Buggy Allocation...</td></tr>';
+  try {
+    setAlloc(await apiGet({ action: 'allocList' }));
+  } catch (e) {
+    $('al-body').innerHTML = `<tr><td colspan="8" class="muted">Gagal memuat: ${esc(e.message)}</td></tr>`;
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function setAlloc(d) {
+  ALLOC = d || { units: [], sections: [] };
+  ALLOC_LOADED = true;
+  if (d && d.url) $('al-sheet').href = d.url;
+  const U = ALLOC.units;
+  const keep = id => $(id).value;
+  const opts = (id, list, ph) => { const v = keep(id); $(id).innerHTML = `<option value="">${ph}</option>` + list.map(x => `<option>${esc(x)}</option>`).join(''); if (list.includes(v)) $(id).value = v; };
+  const uniq = arr => [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  opts('al-cat', ['Bus', 'Buggy', 'EV Bike / Motor', 'Cooty / Skuter', 'Lainnya'].filter(c => U.some(u => alCat(u.Type) === c)), 'Semua kategori');
+  opts('al-dept', uniq(U.map(u => u.Department)), 'Semua departemen');
+  opts('al-status', uniq(U.map(u => alStatus(u.Status))), 'Semua status');
+  opts('al-cond', uniq(U.map(u => alCond(u.Condition))), 'Semua kondisi');
+  $('al-type-list').innerHTML = uniq(U.map(u => u.Type)).map(x => `<option value="${esc(x)}">`).join('');
+  $('al-dept-list').innerHTML = uniq(U.map(u => u.Department)).map(x => `<option value="${esc(x)}">`).join('');
+  $('al-status-list').innerHTML = uniq(['Active', 'Rent', 'Inactive', ...U.map(u => u.Status)]).map(x => `<option value="${esc(x)}">`).join('');
+  $('al-cond-list').innerHTML = uniq(['Good', 'Maintenance', 'Broken', ...U.map(u => u.Condition)]).map(x => `<option value="${esc(x)}">`).join('');
+
+  const ext = U.filter(u => !AL_INTERNAL.test(String(u.Department).trim()));
+  const mt = U.filter(u => ['Maintenance', 'Broken'].includes(alCond(u.Condition)));
+  const rent = U.filter(u => /rent/i.test(u.Status));
+  const byCat = arr => ['Bus', 'Buggy', 'EV Bike / Motor', 'Cooty / Skuter'].map(c => [c, arr.filter(u => alCat(u.Type) === c).length]).filter(x => x[1]).map(x => x[1] + ' ' + x[0].toLowerCase()).join(' · ');
+  $('al-total').textContent = U.length; $('al-total-n').textContent = byCat(U);
+  $('al-ext').textContent = ext.length; $('al-ext-n').textContent = new Set(ext.map(u => alKey(u.Department))).size + ' departemen';
+  $('al-mt').innerHTML = mt.length ? `<span class="neg">${mt.length}</span>` : '0'; $('al-mt-n').textContent = mt.filter(u => alCond(u.Condition) === 'Broken').length + ' rusak';
+  $('al-rent').textContent = rent.length; $('al-rent-n').textContent = uniq(rent.map(u => u.Department)).join(', ');
+  renderAlloc();
+}
+
+function setAlMode(m) {
+  AL_MODE = m;
+  document.querySelectorAll('#al-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  $('al-list').classList.toggle('hidden', m !== 'list');
+  $('al-deptview').classList.toggle('hidden', m !== 'dept');
+  $('al-boq').classList.toggle('hidden', m !== 'boq');
+  $('al-filters').classList.toggle('hidden', m === 'boq');
+  renderAlloc();
+}
+
+const alCondTag = c => { const k = alCond(c); return `<span class="tag ${k === 'Good' ? 'cond-good' : k === 'Maintenance' ? 'cond-mt' : k === 'Broken' ? 'cond-bad' : 'st-off'}">${esc(k)}</span>`; };
+const alStatusTag = s => { const k = alStatus(s); return `<span class="tag ${/active/i.test(k) && !/in/i.test(k) ? 'cleared' : /rent/i.test(k) ? 'st-rent' : 'st-off'}">${esc(k)}</span>`; };
+
+function alFiltered() {
+  const fc = $('al-cat').value, fd = $('al-dept').value, fs = $('al-status').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase();
+  return ALLOC.units.map((u, i) => Object.assign({ _i: i }, u)).filter(u =>
+    (!fc || alCat(u.Type) === fc) && (!fd || u.Department === fd) && (!fs || alStatus(u.Status) === fs) && (!fk || alCond(u.Condition) === fk) &&
+    (!q || [u.Code, u.Type, u.Department, u.PIC, u.Contact, u.Sticker, u.Note, u.Detail].join(' ').toLowerCase().includes(q)));
+}
+
+function renderAlloc() {
+  if (!ALLOC_LOADED) return;
+  const rows = alFiltered();
+  if (AL_MODE === 'list') {
+    $('al-body').innerHTML = rows.length ? rows.map(u => `<tr class="click" onclick="openAlloc(${u._i})">
+      <td><span class="al-code">${esc(u.Code)}</span>${u.Sticker ? `<div class="al-sub">Stiker ${esc(u.Sticker)}</div>` : ''}</td>
+      <td>${esc(u.Type)}${u.No ? `<div class="al-sub">No ${esc(u.No)}</div>` : ''}</td>
+      <td>${esc(u.Department) || '<span class="muted">-</span>'}</td>
+      <td>${esc(u.PIC) || '<span class="muted">-</span>'}${u.Contact ? `<div class="al-sub">${esc(u.Contact)}</div>` : ''}</td>
+      <td>${alStatusTag(u.Status)}</td>
+      <td>${alCondTag(u.Condition)}${u.Odometer ? `<div class="al-sub">${esc(u.Odometer)}</div>` : ''}</td>
+      <td class="muted" style="font-size:12px">${esc([u.Note, u.Detail].filter(Boolean).join(' · '))}</td>
+      <td><button class="btn sec sm" style="margin:0" onclick="event.stopPropagation(); openAlloc(${u._i})">Edit</button></td>
+    </tr>`).join('') + `<tr class="total"><td colspan="8">${rows.length} unit</td></tr>` : '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
+  }
+  if (AL_MODE === 'dept') {
+    const g = {};
+    rows.forEach(u => { const k = u.Department || '(tanpa departemen)'; (g[k] = g[k] || []).push(u); });
+    const keys = Object.keys(g).sort((a, b) => g[b].length - g[a].length);
+    $('al-deptview').innerHTML = keys.length ? keys.map(k => {
+      const cnt = {};
+      g[k].forEach(u => { const t = alType(u.Type) === 'Lainnya' ? u.Type : alType(u.Type); cnt[t] = (cnt[t] || 0) + 1; });
+      const pic = [...new Set(g[k].map(u => u.PIC).filter(Boolean))].join(', ');
+      return `<div class="al-dept">
+        <h3><span>${esc(k)} <span class="muted" style="font-weight:400">· ${g[k].length} unit</span></span><span class="muted" style="font-weight:400;font-size:12px">${esc(pic)}</span></h3>
+        <div class="rs-units">${Object.entries(cnt).map(([t, n]) => n + ' ' + esc(t)).join(' · ')}</div>
+        ${g[k].map(u => `<span class="al-unit" onclick="openAlloc(${u._i})" title="${esc(u.Type)}">${esc(u.Code)} ${alCond(u.Condition) !== 'Good' ? alCondTag(u.Condition) : ''}${/rent/i.test(u.Status) ? alStatusTag(u.Status) : ''}</span>`).join('')}
+      </div>`;
+    }).join('') : '<div class="muted">Tidak ada data</div>';
+  }
+  if (AL_MODE === 'boq') renderAllocBoq();
+}
+
+// Bandingkan unit yang dialokasikan ke departemen dengan unit yang ditagih di BOQ (bulan rental terakhir)
+function renderAllocBoq() {
+  if (!INCOME_LOADED) { $('al-boq-info').textContent = 'Memuat data tagihan...'; loadIncome().then(renderAllocBoq); return; }
+  const months = [...new Set(INCOME.filter(isRentRow).map(periodeOf))].sort();
+  const ym = months.includes(thisMonth()) ? thisMonth() : months[months.length - 1];
+  if (!ym) { $('al-boq-info').textContent = 'Belum ada tagihan rental. Klik Tarik Data di menu Income.'; $('al-boq-body').innerHTML = ''; return; }
+  const billed = rsData(ym);
+  const units = ALLOC.units.filter(u => !AL_INTERNAL.test(String(u.Department).trim()) && !/inactive/i.test(u.Status));
+  // Kelompok departemen gabungan dari kedua sumber
+  const groups = [];
+  const find = name => groups.find(g => alSameDept(g.name, name));
+  units.forEach(u => { let g = find(u.Department); if (!g) { g = { name: u.Department, alloc: {}, codes: {}, bill: null }; groups.push(g); } const t = alType(u.Type); g.alloc[t] = (g.alloc[t] || 0) + 1; (g.codes[t] = g.codes[t] || []).push(u.Code); });
+  billed.forEach(b => { let g = find(b.dept); if (!g) { g = { name: b.dept, alloc: {}, codes: {}, bill: null }; groups.push(g); } g.bill = b; g.billName = b.dept; });
+  let ok = 0, under = 0, over = 0;
+  const out = [];
+  groups.sort((a, b) => a.name.localeCompare(b.name)).forEach(g => {
+    const bu = g.bill ? g.bill.units : {};
+    const types = [...new Set([...Object.keys(g.alloc), ...Object.keys(bu)])];
+    types.forEach((t, i) => {
+      const a = g.alloc[t] || 0, b = bu[t] || 0;
+      let res;
+      if (!g.bill) { res = '<span class="res-under">Tidak ada di BOQ</span>'; under++; }
+      else if (a === b) { res = '<span class="res-ok">Sesuai</span>'; ok++; }
+      else if (a > b) { res = `<span class="res-under">${a - b} unit belum ditagih</span>`; under++; }
+      else { res = `<span class="res-over">Ditagih ${b - a} lebih dari alokasi</span>`; over++; }
+      out.push(`<tr><td>${i === 0 ? `<b>${esc(g.name)}</b>${g.billName && alNorm(g.billName) !== alNorm(g.name) ? `<div class="al-sub">BOQ: ${esc(g.billName)}</div>` : ''}` : ''}</td><td>${esc(t)}</td><td class="num">${a}</td><td class="num">${g.bill ? b : '-'}</td><td>${res}</td><td>${(g.codes[t] || []).map(c => `<span class="rs-code">${esc(c)}</span>`).join('')}</td></tr>`);
+    });
+  });
+  $('al-boq-info').innerHTML = `Dibandingkan dengan tagihan rental <b>${esc(fmtPeriode(ym))}</b> (BOQ). Unit internal Transport dan berstatus Inactive tidak dihitung. ` +
+    `<span class="res-ok">${ok} sesuai</span> · <span class="res-under">${under} kurang / tidak ditagih</span> · <span class="res-over">${over} lebih ditagih</span>`;
+  $('al-boq-body').innerHTML = out.join('') || '<tr><td colspan="6" class="muted">Tidak ada data</td></tr>';
+}
+
+function openAlloc(i) {
+  AL_EDIT = i >= 0 ? ALLOC.units[i] : null;
+  const u = AL_EDIT || {};
+  $('al-m-title').textContent = AL_EDIT ? 'Edit unit ' + u.Code : 'Tambah unit';
+  $('al-sec-box').classList.toggle('hidden', !!AL_EDIT);
+  $('al-f-section').innerHTML = ALLOC.sections.map((x, k) => `<option value="${k}">${esc(x.tab === 'NPG' ? 'NPG' : alCat(x.name))} (${esc(x.tab)}, mulai baris ${x.head})</option>`).join('');
+  ['Code', 'Type', 'No', 'Sticker', 'Department', 'Status', 'Condition', 'Odometer', 'PIC', 'Contact', 'Detail', 'Agreement', 'Payment', 'Note', 'Engine', 'Chassis'].forEach(f => $('al-f-' + f).value = u[f] || '');
+  if (!AL_EDIT) { $('al-f-Status').value = 'Active'; $('al-f-Condition').value = 'Good'; }
+  $('al-m-info').textContent = AL_EDIT ? `Tab ${u.Tab}, baris ${u.Row}. Perubahan langsung disimpan ke sheet Buggy Allocation.` : 'Unit baru ditambahkan di akhir bagian yang dipilih pada sheet Buggy Allocation.';
+  $('btn-al-del').classList.toggle('hidden', !AL_EDIT);
+  $('al-modal').classList.remove('hidden');
+}
+function closeAlloc() { $('al-modal').classList.add('hidden'); }
+
+async function saveAlloc() {
+  const d = {};
+  ['Code', 'Type', 'No', 'Sticker', 'Department', 'Status', 'Condition', 'Odometer', 'PIC', 'Contact', 'Detail', 'Agreement', 'Payment', 'Note', 'Engine', 'Chassis'].forEach(f => d[f] = $('al-f-' + f).value.trim());
+  if (!d.Code) return toast('Isi kode unit');
+  if (AL_EDIT) Object.assign(d, { Tab: AL_EDIT.Tab, Row: AL_EDIT.Row, Code_Lama: AL_EDIT.Code });
+  else { const sec = ALLOC.sections[Number($('al-f-section').value)] || {}; Object.assign(d, { Tab: sec.tab, Section: sec.index }); }
+  const b = $('btn-al');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    setAlloc(await apiPost('saveAlloc', d));
+    closeAlloc();
+    toast((AL_EDIT ? 'Unit diperbarui: ' : 'Unit ditambahkan: ') + d.Code);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan ke Sheet';
+  }
+}
+
+async function deleteAlloc() {
+  if (!AL_EDIT || !confirm(`Hapus unit ${AL_EDIT.Code} dari sheet Buggy Allocation?\nBaris ${AL_EDIT.Row} di tab ${AL_EDIT.Tab} akan dihapus.`)) return;
+  try {
+    setAlloc(await apiPost('deleteAlloc', { Tab: AL_EDIT.Tab, Row: AL_EDIT.Row, Code: AL_EDIT.Code }));
+    closeAlloc();
+    toast('Unit dihapus');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
   }
 }
 
