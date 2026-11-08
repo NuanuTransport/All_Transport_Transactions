@@ -729,6 +729,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
       <div class="ctrl">
         <select id="r-periode" onchange="loadSummary()"></select>
         <button class="btn sec" style="margin:0" onclick="loadSummary()">Refresh</button>
+        <button class="btn" style="margin:0" onclick="openExport()">Export Excel</button>
       </div>
     </div>
     <div class="stats">
@@ -810,6 +811,31 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     </div>
     <div class="kv" id="m-info"></div>
     <div class="m-file" id="m-file"></div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT EXCEL -->
+<div class="modal hidden" id="export-modal" onclick="if (event.target === this) closeExport()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head">
+      <b>Export Excel</b>
+      <button class="btn sec sm" onclick="closeExport()">Tutup</button>
+    </div>
+    <div class="muted">Laporan keuangan Transport Department dalam satu file Excel (.xlsx) untuk finance.</div>
+    <div class="row" style="margin-top:6px">
+      <div><label>Dari periode</label><select id="ex-dari"></select></div>
+      <div><label>Sampai periode</label><select id="ex-sampai"></select></div>
+    </div>
+    <div style="margin-top:12px;font-size:13px">Isi file:</div>
+    <ul class="muted" style="margin:4px 0 0 18px;padding:0;line-height:1.7">
+      <li><b>Summary</b>: income dan pengeluaran per divisi, per bulan, per sumber, per kategori</li>
+      <li><b>Income</b>: semua baris income pada periode</li>
+      <li><b>Expenses</b>: pemakaian CA, PR / WO / store, HPP air mineral</li>
+      <li><b>Outstanding</b>: semua tagihan belum dibayar (semua periode) dengan umur tagihan</li>
+    </ul>
+    <div class="btns" style="margin-top:16px">
+      <button class="btn" style="margin:0" id="btn-ex" onclick="doExport()">Download Excel</button>
+    </div>
   </div>
 </div>
 
@@ -1091,7 +1117,7 @@ async function init() {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
     $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); closeExport(); } });
   try {
     MASTER = await apiGet({ action: 'master' });
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
@@ -3257,6 +3283,247 @@ async function doSendJC() {
   } finally {
     b.disabled = false; b.textContent = 'Kirim';
   }
+}
+
+// ---------- PEMBUAT FILE EXCEL (.xlsx) TANPA LIBRARY ----------
+// sheet: { name, cols: [lebar], rows: [[sel]], freeze: baris, filter: 'A5:K5' }
+// sel: string / angka / null, atau { v, s } dengan s: 'title' | 'sub' | 'h' | 'b' | 'money' | 'moneyb' | 'int' | 'date' | 'muted'
+const XS = { title: 1, sub: 2, h: 3, b: 4, money: 5, moneyb: 6, int: 7, date: 8, muted: 9, hr: 10, sec: 11, txt: 0 };
+
+function xmlEsc(v) {
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+}
+const colName = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+function excelDate(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? (Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(1899, 11, 30)) / 864e5 : null;
+}
+
+function sheetXml(sh) {
+  let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>';
+  if (sh.freeze) x += `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`;
+  if (sh.cols) x += '<cols>' + sh.cols.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('') + '</cols>';
+  x += '<sheetData>';
+  sh.rows.forEach((row, ri) => {
+    if (!row || !row.length) { return; }
+    x += `<row r="${ri + 1}">`;
+    row.forEach((c, ci) => {
+      if (c === null || c === undefined || c === '') return;
+      const o = (typeof c === 'object') ? c : { v: c };
+      if (o.v === null || o.v === undefined || o.v === '') {
+        if (o.s) x += `<c r="${colName(ci)}${ri + 1}" s="${XS[o.s] || 0}"/>`;
+        return;
+      }
+      const ref = colName(ci) + (ri + 1);
+      let st = o.s || (typeof o.v === 'number' ? 'money' : 'txt');
+      if (st === 'date') {
+        const d = excelDate(o.v);
+        if (d !== null) { x += `<c r="${ref}" s="${XS.date}"><v>${d}</v></c>`; return; }
+        st = 'txt';
+      }
+      if (typeof o.v === 'number' && isFinite(o.v)) x += `<c r="${ref}" s="${XS[st] || 0}"><v>${Math.round(o.v * 100) / 100}</v></c>`;
+      else x += `<c r="${ref}" s="${XS[st] || 0}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(o.v)}</t></is></c>`;
+    });
+    x += '</row>';
+  });
+  x += '</sheetData>';
+  if (sh.filter) x += `<autoFilter ref="${sh.filter}"/>`;
+  x += '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>';
+  x += '<pageSetup orientation="landscape" fitToWidth="1" fitToHeight="0"/>';
+  return x + '</worksheet>';
+}
+
+const XLSX_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0"/><numFmt numFmtId="165" formatCode="dd mmm yyyy"/></numFmts>' +
+  '<fonts count="5"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="14"/><color rgb="FF1E5246"/><name val="Arial"/></font>' +
+  '<font><sz val="10"/><color rgb="FF6B7280"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font></fonts>' +
+  '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FF1E5246"/><bgColor indexed="64"/></patternFill></fill>' +
+  '<fill><patternFill patternType="solid"><fgColor rgb="FFEEF3F1"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+  '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top style="thin"><color rgb="FF9CA3AF"/></top><bottom/><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="12">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +                                                          // 0 teks
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                            // 1 judul
+  '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                            // 2 sub judul
+  '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment vertical="center"/></xf>' + // 3 header tabel
+  '<xf numFmtId="0" fontId="4" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +             // 4 tebal (baris total)
+  '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                                  // 5 rupiah
+  '<xf numFmtId="164" fontId="4" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>' + // 6 rupiah tebal
+  '<xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                                    // 7 angka
+  '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +                                  // 8 tanggal
+  '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                            // 9 abu-abu
+  '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' + // 10 header kanan
+  '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +                                            // 11 judul bagian
+  '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+
+// ZIP tanpa kompresi (format STORE), cukup untuk file xlsx
+const CRC_T = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b) { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let off = 0;
+  const now = new Date();
+  const dt = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dd = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+  files.forEach(f => {
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, crc, true);
+    h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true); h.setUint16(28, 0, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(10, 0, true);
+    c.setUint16(12, dt, true); c.setUint16(14, dd, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true);
+    c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const csize = central.reduce((a, b) => a + b.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function buildXlsx(sheets) {
+  const ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '</Types>';
+  const rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+  const filters = sheets.map((sh, i) => sh.filter ? `<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">'${sh.name.replace(/'/g, "''")}'!$${sh.filter.replace(':', ':$').replace(/([A-Z]+)(\d+)/g, '$1$$$2')}</definedName>` : '').join('');
+  const wb = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+    sheets.map((sh, i) => `<sheet name="${xmlEsc(sh.name.slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets>' +
+    (filters ? `<definedNames>${filters}</definedNames>` : '') + '</workbook>';
+  const wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+    `<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  return zipStore([
+    { name: '[Content_Types].xml', data: ct },
+    { name: '_rels/.rels', data: rels },
+    { name: 'xl/workbook.xml', data: wb },
+    { name: 'xl/_rels/workbook.xml.rels', data: wbRels },
+    { name: 'xl/styles.xml', data: XLSX_STYLES },
+    ...sheets.map((sh, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: sheetXml(sh) }))
+  ]);
+}
+
+// ---------- EXPORT EXCEL LAPORAN ----------
+const monEn = p => { const [y, m] = String(p).split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }); };
+
+function openExport() {
+  const opts = $('r-periode').innerHTML;
+  $('ex-dari').innerHTML = opts; $('ex-sampai').innerHTML = opts;
+  $('ex-dari').value = $('r-periode').value; $('ex-sampai').value = $('r-periode').value;
+  $('export-modal').classList.remove('hidden');
+}
+function closeExport() { $('export-modal').classList.add('hidden'); }
+
+async function doExport() {
+  let dari = $('ex-dari').value, sampai = $('ex-sampai').value;
+  if (dari > sampai) [dari, sampai] = [sampai, dari];
+  const b = $('btn-ex');
+  b.disabled = true; b.textContent = 'Menyiapkan...';
+  try {
+    const [d] = await Promise.all([apiGet({ action: 'exportData', dari, sampai }), INCOME_LOADED ? null : loadIncome()]);
+    const blob = buildXlsx(reportSheets(d));
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Transport_Finance_${dari}${sampai !== dari ? '_to_' + sampai : ''}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    closeExport();
+    toast('File Excel diunduh');
+  } catch (e) {
+    toast('Gagal export: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Download Excel';
+  }
+}
+
+function reportSheets(d) {
+  const per = d.dari === d.sampai ? monEn(d.dari) : monEn(d.dari) + ' - ' + monEn(d.sampai);
+  const gen = 'Generated ' + new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  // Judul kolom; diawali '>' = rata kanan (kolom angka)
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const sum = (arr, f) => arr.reduce((a, r) => a + (Number(f(r)) || 0), 0);
+  const paid = r => r.Status !== 'Belum dibayar';
+
+  // ---- Summary
+  const R = [
+    [{ v: 'Transport Department - Financial Report', s: 'title' }],
+    [{ v: 'Period: ' + per, s: 'sub' }],
+    [{ v: gen, s: 'sub' }],
+    []
+  ];
+  const ti = sum(d.income.filter(paid), r => r.Nominal), tp = sum(d.income.filter(r => !paid(r)), r => r.Nominal), te = sum(d.expense, r => r.Nominal);
+  R.push([{ v: 'Overview', s: 'sec' }]);
+  R.push(['Income received', ti], ['Income outstanding', tp], ['Total income', ti + tp], ['Expenses', te], [{ v: 'Net (income - expenses)', s: 'b' }, { v: ti + tp - te, s: 'moneyb' }], []);
+
+  const divs = [...new Set([...d.divisi, ...d.income.map(r => r.Divisi), ...d.expense.map(r => r.Divisi)].filter(Boolean))];
+  R.push([{ v: 'By division', s: 'sec' }]);
+  R.push(H(['Division', '>Income received', '>Outstanding', '>Expenses', '>Net']));
+  divs.forEach(v => {
+    const a = sum(d.income.filter(r => r.Divisi === v && paid(r)), r => r.Nominal), p = sum(d.income.filter(r => r.Divisi === v && !paid(r)), r => r.Nominal), e = sum(d.expense.filter(r => r.Divisi === v), r => r.Nominal);
+    if (a || p || e) R.push([v, a, p, e, a + p - e]);
+  });
+  R.push([{ v: 'Total', s: 'b' }, { v: ti, s: 'moneyb' }, { v: tp, s: 'moneyb' }, { v: te, s: 'moneyb' }, { v: ti + tp - te, s: 'moneyb' }], []);
+
+  if (d.dari !== d.sampai) {
+    const months = [];
+    for (let p = d.dari; p <= d.sampai; ) { months.push(p); const [y, m] = p.split('-').map(Number); const n = new Date(y, m, 1); p = n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0'); }
+    R.push([{ v: 'By month', s: 'sec' }]);
+    R.push(H(['Month', '>Income received', '>Outstanding', '>Expenses', '>Net']));
+    months.forEach(p => {
+      const ip = r => String(r.Tanggal).slice(0, 7) === p;
+      const a = sum(d.income.filter(r => ip(r) && paid(r)), r => r.Nominal), o = sum(d.income.filter(r => ip(r) && !paid(r)), r => r.Nominal), e = sum(d.expense.filter(ip), r => r.Nominal);
+      R.push([monEn(p), a, o, e, a + o - e]);
+    });
+    R.push([{ v: 'Total', s: 'b' }, { v: ti, s: 'moneyb' }, { v: tp, s: 'moneyb' }, { v: te, s: 'moneyb' }, { v: ti + tp - te, s: 'moneyb' }], []);
+  }
+
+  const group = (arr, key) => { const m = {}; arr.forEach(r => { const k = key(r) || '(blank)'; m[k] = m[k] || { n: 0, t: 0 }; m[k].n += Number(r.Jumlah_Trx || 0) || 1; m[k].t += Number(r.Nominal || 0); }); return Object.entries(m).sort((a, b) => b[1].t - a[1].t); };
+  R.push([{ v: 'Income by source', s: 'sec' }]);
+  R.push(H(['Source', '>Transactions', '>Amount']));
+  group(d.income, r => r.Sumber).forEach(([k, x]) => R.push([k, { v: x.n, s: 'int' }, x.t]));
+  R.push([{ v: 'Total', s: 'b' }, { v: '', s: 'b' }, { v: ti + tp, s: 'moneyb' }], []);
+  R.push([{ v: 'Expenses by category', s: 'sec' }]);
+  R.push(H(['Category', '>Lines', '>Amount']));
+  group(d.expense.map(r => Object.assign({}, r, { Jumlah_Trx: 1 })), r => r.Kategori).forEach(([k, x]) => R.push([k, { v: x.n, s: 'int' }, x.t]));
+  R.push([{ v: 'Total', s: 'b' }, { v: '', s: 'b' }, { v: te, s: 'moneyb' }]);
+
+  // ---- Income
+  const I = [[{ v: 'Income - ' + per, s: 'title' }], [{ v: gen, s: 'sub' }], [],
+    H(['Date', 'Division', 'Source', 'Data source', 'Billed to / Customer', 'Description', '>Trx', '>Amount', 'Status', 'Paid date'])];
+  const stEn = r => paid(r) ? 'Paid' : 'Outstanding';
+  d.income.forEach(r => I.push([{ v: r.Tanggal, s: 'date' }, r.Divisi, r.Sumber, r.Sumber_Data, r.Pelanggan, r.Keterangan, r.Jumlah_Trx ? { v: r.Jumlah_Trx, s: 'int' } : '', r.Nominal, stEn(r), r.Tgl_Bayar && paid(r) ? { v: r.Tgl_Bayar, s: 'date' } : '']));
+  I.push([{ v: 'Total', s: 'b' }, ...Array(6).fill({ v: '', s: 'b' }), { v: ti + tp, s: 'moneyb' }, { v: '', s: 'b' }, { v: '', s: 'b' }]);
+
+  // ---- Expenses
+  const E = [[{ v: 'Expenses - ' + per, s: 'title' }], [{ v: gen, s: 'sub' }], [],
+    H(['Date', 'Division', 'Type', 'Category', 'Description', 'Unit', 'Reference', 'PIC / Vendor', '>Amount'])];
+  const jenisEn = { 'Pemakaian CA': 'Cash advance', 'CA (sheet lama)': 'Cash advance (old sheet)', 'WO Departemen': 'WO to department', 'HPP Air Mineral': 'Mineral water COGS' };
+  d.expense.forEach(r => E.push([{ v: r.Tanggal, s: 'date' }, r.Divisi, jenisEn[r.Jenis] || r.Jenis, r.Kategori, r.Keterangan, r.Unit, r.Ref, r.Pihak, r.Nominal]));
+  E.push([{ v: 'Total', s: 'b' }, ...Array(7).fill({ v: '', s: 'b' }), { v: te, s: 'moneyb' }]);
+
+  // ---- Outstanding (semua periode)
+  const un = INCOME.filter(r => !isLangsung(r) && r.Status !== 'Lunas').sort((a, b) => String(a.Tanggal).localeCompare(String(b.Tanggal)));
+  const age = r => r.Berjalan ? 'Current month' : Number(r.Umur || 0) <= 30 ? '0-30 days' : Number(r.Umur || 0) <= 60 ? '31-60 days' : Number(r.Umur || 0) <= 90 ? '61-90 days' : '> 90 days';
+  const O = [[{ v: 'Outstanding Invoices (all periods)', s: 'title' }], [{ v: gen, s: 'sub' }], [],
+    H(['Period', 'Division', 'Source', 'Billed to / Customer', 'Description', '>Amount', '>Age (days)', 'Age group', 'JC sent'])];
+  un.forEach(r => O.push([monEn(periodeOf(r)), r.Divisi, r.Sumber, r.Pelanggan, r.Keterangan, Number(r.Nominal || 0), r.Berjalan ? '' : { v: Number(r.Umur || 0), s: 'int' }, age(r), JC_SENT[r.Income_ID] ? { v: String(JC_SENT[r.Income_ID].waktu).slice(0, 10), s: 'date' } : '']));
+  O.push([{ v: 'Total', s: 'b' }, ...Array(4).fill({ v: '', s: 'b' }), { v: sum(un, r => r.Nominal), s: 'moneyb' }, { v: '', s: 'b' }, { v: '', s: 'b' }, { v: '', s: 'b' }]);
+
+  return [
+    { name: 'Summary', cols: [30, 18, 18, 18, 18], rows: R },
+    { name: 'Income', cols: [13, 16, 18, 14, 30, 48, 7, 16, 14, 13], rows: I, freeze: 4, filter: `A4:J${I.length - 1}` },
+    { name: 'Expenses', cols: [13, 16, 16, 24, 48, 12, 22, 20, 16], rows: E, freeze: 4, filter: `A4:I${E.length - 1}` },
+    { name: 'Outstanding', cols: [12, 16, 18, 30, 44, 16, 11, 14, 13], rows: O, freeze: 4, filter: `A4:I${O.length - 1}` }
+  ];
 }
 
 // ---------- GRAFIK (SVG ringan, tanpa library luar) ----------
