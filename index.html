@@ -916,6 +916,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
             <select id="al-life-sort" onchange="renderUnitLife()" style="width:auto">
               <option value="status">Urut: status</option>
               <option value="selisih">Urut: selisih terkecil</option>
+              <option value="pct">Urut: % cost spending terbesar</option>
               <option value="tco">Urut: biaya /bln terbesar</option>
               <option value="sisa">Urut: sisa umur</option>
               <option value="kode">Urut: kode</option>
@@ -926,8 +927,9 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         </div>
         <div id="al-life-units">
           <div class="stats" id="al-life-stats"></div>
+          <div class="rs-chips" id="al-life-types" style="margin:4px 0 10px"></div>
           <div class="tablewrap"><table>
-            <thead><tr><th>Kode</th><th>Jenis</th><th>Batch / beli</th><th class="num">Umur</th><th class="num">Nilai buku</th><th class="num">Penyusutan /bln</th><th class="num">Servis /bln</th><th class="num">Biaya /bln</th><th class="num">Sewa /bln</th><th class="num">Selisih /bln</th><th>Status</th></tr></thead>
+            <thead><tr><th>Kode</th><th>Jenis</th><th>Batch / beli</th><th class="num">Umur</th><th class="num">Nilai buku</th><th class="num">Penyusutan /bln</th><th class="num">Servis /bln</th><th>Cost spending vs harga beli</th><th class="num">Biaya /bln</th><th class="num">Sewa /bln</th><th class="num">Selisih /bln</th><th>Status</th></tr></thead>
             <tbody id="al-life-body"></tbody>
           </table></div>
         </div>
@@ -3129,14 +3131,14 @@ const lifeFlagTag = f => f ? `<span class="tag ${f === 'Baik' ? 'cond-good' : f 
 const lifeAge = m => m == null ? '-' : (m >= 12 ? Math.floor(m / 12) + ' th ' : '') + (m % 12 || m < 12 ? (m % 12) + ' bln' : '');
 
 async function loadUnitLife() {
-  $('al-life-body').innerHTML = '<tr><td colspan="11" class="muted">Menghitung umur, penyusutan, biaya servis, dan pendapatan sewa...</td></tr>';
+  $('al-life-body').innerHTML = '<tr><td colspan="12" class="muted">Menghitung umur, penyusutan, biaya servis, dan pendapatan sewa...</td></tr>';
   try {
     const [d] = await Promise.all([apiGet({ action: 'unitLife' }), INCOME_LOADED ? null : loadIncome().catch(() => null)]);
     LIFE = d;
     LIFE.rent = lifeRentIndex();
     renderUnitLife();
   } catch (e) {
-    $('al-life-body').innerHTML = `<tr><td colspan="11" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
+    $('al-life-body').innerHTML = `<tr><td colspan="12" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
   }
 }
 
@@ -3168,6 +3170,16 @@ function lifeRentOf(u) {
   return { bln: Math.round(tot / qty), src: 'tarif ' + t + ' ' + p[0].dept, dept: p[0].dept, n: Math.max(...p.map(x => x.m.size)) };
 }
 
+// Cost spending (servis + sparepart + CA + purchase sejak beli) dibanding harga beli unit
+const lifePctCol = p => p >= 0.6 ? '#dc2626' : p >= 0.3 ? '#ea8c34' : '#16a34a';
+function lifePctBar(u) {
+  const p = u.ratio || 0;
+  return `<div style="display:flex;align-items:center;gap:8px;min-width:150px"><div style="flex:1;height:6px;background:#eef1f4;border-radius:3px;position:relative">` +
+    `<div style="position:absolute;left:0;top:0;bottom:0;width:${Math.max(p > 0 ? 2 : 0, Math.min(100, p / 0.6 * 100))}%;background:${lifePctCol(p)};border-radius:3px"></div>` +
+    `<div title="batas 30%" style="position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#c3cad3"></div></div>` +
+    `<b style="min-width:44px;text-align:right">${(p * 100).toFixed(p < 0.1 ? 2 : 1)}%</b></div><div class="al-sub">${rp(u.maintLife)} dari ${rp(u.harga)}</div>`;
+}
+
 function lifeRows() {
   if (!LIFE) return [];
   const map = alByCode();
@@ -3187,6 +3199,7 @@ function lifeRows() {
     status: (x, y) => (rank[x.flag] - rank[y.flag]) || ((y.ratio12 || 0) - (x.ratio12 || 0)) || (nz(x.remM) - nz(y.remM)),
     selisih: (x, y) => nz(x.selisih) - nz(y.selisih),
     tco: (x, y) => (y.tco || 0) - (x.tco || 0),
+    pct: (x, y) => (y.ratio || 0) - (x.ratio || 0) || (y.maintLife || 0) - (x.maintLife || 0),
     sisa: (x, y) => nz(x.remM) - nz(y.remM),
     kode: () => 0
   };
@@ -3207,7 +3220,12 @@ function renderUnitLife() {
     <div class="stat"><div class="l">Nilai perolehan / buku</div><div class="v">${rp(S('book'))}</div><div class="muted">dari ${rp(S('acq'))} (impor ${rp(S('impor'))}) · akumulasi penyusutan ${rp(S('depAkum'))}</div></div>
     <div class="stat"><div class="l">Biaya kepemilikan / bulan</div><div class="v">${rp(S('tco'))}</div><div class="muted">penyusutan ${rp(S('depBln'))} + servis ${rp(S('perBulan'))}</div></div>
     <div class="stat"><div class="l">Unit disewakan / bulan</div><div class="v">${rp(S('sewa', rented))}</div><div class="muted">${rented.length} unit · biaya ${rp(S('tco', rented))} · selisih <b class="${S('selisih', rented) < 0 ? 'neg' : ''}">${rp(S('selisih', rented))}</b>${rugi ? ` · <span class="neg">${rugi} unit rugi</span>` : ''}</div></div>
+    <div class="stat"><div class="l">Cost spending vs harga beli</div><div class="v">${S('harga') ? (S('maintLife') / S('harga') * 100).toFixed(2) : 0}%</div><div class="muted">${rp(S('maintLife'))} dari ${rp(S('harga'))} · ${has.filter(u => u.ratio >= 0.3).length} unit ≥ 30%</div></div>
     <div class="stat"><div class="l">Perlu perhatian</div><div class="v">${cnt('Pertimbangkan ganti') ? `<span class="neg">${cnt('Pertimbangkan ganti')}</span>` : 0} / ${cnt('Pantau')}</div><div class="muted">pertimbangkan ganti / pantau</div></div>`;
+  const g = {};
+  has.forEach(u => { const t = rsType({ Uraian: u.type }); const o = g[t] = g[t] || { n: 0, h: 0, c: 0 }; o.n++; o.h += u.harga; o.c += u.maintLife; });
+  $('al-life-types').innerHTML = Object.entries(g).sort((a, b) => (b[1].c / b[1].h) - (a[1].c / a[1].h)).map(([t, o]) =>
+    `<span class="rs-chip" title="${o.n} unit · cost spending ${rp(o.c)} dari harga beli ${rp(o.h)}">${esc(t)} <b style="color:${lifePctCol(o.h ? o.c / o.h : 0)}">${(o.h ? o.c / o.h * 100 : 0).toFixed(2)}%</b></span>`).join('');
   const dash = '<span class="muted">-</span>';
   $('al-life-body').innerHTML = rows.length ? rows.map(u => `<tr class="click" onclick="openUnitDetail('${esc(u.code)}')">
     <td><span class="al-code">${esc(u.code)}</span><div class="al-sub">${esc(u.dept || '-')}</div></td>
@@ -3217,14 +3235,15 @@ function renderUnitLife() {
     <td class="num">${u.batch ? rp(u.book) + `<div class="al-sub">dari ${rp(u.acq)}</div>` : dash}</td>
     <td class="num">${u.batch ? rp(u.depBln) + `<div class="al-sub">akum. ${rp(u.depAkum)}</div>` : dash}</td>
     <td class="num">${u.batch ? rp(u.perBulan) : dash}<div class="al-sub">12 bln ${rp(u.maint12)}</div></td>
+    <td>${u.batch ? lifePctBar(u) : rp(u.maintLife)}</td>
     <td class="num">${u.batch ? '<b>' + rp(u.tco) + '</b>' : dash}</td>
     <td class="num">${u.rent ? rp(u.sewa) + `<div class="al-sub" title="${esc(u.rent.src)}">${u.rent.src === 'kode unit di BOQ' ? 'per kode' : 'tarif dept'}</div>` : dash}</td>
     <td class="num">${u.selisih == null ? dash : `<b class="${u.selisih < 0 ? 'neg' : 'pos'}">${u.selisih < 0 ? '−' : '+'}${rp(Math.abs(u.selisih))}</b>`}</td>
     <td>${lifeFlagTag(u.flag)}${u.alasan && u.flag ? `<div class="al-sub">${esc(u.alasan)}</div>` : ''}</td>
-  </tr>`).join('') : '<tr><td colspan="11" class="muted">Tidak ada data</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="12" class="muted">Tidak ada data</td></tr>';
   $('al-life-note').innerHTML = 'Penyusutan garis lurus: nilai perolehan (harga + impor) ÷ umur pakai, sampai nilai buku 0. Servis/bulan = biaya Mechanic Apps, CA dan purchase sejak beli ÷ jumlah bulan ada data. ' +
     'Biaya kepemilikan = penyusutan + servis (belum termasuk gaji driver, BBM/charging dan asuransi). Sewa = tagihan Rental EV 12 bulan terakhir: per kode unit bila BOQ menyebut kodenya, selain itu tarif rata-rata departemen + jenis kendaraan. Bus dan unit internal Transport tidak punya sewa bulanan (pendapatannya dari trip / WO). ' +
-    'Pertimbangkan ganti bila umur pakai habis, servis 12 bulan ≥ 50% nilai buku, atau total servis ≥ 60% harga beli. Pantau bila sisa umur ≤ 12 bulan, servis 12 bulan ≥ 25% nilai buku, atau total servis ≥ 30% harga beli.' +
+    'Pertimbangkan ganti bila umur pakai habis, servis 12 bulan ≥ 50% nilai buku, atau cost spending sejak beli ≥ 60% harga beli. Pantau bila sisa umur ≤ 12 bulan, servis 12 bulan ≥ 25% nilai buku, atau cost spending ≥ 30% harga beli. Cost spending = semua biaya servis, sparepart, CA dan purchase unit sejak beli; dibandingkan dengan harga beli tanpa biaya impor.' +
     (LIFE.dataStart ? ` Catatan servis baru ada sejak ${esc(fmtPeriode(LIFE.dataStart))}.` : '');
 }
 
@@ -3232,7 +3251,7 @@ function lifeInfoHtml(code) {
   const u = LIFE && LIFE.units.find(x => ucKey(x.code) === ucKey(code));
   if (!u || !u.batch) return '';
   const rent = lifeRentOf(u), sel = rent ? rent.bln - u.tco : null;
-  return `<div class="al-sec-title">Masa guna</div><div>${esc(u.batch)} · beli ${esc(fmtTgl(u.tglBeli))} (${esc(u.vendor || '-')}) · umur ${esc(lifeAge(u.ageM))}, sisa ${u.remM > 0 ? esc(lifeAge(u.remM)) : 'habis'} · nilai perolehan ${rp(u.acq)} · nilai buku <b>${rp(u.book)}</b> · ${lifeFlagTag(u.flag)}</div>` +
+  return `<div class="al-sec-title">Masa guna</div><div>${esc(u.batch)} · beli ${esc(fmtTgl(u.tglBeli))} (${esc(u.vendor || '-')}) · umur ${esc(lifeAge(u.ageM))}, sisa ${u.remM > 0 ? esc(lifeAge(u.remM)) : 'habis'} · nilai perolehan ${rp(u.acq)} · nilai buku <b>${rp(u.book)}</b> · cost spending ${rp(u.maintLife)} (<b>${(u.ratio * 100).toFixed(2)}%</b> harga beli) · ${lifeFlagTag(u.flag)}</div>` +
     `<div class="muted" style="margin-top:2px">Per bulan: penyusutan ${rp(u.depBln)} + servis ${rp(u.perBulan)} = <b>${rp(u.tco)}</b>${rent ? ` · sewa ${rp(rent.bln)} (${esc(rent.src)}) · selisih <b class="${sel < 0 ? 'neg' : ''}">${sel < 0 ? '−' : '+'}${rp(Math.abs(sel))}</b>` : ''}</div>`;
 }
 
@@ -3244,23 +3263,23 @@ function exportUnitLife() {
   const flagEn = { 'Baik': 'Good', 'Pantau': 'Monitor', 'Pertimbangkan ganti': 'Consider replacement', '': 'No purchase data' };
   const R = [[{ v: 'Vehicle Useful Life & Cost of Ownership - as of ' + today, s: 'title' }],
     [{ v: 'Straight-line depreciation of acquisition value (price + import) over useful life. Service from Mechanic Apps, cash advance and purchases with unit code' + (LIFE.dataStart ? ' (records since ' + monEn(LIFE.dataStart) + ')' : '') + '. Rental = EV rental billing, last 12 months. Driver, energy and insurance costs not included.', s: 'sub' }], [],
-    H(['Unit code', 'Type', 'Department', 'Batch', 'Purchase date', 'Vendor', '>Useful life (yr)', '>Age (mo)', '>Remaining (mo)', '>Price', '>Import cost', '>Acquisition value', '>Accum. depreciation', '>Book value', '>Depreciation / mo', '>Service / mo', '>Cost of ownership / mo', '>Rental / mo', 'Rental basis', '>Margin / mo', '>Service since purchase', '>Service 12 mo', 'Status', 'Reason'])];
+    H(['Unit code', 'Type', 'Department', 'Batch', 'Purchase date', 'Vendor', '>Useful life (yr)', '>Age (mo)', '>Remaining (mo)', '>Price', '>Import cost', '>Acquisition value', '>Accum. depreciation', '>Book value', '>Depreciation / mo', '>Service / mo', '>Cost of ownership / mo', '>Rental / mo', 'Rental basis', '>Margin / mo', '>Cost spending since purchase', '>% of purchase price', '>% of acquisition value', '>Service 12 mo', 'Status', 'Reason'])];
   const n = (ok, v) => ok ? v : '';
   rows.forEach(u => R.push([u.code, u.type, u.dept, u.batch || '', u.tglBeli ? { v: u.tglBeli, s: 'date' } : '', u.vendor || '',
     n(u.batch, { v: u.umur, s: 'int' }), n(u.batch, { v: u.ageM, s: 'int' }), n(u.batch, { v: u.remM, s: 'int' }),
     n(u.batch, u.harga), n(u.batch, u.impor), n(u.batch, u.acq), n(u.batch, u.depAkum), n(u.batch, u.book), n(u.batch, u.depBln), n(u.batch, u.perBulan), n(u.batch, u.tco),
     n(u.rent, u.sewa), u.rent ? (u.rent.src === 'kode unit di BOQ' ? 'Unit code in BOQ' : 'Avg rate ' + u.rent.dept) : '', u.selisih == null ? '' : u.selisih,
-    u.maintLife, u.maint12, flagEn[u.flag || ''], u.alasan && u.flag ? u.alasan : '']));
+    u.maintLife, n(u.batch && u.harga, +(u.ratio * 100).toFixed(2)), n(u.batch && u.acq, +(u.ratioAcq * 100).toFixed(2)), u.maint12, flagEn[u.flag || ''], u.alasan && u.flag ? u.alasan : '']));
   const has = rows.filter(u => u.batch), rented = has.filter(u => u.rent), S = (k, a) => a.reduce((s, u) => s + (u[k] || 0), 0);
   R.push([{ v: 'Total', s: 'b' }, '', '', '', '', '', '', '', '', { v: S('harga', has), s: 'moneyb' }, { v: S('impor', has), s: 'moneyb' }, { v: S('acq', has), s: 'moneyb' }, { v: S('depAkum', has), s: 'moneyb' }, { v: S('book', has), s: 'moneyb' },
-    { v: S('depBln', has), s: 'moneyb' }, { v: S('perBulan', has), s: 'moneyb' }, { v: S('tco', has), s: 'moneyb' }, { v: S('sewa', rented), s: 'moneyb' }, '', { v: S('selisih', rented), s: 'moneyb' }, { v: S('maintLife', rows), s: 'moneyb' }, { v: S('maint12', rows), s: 'moneyb' }, '', '']);
+    { v: S('depBln', has), s: 'moneyb' }, { v: S('perBulan', has), s: 'moneyb' }, { v: S('tco', has), s: 'moneyb' }, { v: S('sewa', rented), s: 'moneyb' }, '', { v: S('selisih', rented), s: 'moneyb' }, { v: S('maintLife', rows), s: 'moneyb' }, S('harga', has) ? +(S('maintLife', has) / S('harga', has) * 100).toFixed(2) : '', S('acq', has) ? +(S('maintLife', has) / S('acq', has) * 100).toFixed(2) : '', { v: S('maint12', rows), s: 'moneyb' }, '', '']);
   const B = [[{ v: 'Purchase Batches', s: 'title' }], [],
     H(['Batch', 'Type', 'Purchase date', 'Vendor', 'PO number', '>Qty', '>Price / unit', '>Import / unit', '>Acquisition total', '>Useful life (yr)', '>Depreciation / mo (batch)', 'Unit codes', 'Code status', '>Matched units', 'Note'])];
   (LIFE.batches || []).forEach(b => B.push([b.Batch_ID, b.Jenis, b.Tanggal_Beli ? { v: b.Tanggal_Beli, s: 'date' } : '', b.Vendor, b.No_PO, { v: b.Qty, s: 'int' }, b.Harga_Unit, b.Biaya_Impor_Unit,
     b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit), { v: b.Umur_Pakai_Th, s: 'int' }, b.Umur_Pakai_Th ? Math.round(b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit) / (b.Umur_Pakai_Th * 12)) : '',
     b.Kode_Unit, b.Status_Kode === 'OK' ? 'Verified' : 'Estimated', { v: b.found, s: 'int' }, b.Catatan]));
   const blob = buildXlsx([
-    { name: 'Useful life', cols: [12, 22, 20, 9, 13, 22, 10, 9, 11, 15, 14, 16, 16, 15, 14, 13, 16, 13, 24, 14, 15, 13, 20, 40], rows: R, freeze: 4, filter: `A4:X${R.length - 1}` },
+    { name: 'Useful life', cols: [12, 22, 20, 9, 13, 22, 10, 9, 11, 15, 14, 16, 16, 15, 14, 13, 16, 13, 24, 14, 16, 12, 12, 13, 20, 40], rows: R, freeze: 4, filter: `A4:Z${R.length - 1}` },
     { name: 'Batches', cols: [9, 22, 13, 26, 30, 7, 15, 14, 17, 10, 16, 26, 11, 10, 50], rows: B, freeze: 3, filter: `A3:O${B.length}` }
   ]);
   const url = URL.createObjectURL(blob), x = document.createElement('a');
