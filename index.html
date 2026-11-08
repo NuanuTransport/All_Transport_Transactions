@@ -89,6 +89,35 @@ table.items input{padding:6px 8px;font-size:13px}
 .m-file{margin-top:14px;text-align:center}
 .m-file img{max-width:100%;border:1px solid var(--line);border-radius:8px}
 #print-area{display:none}
+.user-chip{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:#c9ddd6;flex-wrap:wrap;justify-content:flex-end}
+.user-chip b{color:#fff;font-size:13px}
+.user-chip button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;font-family:inherit}
+.user-chip button:hover{background:rgba(255,255,255,.22)}
+.auth-wrap{position:fixed;inset:0;z-index:20;background:#1e5246;display:flex;align-items:center;justify-content:center;padding:16px}
+.auth-wrap.hidden{display:none}
+.auth-box{background:#fff;border-radius:14px;max-width:360px;width:100%;padding:22px}
+.auth-box .logo-dark{display:block;margin-bottom:10px}
+.auth-box h2{margin:0 0 2px;font-size:18px}
+.auth-box input.pin{letter-spacing:8px;font-size:20px;text-align:center}
+.auth-err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
+.login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.login-banner.hidden{display:none}
+.role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
+body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
+body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
+body.viewer #ra-card,body.viewer #sub-income [data-s="sync"],body.viewer #sub-income [data-s="manual"],body.viewer #sub-pr [data-s="baru"],
+body:not(.head) [onclick*="delIncome("],body:not(.head) [onclick*="delPR("],body:not(.head) [onclick*="delTopup("],body:not(.head) [onclick*="delUsage("],
+body:not(.head) [onclick*="delRentalAdj("],body:not(.head) [onclick*="unpayIncome("],body:not(.head) [onclick*="clearSO("],body:not(.head) .auto-box,body:not(.head) nav [data-v="users"]{display:none!important}
+body.open nav [data-v="users"]{display:none!important}
+.so-line{margin-top:4px;font-size:12px}
+.so-line .tag{font-size:10px;padding:1px 6px}
+.so-step{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+.so-step h3{margin:0 0 2px;font-size:14px;display:flex;align-items:center;gap:8px}
+.so-step .num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:#1e5246;color:#fff;font-size:11px;align-items:center;justify-content:center}
+.so-step.done .num{background:var(--ok)}
+.so-step.off{opacity:.55}
 .auto-box{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
 .auto-box .muted{margin-top:2px}
 .send-file{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px}
@@ -226,6 +255,11 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     <h1>Transport Finance</h1>
     <p>Income, purchase, dan cash advance Transport Department</p>
   </div>
+  <div class="user-chip hidden" id="user-chip">
+    <span><b id="uc-nama">-</b> &middot; <span id="uc-peran">-</span></span>
+    <button onclick="openPin()">Ganti PIN</button>
+    <button onclick="logout()">Keluar</button>
+  </div>
 </header>
 
 <nav>
@@ -233,9 +267,14 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   <button data-v="income" onclick="show('income')">Income</button>
   <button data-v="pr" onclick="show('pr')">Purchase</button>
   <button data-v="list" onclick="show('list')">Cash Advance</button>
+  <button data-v="users" onclick="show('users')">Pengguna</button>
 </nav>
 
 <main>
+  <div class="login-banner hidden" id="login-banner">
+    <span><b>Login belum aktif.</b> Siapa pun yang punya link aplikasi ini bisa melihat dan mengubah data keuangan.</span>
+    <button class="btn" style="margin:0" onclick="openSetup()">Aktifkan Login</button>
+  </div>
 
   <!-- DAFTAR CA -->
   <section id="view-list" class="hidden">
@@ -450,7 +489,13 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
           <option>Belum dibayar</option>
           <option>Lunas</option>
         </select>
-        <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan" oninput="renderIncome()">
+        <select id="ff-so" onchange="renderIncome()">
+          <option value="">Semua SO</option>
+          <option>Belum SO</option>
+          <option>Menunggu release</option>
+          <option>Released</option>
+        </select>
+        <input type="text" id="ff-cari" placeholder="Cari pelanggan / keterangan / No SO" oninput="renderIncome()">
       </div>
       <div class="hint" id="inc-hint"></div>
       <div class="tablewrap">
@@ -500,7 +545,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         </table></div>
       </details>
     </div>
-    <div class="card">
+    <div class="card" id="ra-card">
       <h2>Penyesuaian Rental EV</h2>
       <div class="hint">Catat unit sewa yang rusak, dikembalikan, atau diganti. Tagihan rental dihitung ulang otomatis setelah disimpan.</div>
       <details class="guide"><summary>Cara hitung</summary><div>Unit lama ditagih sampai sehari sebelum tanggal yang diisi (bulan itu prorata per hari), bulan berikutnya tidak ditagih. Unit pengganti ditagih terpisah mulai tanggal tersebut. Unit rusak yang tidak diganti dianggap selesai.</div></details>
@@ -722,6 +767,42 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     </div>
   </section>
 
+  <!-- PENGGUNA & LOG AKTIVITAS (Head) -->
+  <section id="view-users" class="hidden">
+    <div class="page-head">
+      <div><h2>Pengguna &amp; Riwayat</h2><div class="muted">Akun login, hak akses, dan catatan semua perubahan data</div></div>
+    </div>
+    <div class="card">
+      <h2>Pengguna</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Nama</th><th>Peran</th><th>Status</th><th>Login terakhir</th><th></th></tr></thead>
+        <tbody id="us-body"></tbody>
+      </table></div>
+      <h2 style="margin-top:18px" id="us-form-title">Tambah Pengguna</h2>
+      <div class="row4" style="grid-template-columns:1.4fr 1fr 1fr 1fr">
+        <div><label>Nama</label><input type="text" id="us-nama" placeholder="Mis. Anggi" autocomplete="off"></div>
+        <div><label>Peran</label><select id="us-peran"><option>Admin</option><option>Viewer</option><option>Head</option></select></div>
+        <div><label>PIN (6 angka)</label><input type="password" id="us-pin" inputmode="numeric" maxlength="6" placeholder="Kosongkan = PIN lama" autocomplete="new-password"></div>
+        <div><label>Status</label><select id="us-aktif"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
+      </div>
+      <div class="muted" id="us-role-info" style="margin-top:8px"></div>
+      <div class="btns" style="margin-top:12px">
+        <button class="btn" style="margin:0" id="btn-us" onclick="saveUser()">Simpan Pengguna</button>
+        <button class="btn sec" style="margin:0" onclick="resetUserForm()">Batal</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div><h2>Riwayat Aktivitas</h2><div class="muted">300 aktivitas terakhir. Data lengkap ada di sheet Log_Aktivitas.</div></div>
+        <input type="text" id="log-q" placeholder="Cari nama / aksi / detail" style="width:auto;min-width:220px" oninput="renderLog()">
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Waktu</th><th>Nama</th><th>Aksi</th><th>Detail</th></tr></thead>
+        <tbody id="log-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
   <!-- DASHBOARD -->
   <section id="view-summary">
     <div class="page-head">
@@ -811,6 +892,110 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     </div>
     <div class="kv" id="m-info"></div>
     <div class="m-file" id="m-file"></div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div class="auth-wrap hidden" id="auth-wrap">
+  <div class="auth-box">
+    <h2>Transport Finance</h2>
+    <div class="muted">Masuk dengan nama dan PIN Anda</div>
+    <label>Nama</label>
+    <select id="lg-nama"></select>
+    <label>PIN</label>
+    <input type="password" id="lg-pin" class="pin" inputmode="numeric" maxlength="6" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
+    <div class="auth-err" id="lg-err"></div>
+    <button class="btn" style="width:100%;margin-top:6px" id="btn-lg" onclick="doLogin()">Masuk</button>
+    <div class="muted" style="margin-top:12px">Lupa PIN? Minta Head untuk mengatur ulang PIN Anda.</div>
+  </div>
+</div>
+
+<!-- AKTIFKAN LOGIN (akun Head pertama) -->
+<div class="modal hidden" id="setup-modal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-head"><b>Aktifkan Login</b><button class="btn sec sm" onclick="$('setup-modal').classList.add('hidden')">Tutup</button></div>
+    <div class="muted">Buat akun Head (Anda). Setelah ini, semua orang wajib login dengan nama dan PIN. Akun lain ditambahkan dari menu Pengguna.</div>
+    <label>Nama Anda</label><input type="text" id="su-nama" autocomplete="off">
+    <label>PIN (6 angka)</label><input type="password" id="su-pin" class="pin" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <label>Ulangi PIN</label><input type="password" id="su-pin2" class="pin" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <div class="auth-err" id="su-err"></div>
+    <button class="btn" style="width:100%" id="btn-su" onclick="doSetup()">Aktifkan</button>
+  </div>
+</div>
+
+<!-- GANTI PIN -->
+<div class="modal hidden" id="pin-modal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-head"><b>Ganti PIN</b><button class="btn sec sm" onclick="$('pin-modal').classList.add('hidden')">Tutup</button></div>
+    <label>PIN lama</label><input type="password" id="pn-lama" class="pin" inputmode="numeric" maxlength="6" autocomplete="current-password">
+    <label>PIN baru (6 angka)</label><input type="password" id="pn-baru" class="pin" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <label>Ulangi PIN baru</label><input type="password" id="pn-baru2" class="pin" inputmode="numeric" maxlength="6" autocomplete="new-password">
+    <div class="auth-err" id="pn-err"></div>
+    <button class="btn" style="width:100%" id="btn-pn" onclick="doChangePin()">Simpan PIN</button>
+  </div>
+</div>
+
+<!-- MODAL SALES ORDER -->
+<div class="modal hidden" id="so-modal" onclick="if (event.target === this) closeSO()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head"><b>Sales Order (SO)</b><button class="btn sec sm" onclick="closeSO()">Tutup</button></div>
+    <div class="send-file" style="display:block">
+      <div id="so-title" style="font-weight:600">-</div>
+      <div class="muted" id="so-sub"></div>
+      <div style="font-size:18px;font-weight:700;margin-top:4px" id="so-nominal">-</div>
+    </div>
+    <div class="so-step" id="so-step1">
+      <h3><span class="num">1</span> No SO <span class="muted" style="font-weight:400">(diisi admin)</span></h3>
+      <div class="row">
+        <div><label>No SO</label><input type="text" id="so-no" autocomplete="off" placeholder="Mis. SO/2026/11/0123"></div>
+        <div><label>Tanggal SO</label><input type="date" id="so-tgl"></div>
+      </div>
+      <label>Catatan (opsional)</label>
+      <input type="text" id="so-cat" placeholder="Mis. gabung SO September + Oktober">
+      <button class="btn" style="margin-top:10px" id="btn-so" onclick="doSetSO()">Simpan No SO</button>
+    </div>
+    <div class="so-step" id="so-step2">
+      <h3><span class="num">2</span> Release <span class="muted" style="font-weight:400">(oleh team service)</span></h3>
+      <div class="muted" id="so-rel-info">Isi No SO dulu.</div>
+      <div id="so-rel-form">
+        <label>Tanggal release</label>
+        <input type="date" id="so-rel-tgl">
+        <button class="btn ok" style="margin-top:10px" id="btn-rel" onclick="doReleaseSO()">Tandai Sudah Release</button>
+      </div>
+    </div>
+    <div style="margin-top:12px;text-align:right"><button class="btn sec sm" style="margin:0" onclick="clearSO()">Hapus data SO</button></div>
+  </div>
+</div>
+
+<!-- MODAL TANDAI LUNAS -->
+<div class="modal hidden" id="pay-modal" onclick="if (event.target === this) closePay()">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-head"><b>Tandai Lunas</b><button class="btn sec sm" onclick="closePay()">Tutup</button></div>
+    <div class="send-file" style="display:block">
+      <div id="py-title" style="font-weight:600">-</div>
+      <div class="muted" id="py-sub"></div>
+      <div style="font-size:18px;font-weight:700;margin-top:4px" id="py-nominal">-</div>
+    </div>
+    <div class="warn-text" id="py-warn"></div>
+    <div class="row">
+      <div><label>Tanggal pembayaran</label><input type="date" id="py-tgl"></div>
+      <div><label>Metode</label>
+        <select id="py-metode">
+          <option>Transfer bank</option>
+          <option>Cost transfer (internal)</option>
+          <option>Cash</option>
+          <option>QRIS</option>
+          <option>Lainnya</option>
+        </select>
+      </div>
+    </div>
+    <label>Bukti pembayaran (foto / PDF, opsional)</label>
+    <input type="file" id="py-bukti" accept="image/*,application/pdf">
+    <label>Catatan (opsional)</label>
+    <input type="text" id="py-cat" placeholder="Mis. ref transfer, nama pengirim">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn ok" style="margin:0" id="btn-py" onclick="doPay()">Simpan Lunas</button>
+    </div>
   </div>
 </div>
 
@@ -975,28 +1160,226 @@ async function parseRes(r) {
   const txt = await r.text();
   if (txt.trim().startsWith('<')) throw new Error('Server membalas halaman login. Cek akses Web App harus "Anyone".');
   const j = JSON.parse(txt);
-  if (!j.ok) throw new Error(j.error);
+  if (!j.ok) {
+    if (String(j.error).indexOf('AUTH:') === 0) { sessionExpired(); throw new Error(String(j.error).slice(5).trim()); }
+    throw new Error(j.error);
+  }
   return j.data;
 }
 
 async function apiGet(params) {
-  const r = await fetch(API + '?' + new URLSearchParams(params).toString());
+  const q = Object.assign({}, params);
+  if (TOKEN) q.token = TOKEN;
+  const r = await fetch(API + '?' + new URLSearchParams(q).toString());
   return parseRes(r);
 }
 
 async function apiPost(action, data) {
-  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, data }) });
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action, data, token: TOKEN || undefined }) });
   return parseRes(r);
 }
 
+// ---------- LOGIN ----------
+let TOKEN = null, USER = null, AUTH_ON = false, ROLE_INFO = {};
+try { TOKEN = localStorage.getItem('tf-token'); } catch (e) {}
+
+function saveToken(t) {
+  TOKEN = t;
+  try { t ? localStorage.setItem('tf-token', t) : localStorage.removeItem('tf-token'); } catch (e) {}
+}
+
+function applyUser() {
+  const b = document.body;
+  b.classList.toggle('open', !AUTH_ON);
+  b.classList.toggle('head', !AUTH_ON || (USER && USER.peran === 'Head'));
+  b.classList.toggle('viewer', !!(USER && USER.peran === 'Viewer'));
+  $('login-banner').classList.toggle('hidden', AUTH_ON);
+  $('user-chip').classList.toggle('hidden', !USER);
+  if (USER) { $('uc-nama').textContent = USER.nama; $('uc-peran').textContent = USER.peran; }
+}
+
+function showLogin(names) {
+  if (names) $('lg-nama').innerHTML = names.map(n => `<option>${esc(n)}</option>`).join('');
+  try { const last = localStorage.getItem('tf-last-user'); if (last && names && names.includes(last)) $('lg-nama').value = last; } catch (e) {}
+  $('lg-pin').value = ''; $('lg-err').textContent = '';
+  $('auth-wrap').classList.remove('hidden');
+  setTimeout(() => $('lg-pin').focus(), 50);
+}
+
+let LOGIN_WAIT = null;
+function sessionExpired() {
+  saveToken(null); USER = null;
+  applyUser();
+  apiGet({ action: 'authStatus' }).then(a => showLogin(a.names)).catch(() => showLogin());
+}
+
+async function doLogin() {
+  const b = $('btn-lg');
+  const pin = $('lg-pin').value.trim();
+  if (!/^\d{6}$/.test(pin)) { $('lg-err').textContent = 'PIN harus 6 angka'; return; }
+  b.disabled = true; b.textContent = 'Memeriksa...';
+  try {
+    const r = await apiPost('login', { nama: $('lg-nama').value, pin });
+    saveToken(r.token); USER = r.user; AUTH_ON = true;
+    try { localStorage.setItem('tf-last-user', r.user.nama); } catch (e) {}
+    $('auth-wrap').classList.add('hidden');
+    applyUser();
+    if (LOGIN_WAIT) { const f = LOGIN_WAIT; LOGIN_WAIT = null; f(); }
+    else toast('Selamat datang, ' + r.user.nama);
+  } catch (e) {
+    $('lg-err').textContent = e.message;
+    $('lg-pin').value = '';
+  } finally {
+    b.disabled = false; b.textContent = 'Masuk';
+  }
+}
+
+function logout() {
+  if (!confirm('Keluar dari aplikasi?')) return;
+  saveToken(null); USER = null;
+  location.reload();
+}
+
+function openSetup() {
+  $('su-nama').value = ''; $('su-pin').value = ''; $('su-pin2').value = ''; $('su-err').textContent = '';
+  $('setup-modal').classList.remove('hidden');
+}
+
+async function doSetup() {
+  const nama = $('su-nama').value.trim(), pin = $('su-pin').value.trim();
+  if (nama.length < 3) return $('su-err').textContent = 'Nama minimal 3 huruf';
+  if (!/^\d{6}$/.test(pin)) return $('su-err').textContent = 'PIN harus 6 angka';
+  if (pin !== $('su-pin2').value.trim()) return $('su-err').textContent = 'PIN tidak sama';
+  const b = $('btn-su');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const r = await apiPost('setupFirstUser', { nama, pin });
+    saveToken(r.token); USER = r.user; AUTH_ON = true;
+    $('setup-modal').classList.add('hidden');
+    applyUser();
+    toast('Login aktif. Tambahkan akun lain di menu Pengguna.');
+  } catch (e) {
+    $('su-err').textContent = e.message;
+  } finally {
+    b.disabled = false; b.textContent = 'Aktifkan';
+  }
+}
+
+function openPin() {
+  ['pn-lama', 'pn-baru', 'pn-baru2'].forEach(i => $(i).value = '');
+  $('pn-err').textContent = '';
+  $('pin-modal').classList.remove('hidden');
+}
+
+async function doChangePin() {
+  const a = $('pn-lama').value.trim(), n = $('pn-baru').value.trim();
+  if (!/^\d{6}$/.test(n)) return $('pn-err').textContent = 'PIN baru harus 6 angka';
+  if (n !== $('pn-baru2').value.trim()) return $('pn-err').textContent = 'PIN baru tidak sama';
+  const b = $('btn-pn');
+  b.disabled = true;
+  try {
+    await apiPost('changePin', { pinLama: a, pinBaru: n });
+    $('pin-modal').classList.add('hidden');
+    toast('PIN berhasil diganti');
+  } catch (e) {
+    $('pn-err').textContent = e.message;
+  } finally {
+    b.disabled = false;
+  }
+}
+
+// ---------- PENGGUNA & LOG (Head) ----------
+let USERS = [], LOGS = [];
+
+async function loadUsers() {
+  $('us-body').innerHTML = '<tr><td colspan="5" class="muted">Memuat...</td></tr>';
+  $('log-body').innerHTML = '<tr><td colspan="4" class="muted">Memuat...</td></tr>';
+  resetUserForm();
+  try {
+    const [u, l] = await Promise.all([apiGet({ action: 'users' }), apiGet({ action: 'activityLog', n: 300 })]);
+    USERS = u; LOGS = l;
+    renderUsers(); renderLog();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+function renderUsers() {
+  $('us-body').innerHTML = USERS.length ? USERS.map((u, i) => `<tr>
+    <td><b>${esc(u.Nama)}</b>${USER && u.Nama === USER.nama ? ' <span class="muted">(Anda)</span>' : ''}</td>
+    <td><span class="role-tag">${esc(u.Peran)}</span></td>
+    <td>${u.Aktif ? '<span class="tag cleared">Aktif</span>' : '<span class="tag">Nonaktif</span>'}</td>
+    <td>${esc(u.Login_Terakhir || '-')}</td>
+    <td style="text-align:right"><button class="btn sec sm" style="margin:0" onclick="editUser(${i})">Ubah / Reset PIN</button></td>
+  </tr>`).join('') : '<tr><td colspan="5" class="muted">Belum ada pengguna</td></tr>';
+}
+
+function roleInfo() {
+  $('us-role-info').textContent = ROLE_INFO[$('us-peran').value] || '';
+}
+
+function resetUserForm() {
+  $('us-form-title').textContent = 'Tambah Pengguna';
+  $('us-nama').value = ''; $('us-nama').disabled = false;
+  $('us-peran').value = 'Admin'; $('us-pin').value = ''; $('us-aktif').value = '1';
+  $('us-pin').placeholder = '6 angka';
+  roleInfo();
+}
+
+function editUser(i) {
+  const u = USERS[i];
+  $('us-form-title').textContent = 'Ubah Pengguna: ' + u.Nama;
+  $('us-nama').value = u.Nama; $('us-nama').disabled = true;
+  $('us-peran').value = u.Peran; $('us-aktif').value = u.Aktif ? '1' : '0';
+  $('us-pin').value = ''; $('us-pin').placeholder = 'Kosongkan = PIN lama';
+  roleInfo();
+  $('us-nama').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function saveUser() {
+  const d = { nama: $('us-nama').value.trim(), peran: $('us-peran').value, pin: $('us-pin').value.trim(), aktif: $('us-aktif').value === '1' };
+  if (d.pin && !/^\d{6}$/.test(d.pin)) return toast('PIN harus 6 angka');
+  const b = $('btn-us');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    USERS = await apiPost('saveUser', d);
+    renderUsers(); resetUserForm();
+    toast('Pengguna disimpan');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Pengguna';
+  }
+}
+
+const AKSI_LABEL = {
+  login: 'Login', setupFirstUser: 'Aktifkan login', createCA: 'Buat CA', addUsage: 'Tambah pemakaian CA', deleteUsage: 'Hapus pemakaian CA',
+  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas',
+  deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
+  setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
+  addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
+};
+
+function renderLog() {
+  const q = $('log-q').value.trim().toLowerCase();
+  const rows = LOGS.filter(l => !q || [l.Nama, l.Aksi, AKSI_LABEL[l.Aksi], l.Detail].join(' ').toLowerCase().includes(q));
+  $('log-body').innerHTML = rows.length ? rows.map(l => `<tr>
+    <td style="white-space:nowrap">${esc(l.Waktu)}</td>
+    <td>${esc(l.Nama)}${l.Peran ? ' <span class="muted">' + esc(l.Peran) + '</span>' : ''}</td>
+    <td style="white-space:nowrap">${esc(AKSI_LABEL[l.Aksi] || l.Aksi)}</td>
+    <td class="muted" style="font-size:12px;word-break:break-word">${esc(l.Detail || '')}</td>
+  </tr>`).join('') : '<tr><td colspan="4" class="muted">Belum ada aktivitas</td></tr>';
+}
+
 function show(view) {
-  ['list', 'new', 'detail', 'income', 'pr', 'summary'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
   window.scrollTo(0, 0);
   if (view === 'income' && !INCOME_LOADED) loadIncome();
   if (view === 'pr' && !PR_LOADED) loadPR();
   if (view === 'summary') loadSummary();
+  if (view === 'users') loadUsers();
   redrawCharts();
 }
 
@@ -1117,7 +1500,22 @@ async function init() {
     const list = MASTER.divisiMap[$('n-grup').value] || [];
     $('n-grup-info').textContent = list.length ? 'Divisi dalam grup ini: ' + list.join(', ') : '';
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); closeExport(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeSend(); closeExport(); closePay(); closeSO(); } });
+  $('us-peran').addEventListener('change', roleInfo);
+  // Cek login dulu. Selama belum ada akun, aplikasi terbuka seperti biasa.
+  try {
+    const a = await apiGet({ action: 'authStatus' });
+    AUTH_ON = a.enabled; USER = a.user; ROLE_INFO = a.roles || {};
+    if (AUTH_ON && !USER) {
+      saveToken(null);
+      applyUser();
+      showLogin(a.names);
+      await new Promise(res => { LOGIN_WAIT = res; });
+    }
+  } catch (e) {
+    toast('Gagal cek login: ' + e.message);
+  }
+  applyUser();
   try {
     MASTER = await apiGet({ action: 'master' });
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
@@ -1419,6 +1817,10 @@ function openIncome(id) {
     ['Nominal', '<b>' + rp(r.Nominal) + '</b>' + (r.Auto && p >= thisMonth() ? ' <span class="muted">(sementara, masih bertambah)</span>' : '')],
     lang ? ['Transaksi s/d', esc(fmtTgl(r.Tgl_Bayar))] : ['Status', incomeTag(r)],
     ...(lang ? [] : [['Tanggal bayar', r.Tgl_Bayar ? esc(fmtTgl(r.Tgl_Bayar)) : '-']]),
+    ...(!lang ? [['Sales Order', soDetail(r)]] : []),
+    ...(!lang && r.Metode_Bayar ? [['Metode bayar', esc(r.Metode_Bayar)]] : []),
+    ...(!lang && r.Catatan_Bayar ? [['Catatan bayar', esc(r.Catatan_Bayar)]] : []),
+    ...(!lang && r.Status === 'Lunas' ? [['Koreksi', `<button class="btn sec sm" style="margin:0" onclick="unpayIncome('${esc(r.Income_ID)}')">Batalkan lunas</button>`]] : []),
     ['Sumber data', esc(r.Sumber_Data)]
   ];
   if (r.Auto) {
@@ -1876,6 +2278,8 @@ function renderIncome() {
   const lang = INC_TAB === 'langsung';
   const fp = $('ff-periode').value, fd = $('ff-divisi').value, fsd = $('ff-sumber').value, fs = $('ff-status').value, fq = $('ff-cari').value.toLowerCase();
   $('ff-status').classList.toggle('hidden', lang);
+  $('ff-so').classList.toggle('hidden', lang);
+  const fso = $('ff-so').value;
 
   // Ringkasan di atas
   const tagihan = INCOME.filter(r => !isLangsung(r)), langsung = INCOME.filter(isLangsung);
@@ -1884,7 +2288,8 @@ function renderIncome() {
   const P = fp || thisMonth();
   const tagP = tagihan.filter(r => periodeOf(r) === P), langP = langsung.filter(r => periodeOf(r) === P);
   $('i-open').textContent = rp(sumNom(unpaid));
-  $('i-open-n').textContent = unpaid.length + ' tagihan';
+  const belumSO = tagihan.filter(r => r.SO_Status === 'Belum SO' && !r.Berjalan).length, tungguRel = tagihan.filter(r => r.SO_Status === 'Menunggu release').length;
+  $('i-open-n').innerHTML = unpaid.length + ' tagihan' + (belumSO ? ` &middot; <span class="neg">${belumSO} belum SO</span>` : '') + (tungguRel ? ` &middot; ${tungguRel} menunggu release` : '');
   $('i-old').innerHTML = old.length ? `<span class="neg">${rp(sumNom(old))}</span>` : rp(0);
   $('i-old-n').textContent = old.length + ' tagihan';
   $('i-tag-l').textContent = 'Tagihan ' + fmtPeriode(P);
@@ -1908,7 +2313,8 @@ function renderIncome() {
     (!fd || r.Divisi === fd) &&
     (!fsd || r.Sumber_Data === fsd) &&
     (lang || !fs || r.Status === fs) &&
-    (!fq || (r.Pelanggan + ' ' + r.Keterangan + ' ' + r.Sumber).toLowerCase().includes(fq))
+    (lang || !fso || r.SO_Status === fso) &&
+    (!fq || (r.Pelanggan + ' ' + r.Keterangan + ' ' + r.Sumber + ' ' + (r.No_SO || '')).toLowerCase().includes(fq))
   ).sort((a, b) => periodeOf(b).localeCompare(periodeOf(a)) ||
     (lang ? 0 : (a.Status === 'Lunas') - (b.Status === 'Lunas')) || b.Nominal - a.Nominal);
 
@@ -1921,9 +2327,10 @@ function renderIncome() {
       <td>${esc(r.Sumber)}<div><span class="tag auto">${r.Auto ? 'Otomatis' : 'Manual'}</span></div></td>
       <td>${ket(r)}</td>
       <td class="num">${rp(r.Nominal)}</td>
-      <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}${JC_SENT[r.Income_ID] ? `<div class="muted" style="margin-top:3px">JC terkirim ${esc(fmtTgl(JC_SENT[r.Income_ID].waktu))}</div>` : ''}</td>
+      <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}${!lang && r.Status === 'Lunas' && r.Tgl_Bayar ? `<div class="muted" style="margin-top:3px">${esc(fmtTgl(r.Tgl_Bayar))}${r.Metode_Bayar ? ' · ' + esc(r.Metode_Bayar) : ''}${r.Bukti_URL ? ' · bukti' : ''}</div>` : ''}${JC_SENT[r.Income_ID] ? `<div class="muted" style="margin-top:3px">JC terkirim ${esc(fmtTgl(JC_SENT[r.Income_ID].waktu))}</div>` : ''}${lang ? '' : soLine(r)}</td>
       <td><div class="btns">
         ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
+        ${!lang && r.SO_Status !== 'Released' ? `<button class="btn sec sm" onclick="event.stopPropagation(); openSO('${esc(r.Income_ID)}')">${r.No_SO ? 'Release SO' : 'Isi SO'}</button>` : ''}
         ${!lang && r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
         ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
       </div></td>
@@ -2022,18 +2429,153 @@ async function addIncome() {
   }
 }
 
-async function payIncome(id) {
+// ---------- SALES ORDER ----------
+// Alur: tagihan -> admin isi No SO -> team service release -> Lunas
+function soLine(r) {
+  if (r.SO_Status === 'Released') return `<div class="so-line muted">SO ${esc(r.No_SO)} &middot; released ${esc(fmtTgl(r.Tgl_Release))}</div>`;
+  if (r.SO_Status === 'Menunggu release') return `<div class="so-line">SO ${esc(r.No_SO)} <span class="tag open">Menunggu release</span></div>`;
+  if (r.Berjalan) return '';
+  return '<div class="so-line"><span class="tag over">Belum SO</span></div>';
+}
+
+function soDetail(r) {
+  if (!r.No_SO) return '<span class="muted">Belum diisi</span>';
+  return `<b>${esc(r.No_SO)}</b> &middot; ${esc(fmtTgl(r.Tgl_SO))}` +
+    (r.Tgl_Release ? ` &middot; released ${esc(fmtTgl(r.Tgl_Release))}` : ' <span class="tag open">Menunggu release</span>') +
+    (r.Catatan_SO ? `<div class="muted">${esc(r.Catatan_SO)}</div>` : '');
+}
+
+let SO_ID = null;
+
+function openSO(id) {
   const r = INCOME.find(x => x.Income_ID === id);
   if (!r) return;
-  let msg = `Tandai lunas: ${r.Sumber} ${rp(r.Nominal)}${r.Pelanggan ? ' (' + r.Pelanggan + ')' : ''}`;
-  if (r.Berjalan) msg += '\n\nPerhatian: bulan ini belum selesai, nominal tagihan masih bisa bertambah.';
-  msg += '\n\nTanggal pembayaran (YYYY-MM-DD):';
-  const tgl = prompt(msg, today());
-  if (tgl === null) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl.trim())) return toast('Format tanggal harus YYYY-MM-DD');
+  SO_ID = id;
+  $('so-title').textContent = (r.Pelanggan || '-') + ' · ' + r.Sumber;
+  $('so-sub').textContent = (r.Auto ? 'Periode ' + fmtPeriode(periodeOf(r)) : 'Tanggal ' + fmtTgl(r.Tanggal)) + (r.Keterangan ? ' · ' + r.Keterangan : '');
+  $('so-nominal').textContent = rp(r.Nominal);
+  $('so-no').value = r.No_SO || '';
+  $('so-tgl').value = r.Tgl_SO ? String(r.Tgl_SO).slice(0, 10) : today();
+  $('so-tgl').max = today();
+  $('so-cat').value = r.Catatan_SO || '';
+  $('btn-so').textContent = r.No_SO ? 'Simpan Perubahan' : 'Simpan No SO';
+  $('so-step1').classList.toggle('done', !!r.No_SO);
+  $('so-step2').classList.toggle('off', !r.No_SO);
+  $('so-step2').classList.toggle('done', !!r.Tgl_Release);
+  $('so-rel-info').textContent = !r.No_SO ? 'Isi No SO dulu.' : r.Tgl_Release ? 'Sudah release ' + fmtTgl(r.Tgl_Release) + '.' : 'Tandai setelah team service me-release SO ini.';
+  $('so-rel-form').classList.toggle('hidden', !r.No_SO || !!r.Tgl_Release);
+  $('so-rel-tgl').value = today();
+  $('so-rel-tgl').max = today();
+  $('so-modal').classList.remove('hidden');
+  if (!r.No_SO) setTimeout(() => $('so-no').focus(), 50);
+}
+
+function closeSO() { $('so-modal').classList.add('hidden'); }
+
+async function doSetSO(force) {
+  const r = INCOME.find(x => x.Income_ID === SO_ID);
+  const no = $('so-no').value.trim();
+  if (!no) return toast('Isi No SO');
+  if (r && r.Tgl_Release && r.No_SO !== no && !confirm('No SO diubah. Status release akan dikosongkan dan perlu di-release ulang. Lanjutkan?')) return;
+  const b = $('btn-so');
+  b.disabled = true;
   try {
-    setIncome(await apiPost('payIncome', { Income_ID: id, Tgl_Bayar: tgl.trim() }));
-    toast('Income ditandai lunas');
+    setIncome(await apiPost('setSO', { Income_ID: SO_ID, No_SO: no, Tgl_SO: $('so-tgl').value, Catatan_SO: $('so-cat').value.trim(), Boleh_Sama: !!force }));
+    toast('No SO disimpan');
+    openSO(SO_ID);   // lanjut ke langkah release
+  } catch (e) {
+    if (/^SAMA:/.test(e.message) && confirm(e.message.slice(5).trim() + '.\n\nTetap pakai No SO yang sama (mis. satu SO untuk beberapa tagihan)?')) {
+      b.disabled = false;
+      return doSetSO(true);
+    }
+    toast('Gagal: ' + e.message.replace(/^SAMA:\s*/, ''));
+  } finally {
+    b.disabled = false;
+  }
+}
+
+async function doReleaseSO() {
+  const b = $('btn-rel');
+  b.disabled = true;
+  try {
+    setIncome(await apiPost('releaseSO', { Income_ID: SO_ID, Tgl_Release: $('so-rel-tgl').value }));
+    closeSO();
+    toast('SO ditandai sudah release');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false;
+  }
+}
+
+async function clearSO() {
+  const r = INCOME.find(x => x.Income_ID === SO_ID);
+  if (!r || !r.No_SO) return closeSO();
+  if (!confirm(`Hapus data SO ${r.No_SO} dari tagihan ini?`)) return;
+  try {
+    setIncome(await apiPost('clearSO', { Income_ID: SO_ID }));
+    closeSO();
+    toast('Data SO dihapus');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
+// ---------- TANDAI LUNAS (tanggal bayar asli, metode, bukti) ----------
+let PAY_ID = null;
+
+function payIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r) return;
+  PAY_ID = id;
+  $('py-title').textContent = (r.Pelanggan || '-') + ' · ' + r.Sumber;
+  $('py-sub').textContent = (r.Auto ? 'Periode ' + fmtPeriode(periodeOf(r)) : 'Tanggal ' + fmtTgl(r.Tanggal)) + (r.Keterangan ? ' · ' + r.Keterangan : '');
+  $('py-nominal').textContent = rp(r.Nominal);
+  $('py-warn').textContent = [
+    r.Berjalan ? 'Perhatian: bulan ini belum selesai, nominal tagihan masih bisa bertambah.' : '',
+    r.SO_Status === 'Belum SO' ? 'No SO belum diisi.' : r.SO_Status === 'Menunggu release' ? `SO ${r.No_SO} belum di-release team service.` : ''
+  ].filter(Boolean).join(' ');
+  $('py-tgl').value = today();
+  $('py-tgl').max = today();
+  const lastMetode = (() => { try { return localStorage.getItem('tf-metode'); } catch (e) { return null; } })();
+  $('py-metode').value = /^(RENT|WO|MECH)\|/.test(String(r.Sync_Key || '')) ? 'Cost transfer (internal)' : (lastMetode || 'Transfer bank');
+  $('py-bukti').value = '';
+  $('py-cat').value = '';
+  $('pay-modal').classList.remove('hidden');
+}
+
+function closePay() { $('pay-modal').classList.add('hidden'); }
+
+async function doPay() {
+  const r = INCOME.find(x => x.Income_ID === PAY_ID);
+  if (!r) return;
+  const tgl = $('py-tgl').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(tgl)) return toast('Isi tanggal pembayaran');
+  if (tgl > today()) return toast('Tanggal bayar tidak boleh setelah hari ini');
+  const b = $('btn-py');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('py-bukti').files[0];
+    const d = { Income_ID: PAY_ID, Tgl_Bayar: tgl, Metode_Bayar: $('py-metode').value, Catatan_Bayar: $('py-cat').value.trim() };
+    if (f) { b.textContent = 'Mengunggah bukti...'; d.Bukti = await readFile(f); }
+    setIncome(await apiPost('payIncome', d));
+    try { if (!/^Cost/.test(d.Metode_Bayar)) localStorage.setItem('tf-metode', d.Metode_Bayar); } catch (e) {}
+    closePay();
+    toast('Ditandai lunas: ' + (r.Pelanggan || r.Sumber));
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Lunas';
+  }
+}
+
+async function unpayIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r || !confirm(`Batalkan status lunas ${r.Pelanggan || r.Sumber} ${rp(r.Nominal)}?\nTanggal bayar, metode, dan bukti akan dikosongkan.`)) return;
+  try {
+    setIncome(await apiPost('unpayIncome', { Income_ID: id }));
+    closeModal();
+    toast('Status lunas dibatalkan');
   } catch (e) {
     toast('Gagal: ' + e.message);
   }
@@ -3498,10 +4040,10 @@ function reportSheets(d) {
 
   // ---- Income
   const I = [[{ v: 'Income - ' + per, s: 'title' }], [{ v: gen, s: 'sub' }], [],
-    H(['Date', 'Division', 'Source', 'Data source', 'Billed to / Customer', 'Description', '>Trx', '>Amount', 'Status', 'Paid date'])];
+    H(['Date', 'Division', 'Source', 'Data source', 'Billed to / Customer', 'Description', '>Trx', '>Amount', 'SO No.', 'SO released', 'Status', 'Paid date', 'Payment method'])];
   const stEn = r => paid(r) ? 'Paid' : 'Outstanding';
-  d.income.forEach(r => I.push([{ v: r.Tanggal, s: 'date' }, r.Divisi, r.Sumber, r.Sumber_Data, r.Pelanggan, r.Keterangan, r.Jumlah_Trx ? { v: r.Jumlah_Trx, s: 'int' } : '', r.Nominal, stEn(r), r.Tgl_Bayar && paid(r) ? { v: r.Tgl_Bayar, s: 'date' } : '']));
-  I.push([{ v: 'Total', s: 'b' }, ...Array(6).fill({ v: '', s: 'b' }), { v: ti + tp, s: 'moneyb' }, { v: '', s: 'b' }, { v: '', s: 'b' }]);
+  d.income.forEach(r => I.push([{ v: r.Tanggal, s: 'date' }, r.Divisi, r.Sumber, r.Sumber_Data, r.Pelanggan, r.Keterangan, r.Jumlah_Trx ? { v: r.Jumlah_Trx, s: 'int' } : '', r.Nominal, r.No_SO || '', r.Tgl_Release ? { v: r.Tgl_Release, s: 'date' } : '', stEn(r), r.Tgl_Bayar && paid(r) ? { v: r.Tgl_Bayar, s: 'date' } : '', paid(r) ? (r.Metode_Bayar || '') : '']));
+  I.push([{ v: 'Total', s: 'b' }, ...Array(6).fill({ v: '', s: 'b' }), { v: ti + tp, s: 'moneyb' }, ...Array(5).fill({ v: '', s: 'b' })]);
 
   // ---- Expenses
   const E = [[{ v: 'Expenses - ' + per, s: 'title' }], [{ v: gen, s: 'sub' }], [],
@@ -3514,15 +4056,16 @@ function reportSheets(d) {
   const un = INCOME.filter(r => !isLangsung(r) && r.Status !== 'Lunas').sort((a, b) => String(a.Tanggal).localeCompare(String(b.Tanggal)));
   const age = r => r.Berjalan ? 'Current month' : Number(r.Umur || 0) <= 30 ? '0-30 days' : Number(r.Umur || 0) <= 60 ? '31-60 days' : Number(r.Umur || 0) <= 90 ? '61-90 days' : '> 90 days';
   const O = [[{ v: 'Outstanding Invoices (all periods)', s: 'title' }], [{ v: gen, s: 'sub' }], [],
-    H(['Period', 'Division', 'Source', 'Billed to / Customer', 'Description', '>Amount', '>Age (days)', 'Age group', 'JC sent'])];
-  un.forEach(r => O.push([monEn(periodeOf(r)), r.Divisi, r.Sumber, r.Pelanggan, r.Keterangan, Number(r.Nominal || 0), r.Berjalan ? '' : { v: Number(r.Umur || 0), s: 'int' }, age(r), JC_SENT[r.Income_ID] ? { v: String(JC_SENT[r.Income_ID].waktu).slice(0, 10), s: 'date' } : '']));
-  O.push([{ v: 'Total', s: 'b' }, ...Array(4).fill({ v: '', s: 'b' }), { v: sum(un, r => r.Nominal), s: 'moneyb' }, { v: '', s: 'b' }, { v: '', s: 'b' }, { v: '', s: 'b' }]);
+    H(['Period', 'Division', 'Source', 'Billed to / Customer', 'Description', '>Amount', '>Age (days)', 'Age group', 'JC sent', 'SO No.', 'SO status'])];
+  const soEn = { 'Belum SO': 'No SO yet', 'Menunggu release': 'Waiting release', 'Released': 'Released' };
+  un.forEach(r => O.push([monEn(periodeOf(r)), r.Divisi, r.Sumber, r.Pelanggan, r.Keterangan, Number(r.Nominal || 0), r.Berjalan ? '' : { v: Number(r.Umur || 0), s: 'int' }, age(r), JC_SENT[r.Income_ID] ? { v: String(JC_SENT[r.Income_ID].waktu).slice(0, 10), s: 'date' } : '', r.No_SO || '', soEn[r.SO_Status] || '']));
+  O.push([{ v: 'Total', s: 'b' }, ...Array(4).fill({ v: '', s: 'b' }), { v: sum(un, r => r.Nominal), s: 'moneyb' }, ...Array(5).fill({ v: '', s: 'b' })]);
 
   return [
     { name: 'Summary', cols: [30, 18, 18, 18, 18], rows: R },
-    { name: 'Income', cols: [13, 16, 18, 14, 30, 48, 7, 16, 14, 13], rows: I, freeze: 4, filter: `A4:J${I.length - 1}` },
+    { name: 'Income', cols: [13, 16, 18, 14, 30, 44, 7, 16, 20, 13, 13, 13, 22], rows: I, freeze: 4, filter: `A4:M${I.length - 1}` },
     { name: 'Expenses', cols: [13, 16, 16, 24, 48, 12, 22, 20, 16], rows: E, freeze: 4, filter: `A4:I${E.length - 1}` },
-    { name: 'Outstanding', cols: [12, 16, 18, 30, 44, 16, 11, 14, 13], rows: O, freeze: 4, filter: `A4:I${O.length - 1}` }
+    { name: 'Outstanding', cols: [12, 16, 18, 30, 40, 16, 11, 14, 13, 20, 16], rows: O, freeze: 4, filter: `A4:K${O.length - 1}` }
   ];
 }
 
