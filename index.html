@@ -137,6 +137,10 @@ body.open nav [data-v="users"]{display:none!important}
 .res-under{color:var(--bad);font-weight:600}
 .res-over{color:#b45309;font-weight:600}
 body.viewer [onclick*="openAlloc(-1)"],body.viewer #btn-al,body:not(.head) #btn-al-del{display:none!important}
+.al-ev{font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)}
+.al-ev:last-child{border-bottom:0}
+.al-ev .src{display:inline-block;min-width:26px;font-size:10px;font-weight:700;border-radius:4px;padding:0 4px;margin-right:4px;text-align:center;background:#eef3f1;color:#1e5246}
+.al-sec-title{font-weight:600;font-size:13px;margin:16px 0 4px;border-top:1px solid var(--line);padding-top:12px}
 .rs-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
 .rs-chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;background:#fff}
 .rs-chip b{font-size:13px}
@@ -859,6 +863,8 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         <button class="active" data-m="list" onclick="setAlMode('list')">Daftar unit</button>
         <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
         <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
+        <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
+        <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
       </div>
       <div class="filters" id="al-filters">
         <select id="al-cat" onchange="renderAlloc()"><option value="">Semua kategori</option></select>
@@ -874,6 +880,32 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         </table></div>
       </div>
       <div id="al-deptview" class="hidden"></div>
+      <div id="al-cost" class="hidden">
+        <div class="card-head" style="margin-bottom:6px">
+          <div class="muted" id="al-cost-info">-</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="al-cost-per" onchange="loadUnitCost()" style="width:auto">
+              <option value="3">3 bulan terakhir</option>
+              <option value="6">6 bulan terakhir</option>
+              <option value="12">12 bulan terakhir</option>
+              <option value="1">Bulan ini</option>
+            </select>
+            <button class="btn sec" style="margin:0" onclick="exportUnitCost()">Download Excel</button>
+          </div>
+        </div>
+        <div class="chart-box" id="al-cost-chart"></div>
+        <div class="tablewrap" style="margin-top:10px"><table>
+          <thead><tr><th>Kode</th><th>Jenis</th><th>Departemen</th><th class="num">Servis</th><th class="num">Jasa</th><th class="num">Sparepart</th><th class="num">CA (BBM, dll)</th><th class="num">Purchase</th><th class="num">Total</th><th>Servis terakhir</th></tr></thead>
+          <tbody id="al-cost-body"></tbody>
+        </table></div>
+        <div class="muted" style="margin-top:8px">Sumber: Mechanic Apps (work order + maintenance terjadwal; sparepart maintenance dihargai dari tab Spare_Parts), pemakaian CA dan purchase yang diisi kode unit.</div>
+      </div>
+      <div id="al-hist" class="hidden">
+        <div class="tablewrap"><table>
+          <thead><tr><th>Tanggal efektif</th><th>Kode</th><th>Perubahan</th><th>Dari</th><th>Ke</th><th>Catatan</th><th>Oleh / dicatat</th></tr></thead>
+          <tbody id="al-hist-body"></tbody>
+        </table></div>
+      </div>
       <div id="al-boq" class="hidden">
         <div class="muted" id="al-boq-info" style="margin-bottom:8px"></div>
         <div class="tablewrap"><table>
@@ -1086,12 +1118,18 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
       <div><label>No mesin</label><input type="text" id="al-f-Engine" autocomplete="off"></div>
       <div><label>No rangka</label><input type="text" id="al-f-Chassis" autocomplete="off"></div>
     </div>
+    <div id="al-eff-box" class="row">
+      <div><label>Tanggal efektif perubahan</label><input type="date" id="al-f-eff"></div>
+      <div><label>Catatan perubahan (opsional)</label><input type="text" id="al-f-effcat" placeholder="Mis. pindah dari IT ke MEP sesuai email"></div>
+    </div>
+    <div class="warn-text" id="al-rent-hint"></div>
     <datalist id="al-type-list"></datalist><datalist id="al-dept-list"></datalist><datalist id="al-status-list"></datalist><datalist id="al-cond-list"></datalist>
     <div class="muted" id="al-m-info" style="margin-top:8px"></div>
     <div class="btns" style="margin-top:14px">
       <button class="btn" style="margin:0" id="btn-al" onclick="saveAlloc()">Simpan ke Sheet</button>
       <button class="btn sec" style="margin:0" id="btn-al-del" onclick="deleteAlloc()">Hapus Unit</button>
     </div>
+    <div id="al-m-extra"></div>
   </div>
 </div>
 
@@ -1354,7 +1392,7 @@ async function refreshAll() {
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
   if (CUR_VIEW === 'summary') jobs.push(loadSummary());
   if (CUR_VIEW === 'users') jobs.push(loadUsers());
-  if (ALLOC_LOADED || CUR_VIEW === 'alloc') jobs.push(loadAlloc());
+  if (ALLOC_LOADED || CUR_VIEW === 'alloc') { UC = null; jobs.push(loadAlloc().then(() => { if (AL_MODE === 'cost') return loadUnitCost(); if (AL_MODE === 'hist') return loadUnitHist(); })); }
   if (CUR_VIEW === 'detail' && CURRENT && CURRENT.header) jobs.push(openDetail(CURRENT.header.CA_ID));
   try {
     await Promise.all(jobs.map(j => Promise.resolve(j).catch(() => null)));
@@ -2727,7 +2765,11 @@ function setAlMode(m) {
   $('al-list').classList.toggle('hidden', m !== 'list');
   $('al-deptview').classList.toggle('hidden', m !== 'dept');
   $('al-boq').classList.toggle('hidden', m !== 'boq');
+  $('al-cost').classList.toggle('hidden', m !== 'cost');
+  $('al-hist').classList.toggle('hidden', m !== 'hist');
   $('al-filters').classList.toggle('hidden', m === 'boq');
+  if (m === 'cost' && !UC) loadUnitCost();
+  if (m === 'hist') loadUnitHist();
   renderAlloc();
 }
 
@@ -2772,7 +2814,123 @@ function renderAlloc() {
     }).join('') : '<div class="muted">Tidak ada data</div>';
   }
   if (AL_MODE === 'boq') renderAllocBoq();
+  if (AL_MODE === 'cost') renderUnitCost();
+  if (AL_MODE === 'hist') renderUnitHist();
 }
+
+// ---------- BIAYA PER UNIT ----------
+let UC = null, UC_HIST = null;
+const ucRange = n => { const e = thisMonth(); const [y, m] = e.split('-').map(Number); const d = new Date(y, m - n, 1); return [d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), e]; };
+const ucKey = c => String(c || '').replace(/\s/g, '').toUpperCase();
+const alByCode = () => { const o = {}; ALLOC.units.forEach((u, i) => o[ucKey(u.Code)] = Object.assign({ _i: i }, u)); return o; };
+
+async function loadUnitCost() {
+  const [dari, sampai] = ucRange(Number($('al-cost-per').value) || 3);
+  $('al-cost-body').innerHTML = '<tr><td colspan="10" class="muted">Menghitung dari Mechanic Apps, CA, dan purchase...</td></tr>';
+  try {
+    UC = await apiGet({ action: 'unitCost', dari, sampai });
+    renderUnitCost();
+  } catch (e) {
+    $('al-cost-body').innerHTML = `<tr><td colspan="10" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function ucRows() {
+  if (!UC) return [];
+  const map = alByCode();
+  const fc = $('al-cat').value, fd = $('al-dept').value, fs = $('al-status').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase();
+  return UC.units.map(u => {
+    const a = map[ucKey(u.code)];
+    const dept = a ? a.Department : ((u.events.find(e => e.dept) || {}).dept || '');
+    return Object.assign({}, u, { a, type: a ? a.Type : '', dept });
+  }).filter(u => (!fc || (u.a && alCat(u.a.Type) === fc)) && (!fd || u.dept === fd) && (!fs || (u.a && alStatus(u.a.Status) === fs)) &&
+    (!fk || (u.a && alCond(u.a.Condition) === fk)) && (!q || [u.code, u.type, u.dept, u.a ? u.a.PIC : ''].join(' ').toLowerCase().includes(q)));
+}
+
+function renderUnitCost() {
+  if (!UC) return;
+  const all = ucRows();
+  const rows = all.filter(u => u.total > 0), zero = all.length - rows.length;
+  const sum = k => rows.reduce((a, u) => a + (u[k] || 0), 0);
+  $('al-cost-info').innerHTML = `${esc(fmtPeriode(UC.dari))}${UC.dari !== UC.sampai ? ' - ' + esc(fmtPeriode(UC.sampai)) : ''} · ${rows.length} unit · total <b>${rp(sum('total'))}</b> (jasa ${rp(sum('fee'))}, sparepart ${rp(sum('parts'))}, CA ${rp(sum('ca'))}, purchase ${rp(sum('pr'))})`;
+  const top = rows.slice(0, 10);
+  barChart('al-cost-chart', {
+    labels: top.map(u => u.code), horizontal: true, legend: true,
+    series: [
+      { label: 'Sparepart', color: '#2a78d6', stack: 's', data: top.map(u => u.parts) },
+      { label: 'Jasa servis', color: '#9cc0ee', stack: 's', data: top.map(u => u.fee) },
+      { label: 'CA (BBM, dll)', color: '#eb6834', stack: 's', data: top.map(u => u.ca) },
+      { label: 'Purchase', color: '#f6c9b4', stack: 's', data: top.map(u => u.pr) }
+    ],
+    tipTitle: i => top[i].code + (top[i].type ? ' · ' + top[i].type : '') + (top[i].dept ? ' · ' + top[i].dept : ''),
+    tipFooter: i => 'Total: <b>' + rp(top[i].total) + '</b>',
+    empty: 'Belum ada biaya pada periode ini'
+  });
+  $('al-cost-body').innerHTML = rows.length ? rows.map(u => `<tr class="click" onclick="openUnitDetail('${esc(u.code)}')">
+    <td><span class="al-code">${esc(u.code)}</span>${u.a ? '' : '<div class="al-sub">tidak ada di sheet alokasi</div>'}</td>
+    <td>${esc(u.type) || '<span class="muted">-</span>'}</td><td>${esc(u.dept) || '<span class="muted">-</span>'}</td>
+    <td class="num">${u.wo + u.pm}<div class="al-sub">${u.wo} WO · ${u.pm} PM</div></td>
+    <td class="num">${rp(u.fee)}</td><td class="num">${rp(u.parts)}</td><td class="num">${rp(u.ca)}</td><td class="num">${rp(u.pr)}</td>
+    <td class="num"><b>${rp(u.total)}</b></td>
+    <td>${u.last ? esc(fmtTgl(u.last)) + `<div class="al-sub">${esc(u.lastJob.length > 70 ? u.lastJob.slice(0, 68) + '…' : u.lastJob)}</div>` : '<span class="muted">-</span>'}</td>
+  </tr>`).join('') + `<tr class="total"><td colspan="3">Total (${rows.length} unit)</td><td class="num">${sum('wo') + sum('pm')}</td><td class="num">${rp(sum('fee'))}</td><td class="num">${rp(sum('parts'))}</td><td class="num">${rp(sum('ca'))}</td><td class="num">${rp(sum('pr'))}</td><td class="num">${rp(sum('total'))}</td><td></td></tr>`
+    : '<tr><td colspan="10" class="muted">Tidak ada data</td></tr>';
+  if (zero) $('al-cost-body').innerHTML += `<tr><td colspan="10" class="muted">${zero} unit lain punya catatan servis tanpa biaya (jasa internal, tanpa sparepart).</td></tr>`;
+}
+
+function openUnitDetail(code) {
+  const a = alByCode()[ucKey(code)];
+  if (a) return openAlloc(a._i);
+  const u = UC && UC.units.find(x => x.code === code);
+  if (!u) return;
+  showModal('Unit ' + code, [['Keterangan', 'Unit ini tidak ada di sheet Buggy Allocation'], ['Biaya periode', rp(u.total)], ['Riwayat', ucEventsHtml(u)]], '', 'Lampiran');
+}
+
+function ucEventsHtml(u) {
+  return u.events.length ? u.events.map(e => `<div class="al-ev"><span class="src">${esc(e.src)}</span>${esc(fmtTgl(e.tgl))} · ${esc(e.ket || '-')} <span class="muted">· ${esc(e.ref || '')}${e.dept ? ' · ' + esc(e.dept) : ''}</span> <b style="float:right">${rp(e.total)}</b></div>`).join('') : '<span class="muted">Tidak ada catatan</span>';
+}
+
+function exportUnitCost() {
+  if (!UC) return toast('Data biaya belum dimuat');
+  const rows = ucRows();
+  const per = monEn(UC.dari) + (UC.dari !== UC.sampai ? ' - ' + monEn(UC.sampai) : '');
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const R = [[{ v: 'Vehicle Cost per Unit - ' + per, s: 'title' }], [{ v: 'Source: Mechanic Apps (work orders + scheduled maintenance), cash advance usage and purchases with unit code', s: 'sub' }], [],
+    H(['Unit code', 'Type', 'Department', '>Work orders', '>Maintenance', '>Service fee', '>Spare parts', '>Cash advance', '>Purchase', '>Total', 'Last service'])];
+  rows.forEach(u => R.push([u.code, u.type, u.dept, { v: u.wo, s: 'int' }, { v: u.pm, s: 'int' }, u.fee, u.parts, u.ca, u.pr, u.total, u.last ? { v: u.last, s: 'date' } : '']));
+  const S = k => rows.reduce((a, u) => a + (u[k] || 0), 0);
+  R.push([{ v: 'Total', s: 'b' }, { v: '', s: 'b' }, { v: '', s: 'b' }, { v: S('wo'), s: 'moneyb' }, { v: S('pm'), s: 'moneyb' }, { v: S('fee'), s: 'moneyb' }, { v: S('parts'), s: 'moneyb' }, { v: S('ca'), s: 'moneyb' }, { v: S('pr'), s: 'moneyb' }, { v: S('total'), s: 'moneyb' }, { v: '', s: 'b' }]);
+  const E = [[{ v: 'Vehicle Cost Detail - ' + per, s: 'title' }], [], H(['Unit code', 'Date', 'Source', 'Reference', 'Description', 'Department', '>Amount'])];
+  const srcEn = { WO: 'Work order', PM: 'Maintenance', CA: 'Cash advance', PR: 'Purchase' };
+  rows.forEach(u => u.events.forEach(e => E.push([u.code, { v: e.tgl, s: 'date' }, srcEn[e.src] || e.src, e.ref || '', e.ket || '', e.dept || '', e.total])));
+  const blob = buildXlsx([
+    { name: 'By unit', cols: [12, 22, 22, 11, 12, 14, 14, 14, 14, 15, 13], rows: R, freeze: 4, filter: `A4:K${R.length - 1}` },
+    { name: 'Detail', cols: [12, 13, 14, 22, 56, 20, 14], rows: E, freeze: 3, filter: `A3:G${E.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), x = document.createElement('a');
+  x.href = url; x.download = `Vehicle_Cost_${UC.dari}_to_${UC.sampai}.xlsx`;
+  document.body.appendChild(x); x.click(); x.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ---------- RIWAYAT PEMINDAHAN UNIT ----------
+async function loadUnitHist() {
+  $('al-hist-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  try { UC_HIST = await apiGet({ action: 'unitHistory' }) || []; } catch (e) { UC_HIST = []; toast('Gagal: ' + e.message); }
+  renderUnitHist();
+}
+
+function renderUnitHist() {
+  if (!UC_HIST) return;
+  const q = $('al-cari').value.trim().toLowerCase(), fd = $('al-dept').value;
+  const rows = UC_HIST.filter(h => (!q || [h.Kode, h.Jenis, h.Perubahan, h.Dari, h.Ke, h.Catatan, h.Oleh].join(' ').toLowerCase().includes(q)) && (!fd || h.Dari === fd || h.Ke === fd));
+  $('al-hist-body').innerHTML = rows.length ? rows.map(h => `<tr>
+    <td class="nw">${esc(fmtTgl(h.Tanggal_Efektif))}</td><td><span class="al-code">${esc(h.Kode)}</span><div class="al-sub">${esc(h.Jenis)}</div></td>
+    <td>${esc(h.Perubahan)}</td><td>${esc(h.Dari) || '<span class="muted">-</span>'}</td><td><b>${esc(h.Ke) || '-'}</b></td>
+    <td class="muted">${esc(h.Catatan) || '-'}</td><td class="muted">${esc(h.Oleh) || '-'}<div class="al-sub">${esc(h.Waktu)}</div></td>
+  </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada riwayat. Riwayat tercatat otomatis setiap kali departemen, PIC, status, atau kondisi unit diubah dari aplikasi.</td></tr>';
+}
+
 
 // Bandingkan unit yang dialokasikan ke departemen dengan unit yang ditagih di BOQ (bulan rental terakhir)
 function renderAllocBoq() {
@@ -2817,22 +2975,56 @@ function openAlloc(i) {
   if (!AL_EDIT) { $('al-f-Status').value = 'Active'; $('al-f-Condition').value = 'Good'; }
   $('al-m-info').textContent = AL_EDIT ? `Tab ${u.Tab}, baris ${u.Row}. Perubahan langsung disimpan ke sheet Buggy Allocation.` : 'Unit baru ditambahkan di akhir bagian yang dipilih pada sheet Buggy Allocation.';
   $('btn-al-del').classList.toggle('hidden', !AL_EDIT);
+  $('al-eff-box').classList.toggle('hidden', !AL_EDIT);
+  $('al-f-eff').value = today(); $('al-f-eff').max = today(); $('al-f-effcat').value = '';
+  $('al-rent-hint').textContent = '';
+  $('al-m-extra').innerHTML = AL_EDIT ? '<div class="al-sec-title">Riwayat &amp; servis</div><div class="muted">Memuat...</div>' : '';
   $('al-modal').classList.remove('hidden');
+  if (AL_EDIT) loadUnitExtra(AL_EDIT.Code);
 }
+
+async function loadUnitExtra(code) {
+  const key = ucKey(code);
+  try {
+    const [hist] = await Promise.all([
+      apiGet({ action: 'unitHistory', kode: code }),
+      UC ? null : (async () => { const [dari, sampai] = ucRange(Number($('al-cost-per').value) || 3); UC = await apiGet({ action: 'unitCost', dari, sampai }); })()
+    ]);
+    if (!AL_EDIT || ucKey(AL_EDIT.Code) !== key) return;
+    const u = UC && UC.units.find(x => ucKey(x.code) === key);
+    const per = UC ? fmtPeriode(UC.dari) + (UC.dari !== UC.sampai ? ' - ' + fmtPeriode(UC.sampai) : '') : '';
+    $('al-m-extra').innerHTML =
+      '<div class="al-sec-title">Riwayat pemindahan</div>' +
+      (hist && hist.length ? hist.map(h => `<div class="al-ev">${esc(fmtTgl(h.Tanggal_Efektif))} · <b>${esc(h.Perubahan)}</b>: ${esc(h.Dari || '-')} → ${esc(h.Ke || '-')}${h.Catatan ? ' <span class="muted">· ' + esc(h.Catatan) + '</span>' : ''}${h.Oleh ? ' <span class="muted">· ' + esc(h.Oleh) + '</span>' : ''}</div>`).join('') : '<div class="muted">Belum ada riwayat</div>') +
+      `<div class="al-sec-title">Servis &amp; biaya (${esc(per)})</div>` +
+      (u ? `<div style="margin-bottom:4px">${u.wo} WO · ${u.pm} maintenance · jasa ${rp(u.fee)} · sparepart ${rp(u.parts)} · CA ${rp(u.ca)} · purchase ${rp(u.pr)} · <b>total ${rp(u.total)}</b></div>` + ucEventsHtml(u) : '<div class="muted">Tidak ada servis atau biaya tercatat untuk unit ini</div>');
+  } catch (e) {
+    $('al-m-extra').innerHTML = `<div class="muted">Gagal memuat riwayat: ${esc(e.message)}</div>`;
+  }
+}
+
 function closeAlloc() { $('al-modal').classList.add('hidden'); }
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'al-f-Department' && AL_EDIT) {
+    $('al-rent-hint').textContent = e.target.value.trim() !== AL_EDIT.Department ? 'Pindah departemen tercatat di riwayat dengan tanggal efektif di atas. Bila unit disewakan, catat juga penyesuaian rental agar tagihan ikut berubah.' : '';
+  }
+});
 
 async function saveAlloc() {
   const d = {};
   ['Code', 'Type', 'No', 'Sticker', 'Department', 'Status', 'Condition', 'Odometer', 'PIC', 'Contact', 'Detail', 'Agreement', 'Payment', 'Note', 'Engine', 'Chassis'].forEach(f => d[f] = $('al-f-' + f).value.trim());
   if (!d.Code) return toast('Isi kode unit');
-  if (AL_EDIT) Object.assign(d, { Tab: AL_EDIT.Tab, Row: AL_EDIT.Row, Code_Lama: AL_EDIT.Code });
+  if (AL_EDIT) Object.assign(d, { Tab: AL_EDIT.Tab, Row: AL_EDIT.Row, Code_Lama: AL_EDIT.Code, Tanggal_Efektif: $('al-f-eff').value, Catatan_Riwayat: $('al-f-effcat').value.trim() });
   else { const sec = ALLOC.sections[Number($('al-f-section').value)] || {}; Object.assign(d, { Tab: sec.tab, Section: sec.index }); }
+  const moved = AL_EDIT && d.Department !== AL_EDIT.Department;
   const b = $('btn-al');
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     setAlloc(await apiPost('saveAlloc', d));
     closeAlloc();
-    toast((AL_EDIT ? 'Unit diperbarui: ' : 'Unit ditambahkan: ') + d.Code);
+    UC_HIST = null;
+    if (AL_MODE === 'hist') loadUnitHist();
+    toast((AL_EDIT ? 'Unit diperbarui: ' : 'Unit ditambahkan: ') + d.Code + (moved ? '. Bila unit ini disewakan, catat juga di Income > Rental EV > Penyesuaian.' : ''));
   } catch (e) {
     toast('Gagal: ' + e.message);
   } finally {
