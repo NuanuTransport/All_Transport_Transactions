@@ -111,6 +111,10 @@ body.viewer #ra-card,body.viewer #sub-income [data-s="sync"],body.viewer #sub-in
 body:not(.head) [onclick*="delIncome("],body:not(.head) [onclick*="delPR("],body:not(.head) [onclick*="delTopup("],body:not(.head) [onclick*="delUsage("],
 body:not(.head) [onclick*="delRentalAdj("],body:not(.head) [onclick*="unpayIncome("],body:not(.head) [onclick*="clearSO("],body:not(.head) .auto-box,body:not(.head) nav [data-v="users"]{display:none!important}
 body.open nav [data-v="users"]{display:none!important}
+.ket-clip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:420px}
+.job-list{margin:0;padding:0;list-style:none}
+.job-list li{padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.job-list li:last-child{border-bottom:0}
 .so-line{margin-top:4px;font-size:12px}
 .so-line .tag{font-size:10px;padding:1px 6px}
 .so-step{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
@@ -1829,6 +1833,8 @@ function openIncome(id) {
     rows.push(['Jumlah transaksi', esc(r.Jumlah_Trx)]);
     rows.push(['Terakhir ditarik', esc(r.Last_Sync) || '-']);
     if (r.Catatan_Sync) rows.push(['Perlu dicek', `<span class="neg">${esc(r.Catatan_Sync)}</span>`]);
+    const jobs = mechJobs(r);
+    if (jobs.length) rows.push(['Pekerjaan', `<ul class="job-list">${jobs.map(j => `<li><b>${esc(j.unit || '-')}</b> &middot; ${esc(j.job)}<div class="muted">${esc(fmtTgl(j.tgl))} &middot; ${esc(j.wo)} &middot; ${rp(j.total)}</div></li>`).join('')}</ul>`]);
     if (url) rows.push(['Sheet sumber', `<a href="${esc(url)}" target="_blank" rel="noopener">Buka sheet ${esc(r.Sumber_Data)}</a>`]);
   }
   showModal('Detail Income', rows, r.Bukti_URL, 'Bukti');
@@ -2320,7 +2326,7 @@ function renderIncome() {
     (lang ? 0 : (a.Status === 'Lunas') - (b.Status === 'Lunas')) || b.Nominal - a.Nominal);
 
   $('income-head').innerHTML = `<tr><th>Periode</th><th>Divisi</th><th>Sumber</th><th>${lang ? 'Metode bayar / Keterangan' : 'Ditagihkan ke / Keterangan'}</th><th class="num">Nominal</th><th>${lang ? 'Transaksi s/d' : 'Status'}</th><th></th></tr>`;
-  const ket = r => `${esc(r.Pelanggan) || '<span class="muted">-</span>'}${r.Keterangan ? '<div class="muted">' + esc(r.Keterangan) + '</div>' : ''}${r.Catatan_Sync ? '<div class="warn-text">' + esc(r.Catatan_Sync) + '</div>' : ''}`;
+  const ket = r => `${esc(r.Pelanggan) || '<span class="muted">-</span>'}${r.Keterangan ? '<div class="muted ket-clip" title="' + esc(r.Keterangan) + '">' + esc(r.Keterangan) + '</div>' : ''}${r.Catatan_Sync ? '<div class="warn-text">' + esc(r.Catatan_Sync) + '</div>' : ''}`;
   $('income-body').innerHTML = rows.length ? rows.map(r => `
     <tr class="click" onclick="openIncome('${esc(r.Income_ID)}')">
       <td>${periodeCell(r)}</td>
@@ -2428,6 +2434,12 @@ async function addIncome() {
   } finally {
     b.disabled = false; b.textContent = 'Simpan Income';
   }
+}
+
+// Rincian pekerjaan per WO untuk income mekanik (disimpan di kolom Rincian saat Tarik Data)
+function mechJobs(r) {
+  if (String(r.Sync_Key || '').indexOf('MECH|') !== 0 || !r.Rincian) return [];
+  try { return (JSON.parse(r.Rincian).jobs || []); } catch (e) { return []; }
 }
 
 // ---------- SALES ORDER ----------
