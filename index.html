@@ -910,6 +910,15 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
               <option value="">Semua status</option>
               <option>Pertimbangkan ganti</option><option>Pantau</option><option>Baik</option>
               <option value="-">Belum ada data beli</option>
+              <option value="sewa">Hanya unit disewakan</option>
+              <option value="rugi">Sewa lebih kecil dari biaya</option>
+            </select>
+            <select id="al-life-sort" onchange="renderUnitLife()" style="width:auto">
+              <option value="status">Urut: status</option>
+              <option value="selisih">Urut: selisih terkecil</option>
+              <option value="tco">Urut: biaya /bln terbesar</option>
+              <option value="sisa">Urut: sisa umur</option>
+              <option value="kode">Urut: kode</option>
             </select>
             <button class="btn sec" style="margin:0" id="al-life-tbtn" onclick="toggleBatchView()">Batch pembelian</button>
             <button class="btn sec" style="margin:0" onclick="exportUnitLife()">Download Excel</button>
@@ -918,7 +927,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         <div id="al-life-units">
           <div class="stats" id="al-life-stats"></div>
           <div class="tablewrap"><table>
-            <thead><tr><th>Kode</th><th>Jenis</th><th>Batch / beli</th><th class="num">Umur</th><th class="num">Nilai perolehan</th><th class="num">Nilai buku</th><th class="num">Servis sejak beli</th><th class="num">Servis 12 bln</th><th class="num">Per bulan</th><th>Status</th></tr></thead>
+            <thead><tr><th>Kode</th><th>Jenis</th><th>Batch / beli</th><th class="num">Umur</th><th class="num">Nilai buku</th><th class="num">Penyusutan /bln</th><th class="num">Servis /bln</th><th class="num">Biaya /bln</th><th class="num">Sewa /bln</th><th class="num">Selisih /bln</th><th>Status</th></tr></thead>
             <tbody id="al-life-body"></tbody>
           </table></div>
         </div>
@@ -3120,53 +3129,144 @@ const lifeFlagTag = f => f ? `<span class="tag ${f === 'Baik' ? 'cond-good' : f 
 const lifeAge = m => m == null ? '-' : (m >= 12 ? Math.floor(m / 12) + ' th ' : '') + (m % 12 || m < 12 ? (m % 12) + ' bln' : '');
 
 async function loadUnitLife() {
-  $('al-life-body').innerHTML = '<tr><td colspan="10" class="muted">Menghitung umur, nilai buku, dan biaya servis...</td></tr>';
+  $('al-life-body').innerHTML = '<tr><td colspan="11" class="muted">Menghitung umur, penyusutan, biaya servis, dan pendapatan sewa...</td></tr>';
   try {
-    LIFE = await apiGet({ action: 'unitLife' });
+    const [d] = await Promise.all([apiGet({ action: 'unitLife' }), INCOME_LOADED ? null : loadIncome().catch(() => null)]);
+    LIFE = d;
+    LIFE.rent = lifeRentIndex();
     renderUnitLife();
   } catch (e) {
-    $('al-life-body').innerHTML = `<tr><td colspan="10" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
+    $('al-life-body').innerHTML = `<tr><td colspan="11" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
   }
+}
+
+// Pendapatan sewa per unit per bulan dari income Rental EV (Rincian BOQ) 12 bulan terakhir.
+// Item yang menyebut kode unit -> langsung ke unit itu. Lainnya -> tarif rata-rata per departemen + jenis (total / unit-bulan).
+function lifeRentIndex() {
+  const months = [...new Set(INCOME.filter(isRentRow).map(periodeOf))].sort().slice(-12);
+  const byCode = {}, pool = {};
+  months.forEach(ym => rsData(ym).forEach(x => x.items.forEach(i => {
+    if (i.adj || !(i.qty > 0)) return;
+    i.codes.forEach(c => { const k = ucKey(c); const o = byCode[k] = byCode[k] || { sum: 0, m: new Set(), dept: x.dept }; o.sum += i.harga; o.m.add(ym); });
+    const pk = x.dept + '|' + i.type;
+    const o = pool[pk] = pool[pk] || { dept: x.dept, type: i.type, total: 0, qty: 0, m: new Set() };
+    o.total += i.total; o.qty += i.qty; o.m.add(ym);
+  })));
+  return { months, byCode, pool: Object.values(pool) };
+}
+
+function lifeRentOf(u) {
+  const R = LIFE && LIFE.rent;
+  if (!R || !R.months.length) return null;
+  const c = R.byCode[ucKey(u.code)];
+  if (c) return { bln: Math.round(c.sum / c.m.size), src: 'kode unit di BOQ', dept: c.dept, n: c.m.size };
+  if (!u.dept || alSameDept(u.dept, 'Transport')) return null;
+  const t = rsType({ Uraian: u.type });
+  const p = R.pool.filter(x => x.type === t && alSameDept(u.dept, x.dept));
+  const tot = p.reduce((a, x) => a + x.total, 0), qty = p.reduce((a, x) => a + x.qty, 0);
+  if (!qty) return null;
+  return { bln: Math.round(tot / qty), src: 'tarif ' + t + ' ' + p[0].dept, dept: p[0].dept, n: Math.max(...p.map(x => x.m.size)) };
 }
 
 function lifeRows() {
   if (!LIFE) return [];
   const map = alByCode();
-  const fc = $('al-cat').value, fd = $('al-dept').value, fs = $('al-status').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase(), ff = $('al-life-flag').value;
+  const fc = $('al-cat').value, fd = $('al-dept').value, fs = $('al-status').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase(), ff = $('al-life-flag').value, so = $('al-life-sort').value;
   const rank = { 'Pertimbangkan ganti': 0, 'Pantau': 1, 'Baik': 2, '': 3 };
-  return LIFE.units.map(u => Object.assign({ a: map[ucKey(u.code)] }, u)).filter(u => (!fc || (u.a && alCat(u.a.Type) === fc)) && (!fd || u.dept === fd) &&
-    (!fs || alStatus(u.status) === fs) && (!fk || alCond(u.condition) === fk) && (!ff || (ff === '-' ? !u.flag : u.flag === ff)) &&
-    (!q || [u.code, u.type, u.dept, u.batch, u.jenis, u.vendor].join(' ').toLowerCase().includes(q)))
-    .sort((x, y) => (rank[x.flag] - rank[y.flag]) || ((y.ratio12 || 0) - (x.ratio12 || 0)) || ((x.remM == null ? 1e9 : x.remM) - (y.remM == null ? 1e9 : y.remM)) || x.code.localeCompare(y.code));
+  const rows = LIFE.units.map(u => {
+    const r = Object.assign({ a: map[ucKey(u.code)] }, u);
+    r.rent = lifeRentOf(u);
+    r.sewa = r.rent ? r.rent.bln : 0;
+    r.selisih = r.batch && r.rent ? r.sewa - r.tco : null;
+    return r;
+  }).filter(u => (!fc || (u.a && alCat(u.a.Type) === fc)) && (!fd || u.dept === fd) &&
+    (!fs || alStatus(u.status) === fs) && (!fk || alCond(u.condition) === fk) && (!ff || (ff === '-' ? !u.flag : ff === 'rugi' ? u.selisih != null && u.selisih < 0 : ff === 'sewa' ? !!u.rent : u.flag === ff)) &&
+    (!q || [u.code, u.type, u.dept, u.batch, u.jenis, u.vendor].join(' ').toLowerCase().includes(q)));
+  const nz = v => v == null ? Infinity : v;
+  const sorts = {
+    status: (x, y) => (rank[x.flag] - rank[y.flag]) || ((y.ratio12 || 0) - (x.ratio12 || 0)) || (nz(x.remM) - nz(y.remM)),
+    selisih: (x, y) => nz(x.selisih) - nz(y.selisih),
+    tco: (x, y) => (y.tco || 0) - (x.tco || 0),
+    sisa: (x, y) => nz(x.remM) - nz(y.remM),
+    kode: () => 0
+  };
+  return rows.sort((x, y) => (sorts[so] || sorts.status)(x, y) || x.code.localeCompare(y.code));
 }
 
 function renderUnitLife() {
   if (!LIFE) return;
   if (LIFE_BATCH) return renderBatches();
-  const rows = lifeRows(), has = rows.filter(u => u.batch);
-  const S = k => has.reduce((a, u) => a + (u[k] || 0), 0);
+  const rows = lifeRows(), has = rows.filter(u => u.batch), rented = has.filter(u => u.rent);
+  const S = (k, a = has) => a.reduce((s, u) => s + (u[k] || 0), 0);
   const cnt = f => rows.filter(u => u.flag === f).length;
-  $('al-life-info').innerHTML = `${rows.length} unit · ${has.length} punya data pembelian · data servis tersedia sejak <b>${esc(LIFE.dataStart ? fmtPeriode(LIFE.dataStart) : '-')}</b>`;
+  const rugi = rented.filter(u => u.selisih < 0).length;
+  const R = LIFE.rent || { months: [] };
+  $('al-life-info').innerHTML = `${rows.length} unit · ${has.length} punya data pembelian · servis sejak <b>${esc(LIFE.dataStart ? fmtPeriode(LIFE.dataStart) : '-')}</b>` +
+    (R.months.length ? ` · sewa dari ${esc(fmtPeriode(R.months[0]))}${R.months.length > 1 ? ' - ' + esc(fmtPeriode(R.months[R.months.length - 1])) : ''}` : ' · belum ada data income Rental EV');
   $('al-life-stats').innerHTML = `
-    <div class="stat"><div class="l">Nilai perolehan</div><div class="v">${rp(S('acq'))}</div><div class="muted">harga ${rp(S('harga'))} + impor ${rp(S('impor'))}</div></div>
-    <div class="stat"><div class="l">Nilai buku sekarang</div><div class="v">${rp(S('book'))}</div><div class="muted">${S('acq') ? Math.round(S('book') / S('acq') * 100) : 0}% dari nilai perolehan</div></div>
-    <div class="stat"><div class="l">Servis 12 bulan</div><div class="v">${rp(rows.reduce((a, u) => a + u.maint12, 0))}</div><div class="muted">sejak beli ${rp(rows.reduce((a, u) => a + u.maintLife, 0))}</div></div>
+    <div class="stat"><div class="l">Nilai perolehan / buku</div><div class="v">${rp(S('book'))}</div><div class="muted">dari ${rp(S('acq'))} (impor ${rp(S('impor'))}) · akumulasi penyusutan ${rp(S('depAkum'))}</div></div>
+    <div class="stat"><div class="l">Biaya kepemilikan / bulan</div><div class="v">${rp(S('tco'))}</div><div class="muted">penyusutan ${rp(S('depBln'))} + servis ${rp(S('perBulan'))}</div></div>
+    <div class="stat"><div class="l">Unit disewakan / bulan</div><div class="v">${rp(S('sewa', rented))}</div><div class="muted">${rented.length} unit · biaya ${rp(S('tco', rented))} · selisih <b class="${S('selisih', rented) < 0 ? 'neg' : ''}">${rp(S('selisih', rented))}</b>${rugi ? ` · <span class="neg">${rugi} unit rugi</span>` : ''}</div></div>
     <div class="stat"><div class="l">Perlu perhatian</div><div class="v">${cnt('Pertimbangkan ganti') ? `<span class="neg">${cnt('Pertimbangkan ganti')}</span>` : 0} / ${cnt('Pantau')}</div><div class="muted">pertimbangkan ganti / pantau</div></div>`;
+  const dash = '<span class="muted">-</span>';
   $('al-life-body').innerHTML = rows.length ? rows.map(u => `<tr class="click" onclick="openUnitDetail('${esc(u.code)}')">
     <td><span class="al-code">${esc(u.code)}</span><div class="al-sub">${esc(u.dept || '-')}</div></td>
     <td>${esc(u.type)}</td>
-    <td style="white-space:nowrap">${u.batch ? `${esc(u.batch)}${u.kodePasti ? '' : ' <span class="tag st-off" title="Kode unit di batch ini masih perkiraan">?</span>'}<div class="al-sub">${esc(fmtTgl(u.tglBeli))}</div>` : '<span class="muted">-</span>'}</td>
-    <td class="num">${u.batch ? esc(lifeAge(u.ageM)) + `<div class="al-sub">${u.remM > 0 ? 'sisa ' + esc(lifeAge(u.remM)) : 'habis'} · umur ${u.umur} th</div>` : '-'}</td>
-    <td class="num">${u.batch ? rp(u.acq) + (u.impor ? `<div class="al-sub">impor ${rp(u.impor)}</div>` : '') : '-'}</td>
-    <td class="num">${u.batch ? rp(u.book) : '-'}</td>
-    <td class="num">${rp(u.maintLife)}${u.batch && u.acq ? `<div class="al-sub">${(u.ratio * 100).toFixed(1)}% harga</div>` : ''}</td>
-    <td class="num">${rp(u.maint12)}</td>
-    <td class="num">${u.batch ? rp(u.perBulan) : '-'}</td>
+    <td style="white-space:nowrap">${u.batch ? `${esc(u.batch)}${u.kodePasti ? '' : ' <span class="tag st-off" title="Kode unit di batch ini masih perkiraan">?</span>'}<div class="al-sub">${esc(fmtTgl(u.tglBeli))}</div>` : dash}</td>
+    <td class="num">${u.batch ? esc(lifeAge(u.ageM)) + `<div class="al-sub">${u.remM > 0 ? 'sisa ' + esc(lifeAge(u.remM)) : 'habis'} · ${u.umur} th</div>` : dash}</td>
+    <td class="num">${u.batch ? rp(u.book) + `<div class="al-sub">dari ${rp(u.acq)}</div>` : dash}</td>
+    <td class="num">${u.batch ? rp(u.depBln) + `<div class="al-sub">akum. ${rp(u.depAkum)}</div>` : dash}</td>
+    <td class="num">${u.batch ? rp(u.perBulan) : dash}<div class="al-sub">12 bln ${rp(u.maint12)}</div></td>
+    <td class="num">${u.batch ? '<b>' + rp(u.tco) + '</b>' : dash}</td>
+    <td class="num">${u.rent ? rp(u.sewa) + `<div class="al-sub" title="${esc(u.rent.src)}">${u.rent.src === 'kode unit di BOQ' ? 'per kode' : 'tarif dept'}</div>` : dash}</td>
+    <td class="num">${u.selisih == null ? dash : `<b class="${u.selisih < 0 ? 'neg' : 'pos'}">${u.selisih < 0 ? '−' : '+'}${rp(Math.abs(u.selisih))}</b>`}</td>
     <td>${lifeFlagTag(u.flag)}${u.alasan && u.flag ? `<div class="al-sub">${esc(u.alasan)}</div>` : ''}</td>
-  </tr>`).join('') : '<tr><td colspan="10" class="muted">Tidak ada data</td></tr>';
-  $('al-life-note').innerHTML = 'Nilai buku = nilai perolehan dikurangi penyusutan garis lurus sesuai umur pakai. Servis dari Mechanic Apps (WO + maintenance), CA dan purchase yang diisi kode unit. ' +
+  </tr>`).join('') : '<tr><td colspan="11" class="muted">Tidak ada data</td></tr>';
+  $('al-life-note').innerHTML = 'Penyusutan garis lurus: nilai perolehan (harga + impor) ÷ umur pakai, sampai nilai buku 0. Servis/bulan = biaya Mechanic Apps, CA dan purchase sejak beli ÷ jumlah bulan ada data. ' +
+    'Biaya kepemilikan = penyusutan + servis (belum termasuk gaji driver, BBM/charging dan asuransi). Sewa = tagihan Rental EV 12 bulan terakhir: per kode unit bila BOQ menyebut kodenya, selain itu tarif rata-rata departemen + jenis kendaraan. Bus dan unit internal Transport tidak punya sewa bulanan (pendapatannya dari trip / WO). ' +
     'Pertimbangkan ganti bila umur pakai habis, servis 12 bulan ≥ 50% nilai buku, atau total servis ≥ 60% harga beli. Pantau bila sisa umur ≤ 12 bulan, servis 12 bulan ≥ 25% nilai buku, atau total servis ≥ 30% harga beli.' +
-    (LIFE.dataStart ? ` Catatan servis baru ada sejak ${esc(fmtPeriode(LIFE.dataStart))}, jadi biaya sebelum itu belum terhitung.` : '');
+    (LIFE.dataStart ? ` Catatan servis baru ada sejak ${esc(fmtPeriode(LIFE.dataStart))}.` : '');
+}
+
+function lifeInfoHtml(code) {
+  const u = LIFE && LIFE.units.find(x => ucKey(x.code) === ucKey(code));
+  if (!u || !u.batch) return '';
+  const rent = lifeRentOf(u), sel = rent ? rent.bln - u.tco : null;
+  return `<div class="al-sec-title">Masa guna</div><div>${esc(u.batch)} · beli ${esc(fmtTgl(u.tglBeli))} (${esc(u.vendor || '-')}) · umur ${esc(lifeAge(u.ageM))}, sisa ${u.remM > 0 ? esc(lifeAge(u.remM)) : 'habis'} · nilai perolehan ${rp(u.acq)} · nilai buku <b>${rp(u.book)}</b> · ${lifeFlagTag(u.flag)}</div>` +
+    `<div class="muted" style="margin-top:2px">Per bulan: penyusutan ${rp(u.depBln)} + servis ${rp(u.perBulan)} = <b>${rp(u.tco)}</b>${rent ? ` · sewa ${rp(rent.bln)} (${esc(rent.src)}) · selisih <b class="${sel < 0 ? 'neg' : ''}">${sel < 0 ? '−' : '+'}${rp(Math.abs(sel))}</b>` : ''}</div>`;
+}
+
+function exportUnitLife() {
+  if (!LIFE) return toast('Data masa guna belum dimuat');
+  const rows = lifeRows();
+  const today = LIFE.today;
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const flagEn = { 'Baik': 'Good', 'Pantau': 'Monitor', 'Pertimbangkan ganti': 'Consider replacement', '': 'No purchase data' };
+  const R = [[{ v: 'Vehicle Useful Life & Cost of Ownership - as of ' + today, s: 'title' }],
+    [{ v: 'Straight-line depreciation of acquisition value (price + import) over useful life. Service from Mechanic Apps, cash advance and purchases with unit code' + (LIFE.dataStart ? ' (records since ' + monEn(LIFE.dataStart) + ')' : '') + '. Rental = EV rental billing, last 12 months. Driver, energy and insurance costs not included.', s: 'sub' }], [],
+    H(['Unit code', 'Type', 'Department', 'Batch', 'Purchase date', 'Vendor', '>Useful life (yr)', '>Age (mo)', '>Remaining (mo)', '>Price', '>Import cost', '>Acquisition value', '>Accum. depreciation', '>Book value', '>Depreciation / mo', '>Service / mo', '>Cost of ownership / mo', '>Rental / mo', 'Rental basis', '>Margin / mo', '>Service since purchase', '>Service 12 mo', 'Status', 'Reason'])];
+  const n = (ok, v) => ok ? v : '';
+  rows.forEach(u => R.push([u.code, u.type, u.dept, u.batch || '', u.tglBeli ? { v: u.tglBeli, s: 'date' } : '', u.vendor || '',
+    n(u.batch, { v: u.umur, s: 'int' }), n(u.batch, { v: u.ageM, s: 'int' }), n(u.batch, { v: u.remM, s: 'int' }),
+    n(u.batch, u.harga), n(u.batch, u.impor), n(u.batch, u.acq), n(u.batch, u.depAkum), n(u.batch, u.book), n(u.batch, u.depBln), n(u.batch, u.perBulan), n(u.batch, u.tco),
+    n(u.rent, u.sewa), u.rent ? (u.rent.src === 'kode unit di BOQ' ? 'Unit code in BOQ' : 'Avg rate ' + u.rent.dept) : '', u.selisih == null ? '' : u.selisih,
+    u.maintLife, u.maint12, flagEn[u.flag || ''], u.alasan && u.flag ? u.alasan : '']));
+  const has = rows.filter(u => u.batch), rented = has.filter(u => u.rent), S = (k, a) => a.reduce((s, u) => s + (u[k] || 0), 0);
+  R.push([{ v: 'Total', s: 'b' }, '', '', '', '', '', '', '', '', { v: S('harga', has), s: 'moneyb' }, { v: S('impor', has), s: 'moneyb' }, { v: S('acq', has), s: 'moneyb' }, { v: S('depAkum', has), s: 'moneyb' }, { v: S('book', has), s: 'moneyb' },
+    { v: S('depBln', has), s: 'moneyb' }, { v: S('perBulan', has), s: 'moneyb' }, { v: S('tco', has), s: 'moneyb' }, { v: S('sewa', rented), s: 'moneyb' }, '', { v: S('selisih', rented), s: 'moneyb' }, { v: S('maintLife', rows), s: 'moneyb' }, { v: S('maint12', rows), s: 'moneyb' }, '', '']);
+  const B = [[{ v: 'Purchase Batches', s: 'title' }], [],
+    H(['Batch', 'Type', 'Purchase date', 'Vendor', 'PO number', '>Qty', '>Price / unit', '>Import / unit', '>Acquisition total', '>Useful life (yr)', '>Depreciation / mo (batch)', 'Unit codes', 'Code status', '>Matched units', 'Note'])];
+  (LIFE.batches || []).forEach(b => B.push([b.Batch_ID, b.Jenis, b.Tanggal_Beli ? { v: b.Tanggal_Beli, s: 'date' } : '', b.Vendor, b.No_PO, { v: b.Qty, s: 'int' }, b.Harga_Unit, b.Biaya_Impor_Unit,
+    b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit), { v: b.Umur_Pakai_Th, s: 'int' }, b.Umur_Pakai_Th ? Math.round(b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit) / (b.Umur_Pakai_Th * 12)) : '',
+    b.Kode_Unit, b.Status_Kode === 'OK' ? 'Verified' : 'Estimated', { v: b.found, s: 'int' }, b.Catatan]));
+  const blob = buildXlsx([
+    { name: 'Useful life', cols: [12, 22, 20, 9, 13, 22, 10, 9, 11, 15, 14, 16, 16, 15, 14, 13, 16, 13, 24, 14, 15, 13, 20, 40], rows: R, freeze: 4, filter: `A4:X${R.length - 1}` },
+    { name: 'Batches', cols: [9, 22, 13, 26, 30, 7, 15, 14, 17, 10, 16, 26, 11, 10, 50], rows: B, freeze: 3, filter: `A3:O${B.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), x = document.createElement('a');
+  x.href = url; x.download = `Vehicle_Useful_Life_${today}.xlsx`;
+  document.body.appendChild(x); x.click(); x.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 function toggleBatchView(on) {
@@ -3174,6 +3274,7 @@ function toggleBatchView(on) {
   $('al-life-units').classList.toggle('hidden', LIFE_BATCH);
   $('al-life-batch').classList.toggle('hidden', !LIFE_BATCH);
   $('al-life-flag').classList.toggle('hidden', LIFE_BATCH);
+  $('al-life-sort').classList.toggle('hidden', LIFE_BATCH);
   $('al-life-tbtn').textContent = LIFE_BATCH ? 'Kembali ke daftar unit' : 'Batch pembelian';
   renderUnitLife();
 }
@@ -3265,39 +3366,6 @@ async function deleteBatch() {
   } catch (e) {
     toast('Gagal: ' + e.message);
   }
-}
-
-function lifeInfoHtml(code) {
-  const u = LIFE && LIFE.units.find(x => ucKey(x.code) === ucKey(code));
-  if (!u || !u.batch) return '';
-  return `<div class="al-sec-title">Masa guna</div><div>${esc(u.batch)} · beli ${esc(fmtTgl(u.tglBeli))} (${esc(u.vendor || '-')}) · umur ${esc(lifeAge(u.ageM))}, sisa ${u.remM > 0 ? esc(lifeAge(u.remM)) : 'habis'} · nilai perolehan ${rp(u.acq)} · nilai buku <b>${rp(u.book)}</b> · ${lifeFlagTag(u.flag)}</div>`;
-}
-
-function exportUnitLife() {
-  if (!LIFE) return toast('Data masa guna belum dimuat');
-  const rows = lifeRows();
-  const today = LIFE.today;
-  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
-  const flagEn = { 'Baik': 'Good', 'Pantau': 'Monitor', 'Pertimbangkan ganti': 'Consider replacement', '': 'No purchase data' };
-  const R = [[{ v: 'Vehicle Useful Life - as of ' + today, s: 'title' }],
-    [{ v: 'Book value: straight-line depreciation to zero over useful life. Service cost from Mechanic Apps, cash advance and purchases with unit code' + (LIFE.dataStart ? ' (records available since ' + monEn(LIFE.dataStart) + ')' : '') + '.', s: 'sub' }], [],
-    H(['Unit code', 'Type', 'Department', 'Batch', 'Purchase date', 'Vendor', '>Useful life (yr)', '>Age (mo)', '>Remaining (mo)', '>Price', '>Import cost', '>Acquisition value', '>Book value', '>Service since purchase', '>Service 12 mo', '>Per month', '>Service / price', 'Status', 'Reason'])];
-  rows.forEach(u => R.push([u.code, u.type, u.dept, u.batch || '', u.tglBeli ? { v: u.tglBeli, s: 'date' } : '', u.vendor || '',
-    u.batch ? { v: u.umur, s: 'int' } : '', u.batch ? { v: u.ageM, s: 'int' } : '', u.batch ? { v: u.remM, s: 'int' } : '',
-    u.batch ? u.harga : '', u.batch ? u.impor : '', u.batch ? u.acq : '', u.batch ? u.book : '', u.maintLife, u.maint12, u.batch ? u.perBulan : '',
-    u.batch && u.acq ? (u.ratio * 100).toFixed(1) + '%' : '', flagEn[u.flag || ''], u.alasan && u.flag ? u.alasan : '']));
-  const B = [[{ v: 'Purchase Batches', s: 'title' }], [],
-    H(['Batch', 'Type', 'Purchase date', 'Vendor', 'PO number', '>Qty', '>Price / unit', '>Import / unit', '>Acquisition total', '>Useful life (yr)', 'Unit codes', 'Code status', '>Matched units', 'Note'])];
-  (LIFE.batches || []).forEach(b => B.push([b.Batch_ID, b.Jenis, b.Tanggal_Beli ? { v: b.Tanggal_Beli, s: 'date' } : '', b.Vendor, b.No_PO, { v: b.Qty, s: 'int' }, b.Harga_Unit, b.Biaya_Impor_Unit,
-    b.Qty * (b.Harga_Unit + b.Biaya_Impor_Unit), { v: b.Umur_Pakai_Th, s: 'int' }, b.Kode_Unit, b.Status_Kode === 'OK' ? 'Verified' : 'Estimated', { v: b.found, s: 'int' }, b.Catatan]));
-  const blob = buildXlsx([
-    { name: 'Useful life', cols: [12, 22, 20, 9, 13, 22, 10, 9, 11, 15, 14, 16, 15, 15, 14, 13, 11, 20, 40], rows: R, freeze: 4, filter: `A4:S${R.length}` },
-    { name: 'Batches', cols: [9, 22, 13, 26, 30, 7, 15, 14, 17, 10, 26, 11, 10, 50], rows: B, freeze: 3, filter: `A3:N${B.length}` }
-  ]);
-  const url = URL.createObjectURL(blob), x = document.createElement('a');
-  x.href = url; x.download = `Vehicle_Useful_Life_${today}.xlsx`;
-  document.body.appendChild(x); x.click(); x.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // ---------- LANGGANAN RENTAL EV PER DEPARTEMEN ----------
