@@ -1096,7 +1096,13 @@ html,body{max-width:100%;overflow-x:hidden}
           <tbody id="al-body"></tbody>
         </table></div>
       </div>
-      <div id="al-deptview" class="hidden"></div>
+      <div id="al-deptview-w" class="hidden">
+        <div class="card-head" style="margin-bottom:8px">
+          <div class="muted">Unit per departemen dengan harga sewa per bulan (dari tagihan Rental EV terbaru). Ikuti filter di atas.</div>
+          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="alDeptPdf()">Download PDF</button>
+        </div>
+        <div id="al-deptview"></div>
+      </div>
       <div id="al-cost" class="hidden">
         <div class="card-head" style="margin-bottom:6px">
           <div class="muted" id="al-cost-info">-</div>
@@ -3549,7 +3555,7 @@ function setAlMode(m) {
   document.querySelectorAll('#al-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
   centerTab(document.querySelector('#al-tabs button.active'));
   $('al-list').classList.toggle('hidden', m !== 'list');
-  $('al-deptview').classList.toggle('hidden', m !== 'dept');
+  $('al-deptview-w').classList.toggle('hidden', m !== 'dept');
   $('al-boq').classList.toggle('hidden', m !== 'boq');
   $('al-cost').classList.toggle('hidden', m !== 'cost');
   $('al-hist').classList.toggle('hidden', m !== 'hist');
@@ -3595,7 +3601,7 @@ function renderAlloc() {
       g[k].forEach(u => { const t = alType(u.Type) === 'Lainnya' ? u.Type : alType(u.Type); cnt[t] = (cnt[t] || 0) + 1; });
       const pic = [...new Set(g[k].map(u => u.PIC).filter(Boolean))].join(', ');
       return `<div class="al-dept">
-        <h3><span>${esc(k)} <span class="muted" style="font-weight:400">· ${g[k].length} unit</span></span><span class="muted" style="font-weight:400;font-size:12px">${esc(pic)}</span></h3>
+        <h3><span>${esc(k)} <span class="muted" style="font-weight:400">· ${g[k].length} unit</span></span><span style="display:flex;gap:8px;align-items:center"><span class="muted" style="font-weight:400;font-size:12px">${esc(pic)}</span><button class="btn sec sm" style="margin:0" onclick="alDeptPdf('${esc(String(k).replace(/'/g, "\\'"))}')">PDF</button></span></h3>
         <div class="rs-units">${Object.entries(cnt).map(([t, n]) => n + ' ' + esc(t)).join(' · ')}</div>
         ${g[k].map(u => `<span class="al-unit" onclick="openAlloc(${u._i})" title="${esc(u.Type)}">${esc(u.Code)} ${alCond(u.Condition) !== 'Good' ? alCondTag(u.Condition) : ''}${/rent/i.test(u.Status) ? alStatusTag(u.Status) : ''}</span>`).join('')}
       </div>`;
@@ -3605,6 +3611,108 @@ function renderAlloc() {
   if (AL_MODE === 'cost') renderUnitCost();
   if (AL_MODE === 'hist') renderUnitHist();
   if (AL_MODE === 'life') renderUnitLife();
+}
+
+// ---------- PDF UNIT PER DEPARTEMEN + HARGA SEWA ----------
+// Harga sewa per unit dari tagihan Rental EV bulan terbaru: per kode unit bila BOQ menyebut kodenya,
+// selain itu tarif departemen + jenis kendaraan (total / qty).
+function alRentIndex() {
+  const months = [...new Set(INCOME.filter(isRentRow).map(periodeOf))].sort();
+  const ym = months[months.length - 1];
+  if (!ym) return null;
+  const byCode = {}, pool = {};
+  rsData(ym).forEach(x => x.items.forEach(i => {
+    if (i.adj || !(i.qty > 0)) return;
+    i.codes.forEach(c => byCode[ucKey(c)] = { harga: i.harga, dept: x.dept, type: i.type });
+    const k = x.dept + '|' + i.type;
+    const o = pool[k] = pool[k] || { dept: x.dept, type: i.type, total: 0, qty: 0 };
+    o.total += i.total; o.qty += i.qty;
+  }));
+  return { ym, byCode, pool: Object.values(pool) };
+}
+// used: penghitung per departemen+jenis agar unit yang diberi tarif tidak melebihi qty yang ditagih di BOQ
+function alRentOf(u, R, used) {
+  if (!R) return null;
+  const c = R.byCode[ucKey(u.Code)];
+  if (c) return { harga: c.harga, src: 'code' };
+  if (!u.Department) return null;
+  const t = rsType({ Uraian: u.Type });
+  const p = R.pool.filter(x => x.type === t && alSameDept(u.Department, x.dept));
+  const tot = p.reduce((a, x) => a + x.total, 0), q = p.reduce((a, x) => a + x.qty, 0);
+  if (!q) return null;
+  if (used) {
+    const k = p.map(x => x.dept).join('|') + '|' + t;
+    const codesBilled = Object.values(R.byCode).filter(x => x.type === t && p.some(y => y.dept === x.dept)).length;
+    used[k] = (used[k] || 0) + 1;
+    if (used[k] > Math.max(0, q - codesBilled)) return null;
+  }
+  return { harga: Math.round(tot / q), src: 'rate' };
+}
+
+async function alDeptPdf(onlyDept) {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const b = $('btn-al-pdf');
+  b.disabled = true; b.textContent = 'Membuat PDF...';
+  try {
+    if (!INCOME_LOADED) await loadIncome();
+    const R = alRentIndex();
+    let rows = alFiltered();
+    if (onlyDept) rows = rows.filter(u => (u.Department || '(tanpa departemen)') === onlyDept);
+    if (!rows.length) { toast('Tidak ada unit untuk dibuat PDF'); return; }
+    const g = {}, used = {};
+    // unit dengan kode di BOQ dulu, lalu sisanya diberi tarif departemen sampai qty yang ditagih
+    rows.slice().sort((a, c) => (R && R.byCode[ucKey(c.Code)] ? 1 : 0) - (R && R.byCode[ucKey(a.Code)] ? 1 : 0) || String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true }))
+      .forEach(u => { const k = u.Department || '(No department)'; (g[k] = g[k] || []).push(Object.assign({ rent: alRentOf(u, R, used) }, u)); });
+    const keys = Object.keys(g).sort((a, c) => a.localeCompare(c));
+    const typeOf = u => alType(u.Type) === 'Lainnya' ? (u.Type || 'Other') : alType(u.Type);
+    const all = keys.flatMap(k => g[k]);
+    const tot = all.reduce((a, u) => a + (u.rent ? u.rent.harga : 0), 0), nRent = all.filter(u => u.rent).length;
+    const byType = {};
+    all.forEach(u => { const t = typeOf(u); const o = byType[t] = byType[t] || { n: 0, rented: 0, amt: 0, prices: new Set() }; o.n++; if (u.rent) { o.rented++; o.amt += u.rent.harga; o.prices.add(u.rent.harga); } });
+    const priceTxt = set => { const a = [...set].sort((x, y) => x - y); return !a.length ? '-' : a.length === 1 ? rp(a[0]) : rp(a[0]) + ' - ' + rp(a[a.length - 1]); };
+    const one = keys.length === 1;
+    const condEn = c => ({ Good: 'Good', Maintenance: 'Maintenance', Rusak: 'Damaged' })[alCond(c)] || (c || '-');
+    const filt = [$('al-cat').value, $('al-dept').value, $('al-status').value, $('al-cond').value, $('al-cari').value.trim()].filter(Boolean).join(', ');
+    $('print-area').innerHTML = `<div class="rs-doc">
+      <div class="rs-head">
+        <div>${logoTag()}<h1>EV Allocation per Department${one ? ' - ' + esc(keys[0]) : ''}</h1><div class="p-sub">Transport Department &middot; vehicles used and monthly rental price</div></div>
+        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b><br>Rental price: ${R ? esc(fmtPeriodeEn(R.ym)) + ' billing' : 'no rental data'}${filt && !onlyDept ? '<br>Filter: ' + esc(filt) : ''}</div>
+      </div>
+      <div class="rs-kpi">
+        ${one ? '' : `<div><div class="l">Departments</div><div class="v">${keys.length}</div></div>`}
+        <div><div class="l">Total EV units</div><div class="v">${all.length}</div></div>
+        <div><div class="l">Units with rental</div><div class="v">${nRent}</div></div>
+        <div><div class="l">Rental per month</div><div class="v">${rp(tot)}</div></div>
+      </div>
+      <table class="rs-tbl"><thead><tr><th>Vehicle type</th><th class="n">Units</th><th class="n">Rented</th><th class="n">Price / unit / month</th><th class="n">Total / month</th></tr></thead><tbody>
+        ${Object.entries(byType).sort((a, c) => c[1].n - a[1].n).map(([t, o]) => `<tr><td>${esc(t)}</td><td class="n">${o.n}</td><td class="n">${o.rented}</td><td class="n">${priceTxt(o.prices)}</td><td class="n">${o.amt ? rp(o.amt) : '-'}</td></tr>`).join('')}
+        <tr class="gt"><td>Total</td><td class="n">${all.length}</td><td class="n">${nRent}</td><td></td><td class="n">${rp(tot)}</td></tr>
+      </tbody></table>
+      ${one ? '' : `<table class="rs-tbl"><thead><tr><th>Department</th><th>Vehicles</th><th class="n">Units</th><th class="n">Rental / month</th></tr></thead><tbody>
+        ${keys.map(k => { const c = {}; g[k].forEach(u => c[typeOf(u)] = (c[typeOf(u)] || 0) + 1); return `<tr><td>${esc(k)}</td><td>${esc(Object.entries(c).map(([t, n]) => n + ' ' + t).join(', '))}</td><td class="n">${g[k].length}</td><td class="n">${rp(g[k].reduce((a, u) => a + (u.rent ? u.rent.harga : 0), 0))}</td></tr>`; }).join('')}
+        <tr class="gt"><td colspan="2">Total ${keys.length} departments</td><td class="n">${all.length}</td><td class="n">${rp(tot)}</td></tr>
+      </tbody></table>`}
+      ${keys.map(k => { const sub = g[k].reduce((a, u) => a + (u.rent ? u.rent.harga : 0), 0); const pic = [...new Set(g[k].map(u => u.PIC).filter(Boolean))].join(', ');
+        return `<div class="rs-dh"><b>${esc(k)}</b><span>${g[k].length} unit${g[k].length === 1 ? '' : 's'} &middot; ${rp(sub)} / month${pic ? ' &middot; PIC ' + esc(pic) : ''}</span></div>
+        <table class="rs-tbl"><thead><tr><th style="width:5%">No</th><th>Unit code</th><th>Vehicle type</th><th>Status</th><th>Condition</th><th>PIC</th><th class="n">Price / month</th></tr></thead><tbody>
+          ${g[k].slice().sort((a, c) => String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true })).map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.Code)}</b>${u.Sticker ? `<div class="rs-codes">Sticker ${esc(u.Sticker)}</div>` : ''}</td><td>${esc(u.Type || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(condEn(u.Condition))}</td><td>${esc(u.PIC || '-')}</td><td class="n">${u.rent ? rp(u.rent.harga) + (u.rent.src === 'rate' ? '*' : '') : '-'}</td></tr>`).join('')}
+          <tr class="st"><td colspan="6">Subtotal ${esc(k)} (${g[k].length} units)</td><td class="n">${rp(sub)}</td></tr>
+        </tbody></table>`; }).join('')}
+      <div class="rs-foot">Unit list from the EV allocation sheet. Price per month from the latest EV rental billing (BOQ): by unit code when listed in the BOQ; * = average department rate for that vehicle type. "-" = not billed as rental.</div>
+    </div>`;
+    setPageSize('A4 portrait');
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = safeName(`EV Allocation ${one ? keys[0] + ' ' : ''}${today()}`, 150) + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(`PDF dibuat: ${keys.length} departemen, ${all.length} unit, sewa ${rp(tot)} / bulan`);
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Download PDF';
+  }
 }
 
 // ---------- BIAYA PER UNIT ----------
