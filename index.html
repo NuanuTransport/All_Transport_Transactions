@@ -117,7 +117,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -151,6 +151,18 @@ body.viewer [onclick*="openBatch("],body.viewer #btn-ab,body:not(.head) #btn-ab-
 .rs-chip b{font-size:13px}
 .rs-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .rs-tabs::-webkit-scrollbar{display:none}
+.jp-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.jp-opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0;cursor:pointer;color:var(--text);font-size:13px}
+.jp-opt:has(input:checked){border-color:var(--pri);background:var(--pri-soft,#e7f0ec)}
+.jp-opt input{width:auto;margin-top:3px}
+.jp-list{max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.jp-row{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid var(--line2,#eef1ef);margin:0;cursor:pointer;color:var(--text);font-size:13px}
+.jp-row:last-child{border-bottom:0}
+.jp-row:hover{background:#f6faf8}
+.jp-row input{width:auto;margin-top:3px}
+.jp-row .jp-main{flex:1;min-width:0}
+.jp-row .jp-amt{white-space:nowrap;font-weight:600;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.jp-mode{grid-template-columns:1fr}}
 .kd-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:13px}
 .kd-range input[type=date]{width:auto}
 .kd-st{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
@@ -1568,6 +1580,33 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
 </div>
 
+<!-- MODAL PILIH JOB COMPLETION (BULANAN / PER TRANSAKSI) -->
+<div class="modal hidden" id="jp-modal" onclick="if (event.target === this) closeJcPick()">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-head"><b>Job Completion</b><button class="btn sec sm" onclick="closeJcPick()">Tutup</button></div>
+    <div class="send-file" style="display:block">
+      <div id="jp-title" style="font-weight:600">-</div>
+      <div class="muted" id="jp-sub"></div>
+    </div>
+    <div class="jp-mode">
+      <label class="jp-opt"><input type="radio" name="jp-mode" value="bulan" checked onchange="jpMode()"> <span><b>Bulanan</b><br><span class="muted" id="jp-bulan-sub">Rekap semua transaksi bulan ini</span></span></label>
+      <label class="jp-opt" id="jp-opt-item"><input type="radio" name="jp-mode" value="item" onchange="jpMode()"> <span><b id="jp-item-l">Per transaksi / servis</b><br><span class="muted">Pilih transaksi yang diminta</span></span></label>
+    </div>
+    <div id="jp-list-w" class="hidden">
+      <div style="display:flex;gap:8px;align-items:center;margin:4px 0 6px;flex-wrap:wrap">
+        <input type="text" id="jp-cari" placeholder="Cari tanggal / unit / nama / pekerjaan" oninput="jpRender()" style="flex:1;min-width:180px">
+        <span class="muted" id="jp-sel">0 dipilih</span>
+      </div>
+      <div class="jp-list" id="jp-list"></div>
+      <div class="muted" style="margin-top:6px" id="jp-hint"></div>
+    </div>
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-jp" onclick="jcPickPrint()">Cetak Job Completion</button>
+      <button class="btn sec" style="margin:0" id="btn-jp-send" onclick="jcPickSend()">Kirim Email / Telegram</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EXPORT EXCEL -->
 <div class="modal hidden" id="export-modal" onclick="if (event.target === this) closeExport()">
   <div class="modal-box" style="max-width:480px">
@@ -2969,7 +3008,7 @@ function renderIncome() {
       <td class="num">${rp(r.Nominal)}</td>
       <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}${!lang && r.Status === 'Lunas' && r.Tgl_Bayar ? `<div class="muted" style="margin-top:3px">${esc(fmtTgl(r.Tgl_Bayar))}${r.Metode_Bayar ? ' · ' + esc(r.Metode_Bayar) : ''}${r.Bukti_URL ? ' · bukti' : ''}</div>` : ''}${JC_SENT[r.Income_ID] ? `<div class="muted" style="margin-top:3px">JC terkirim ${esc(fmtTgl(JC_SENT[r.Income_ID].waktu))}</div>` : ''}${lang ? '' : soLine(r)}</td>
       <td><div class="btns">
-        ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
+        ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); openJcPick('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
         ${!lang && r.SO_Status && r.SO_Status !== 'Released' ? `<button class="btn sec sm" onclick="event.stopPropagation(); openSO('${esc(r.Income_ID)}')">${r.No_SO ? 'Release SO' : 'Isi SO'}</button>` : ''}
         ${!lang && r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
         ${!lang ? `<button class="btn sec sm" onclick="event.stopPropagation(); editIncome('${esc(r.Income_ID)}')">Edit</button>` : ''}
@@ -4234,7 +4273,7 @@ function renderRentSubs() {
         ${adj.length ? `<div class="muted" style="margin-top:8px"><b>Riwayat penyesuaian:</b> ${adj.map(a => `${esc(fmtTgl(a.Tanggal))} ${esc(a.Unit_Code)} ${esc(String(a.Jenis).toLowerCase())}${a.Unit_Pengganti ? ' → ' + esc(a.Unit_Pengganti) : ''}`).join('; ')}</div>` : ''}
         ${x.requester && x.requester.toUpperCase() !== String(x.dept).toUpperCase() ? `<div class="muted" style="margin-top:4px">Requester: ${esc(x.requester)}</div>` : ''}
         <div class="btns" style="margin-top:8px">
-          <button class="btn sec sm" style="margin:0" onclick="printInvoice('${esc(x.row.Income_ID)}')">Job Completion</button>
+          <button class="btn sec sm" style="margin:0" onclick="openJcPick('${esc(x.row.Income_ID)}')">Job Completion</button>
           <button class="btn sec sm" style="margin:0" onclick="openIncome('${esc(x.row.Income_ID)}')">Detail tagihan</button>
         </div>
       </div>
@@ -4768,7 +4807,112 @@ async function getInvoiceRange(id, toYm) {
   });
 }
 
-async function printInvoice(id, comp, toYm) {
+// ---------- PILIH JOB COMPLETION DARI DAFTAR INCOME: BULANAN ATAU PER TRANSAKSI / SERVIS ----------
+let JP = null;
+async function openJcPick(id) {
+  const inc = INCOME.find(r => r.Income_ID === id);
+  JP = { id, data: null, sel: new Set() };
+  $('jp-title').textContent = inc ? `${inc.Pelanggan} · ${inc.Sumber}` : id;
+  $('jp-sub').textContent = 'Memuat rincian...';
+  document.querySelector('input[name="jp-mode"][value="bulan"]').checked = true;
+  $('jp-cari').value = '';
+  $('jp-modal').classList.remove('hidden');
+  jpMode();
+  try {
+    const d = await getInvoiceData(id);
+    if (!JP || JP.id !== id) return;
+    JP.data = d;
+    const items = jpItems();
+    const per = fmtPeriode(d.periode);
+    $('jp-sub').textContent = `Periode ${per} · ${items.length} ${jpUnit()} · total ${rp(d.total)}`;
+    $('jp-bulan-sub').textContent = `Rekap ${items.length} ${jpUnit()} periode ${per} · ${rp(d.total)}`;
+    $('jp-item-l').textContent = d.kind === 'MECH' ? 'Per servis (WO)' : d.kind === 'WO' ? 'Per work order' : 'Per trip / transaksi';
+    $('jp-opt-item').classList.toggle('hidden', d.kind === 'RENT' || items.length < 2);
+    if (d.incomeUpdated && !d._done) { d._done = true; toast(`Nominal tagihan diperbarui ke harga terbaru Mechanic App: ${rp(d.incomeUpdated.dari)} → ${rp(d.incomeUpdated.ke)}`); loadIncome().catch(() => {}); }
+    jpRender();
+  } catch (e) {
+    $('jp-sub').textContent = 'Gagal memuat: ' + e.message;
+  }
+}
+function closeJcPick() { $('jp-modal').classList.add('hidden'); }
+const jpUnit = () => !JP || !JP.data ? 'item' : JP.data.kind === 'MECH' ? 'servis' : JP.data.kind === 'WO' ? 'work order' : JP.data.kind === 'RENT' ? 'item sewa' : 'trip';
+// Daftar transaksi yang bisa dipilih: { key, tgl, label, sub, amt }
+function jpItems() {
+  const d = JP && JP.data;
+  if (!d) return [];
+  if (d.kind === 'MECH') return d.rows.map(r => ({ key: r.Id, tgl: r.Tanggal, label: `${r.Id} · ${r.Kendaraan || '-'}`, sub: [r.Pekerjaan, r.SO ? 'SO ' + r.SO : ''].filter(Boolean).join(' · '), amt: r.Total }));
+  if (d.kind === 'WO') return d.rows.map(r => ({ key: r.Id, tgl: r.Tanggal, label: `${r.Id} · ${r.Tipe || ''}${r.Status && r.Status !== 'COMPLETED' ? ' (' + String(r.Status).toLowerCase() + ')' : ''}`, sub: [r.Requester, [r.Pickup, r.Dropoff].filter(Boolean).join(' → ')].filter(Boolean).join(' · '), amt: r.Total }));
+  if (d.kind === 'RENT') return d.rows.map((r, i) => ({ key: i, tgl: '', label: r.Uraian, sub: r.Kategori, amt: r.Total }));
+  return d.rows.map((r, i) => ({ key: i, tgl: r.Tanggal, label: `${r.Jam ? r.Jam + ' · ' : ''}${r.Tamu || '-'}`, sub: [[r.Dari, r.Ke].filter(Boolean).join(' → '), r.Perusahaan, r.Batal ? 'batal' : ''].filter(Boolean).join(' · '), amt: r.Batal ? 0 : Number(r.Biaya || 0) }));
+}
+function jpMode() {
+  const item = document.querySelector('input[name="jp-mode"]:checked').value === 'item';
+  $('jp-list-w').classList.toggle('hidden', !item);
+  if (item) jpRender();
+}
+function jpRender() {
+  const q = $('jp-cari').value.trim().toLowerCase();
+  const items = jpItems().filter(x => !q || [fmtTgl(x.tgl), x.label, x.sub].join(' ').toLowerCase().includes(q));
+  $('jp-list').innerHTML = items.length ? items.map(x => `<label class="jp-row"><input type="checkbox" ${JP.sel.has(String(x.key)) ? 'checked' : ''} onchange="jpToggle('${esc(String(x.key))}', this.checked)">
+      <span class="jp-main"><b>${esc(x.tgl ? fmtTgl(x.tgl) : '')}</b>${x.tgl ? ' · ' : ''}${esc(x.label)}<div class="muted">${esc(x.sub || '')}</div></span>
+      <span class="jp-amt">${rp(x.amt)}</span></label>`).join('') : '<div class="muted" style="padding:12px">Tidak ada data</div>';
+  jpSelInfo();
+  const k = JP.data && JP.data.kind;
+  $('jp-hint').textContent = (k === 'MECH' || k === 'WO') ? 'Pilih satu untuk JC per servis / work order. Pilih beberapa untuk satu JC berisi servis yang dipilih saja.' : 'JC berisi trip yang dipilih saja.';
+}
+function jpToggle(key, on) { if (on) JP.sel.add(key); else JP.sel.delete(key); jpSelInfo(); }
+function jpSelInfo() {
+  const sel = jpItems().filter(x => JP.sel.has(String(x.key)));
+  $('jp-sel').textContent = `${sel.length} dipilih · ${rp(sel.reduce((a, x) => a + x.amt, 0))}`;
+}
+
+// Cetak sesuai pilihan; dipakai juga oleh mode kirim (JC_CAPTURE)
+async function jpDoPrint() {
+  const d = JP && JP.data;
+  if (!d) { toast('Rincian belum termuat'); return false; }
+  const item = document.querySelector('input[name="jp-mode"]:checked').value === 'item';
+  if (!item) { await printInvoice(JP.id); return true; }
+  if (!JP.sel.size) { toast('Pilih minimal satu transaksi'); return false; }
+  if (d.kind === 'MECH' || d.kind === 'WO') {
+    const keys = [...JP.sel];
+    if (keys.length === 1) { await printWorkJC(Object.assign({}, d, { soNo: '' }), keys[0]); return true; }
+    const rows = d.rows.filter(r => JP.sel.has(String(r.Id)));
+    const tot = rows.reduce((a, r) => a + Number(r.Total || 0), 0);
+    await printWorkJC(Object.assign({}, d, { rows, total: tot, tripTotal: tot, nominalIncome: tot, soNo: [...new Set(rows.map(r => r.SO).filter(x => okSO(x)))].join(', ') }), '');
+    return true;
+  }
+  await printInvoice(JP.id, '', '', new Set([...JP.sel].map(Number)));
+  return true;
+}
+async function jcPickPrint() {
+  const b = $('btn-jp');
+  b.disabled = true;
+  try { if (await jpDoPrint()) closeJcPick(); } finally { b.disabled = false; }
+}
+async function jcPickSend() {
+  const b = $('btn-jp-send');
+  b.disabled = true;
+  let cap, ok;
+  JC_CAPTURE = {};
+  try { ok = await jpDoPrint(); } finally { cap = JC_CAPTURE; JC_CAPTURE = null; }
+  if (!ok || !cap || !cap.title) { b.disabled = false; return; }
+  try {
+    b.textContent = 'Membuat PDF...';
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const row = INCOME.find(r => r.Income_ID === JP.id) || {};
+    const area = $('print-area');
+    const totEl = [...area.querySelectorAll('.inv-total td.num, .mj-total td.num')].pop();
+    JC_PDF = { id: JP.id, title: cap.title, pelanggan: row.Pelanggan || '', total: totEl ? totEl.textContent.trim() : '', bank: !!area.querySelector('.inv-bank'), ...pdf };
+    closeJcPick();
+    openSend();
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Kirim Email / Telegram';
+  }
+}
+
+async function printInvoice(id, comp, toYm, pick) {
   if (!id) return;
   const btn = $('btn-inv');
   btn.disabled = true; btn.textContent = 'Menyiapkan Job Completion...';
@@ -4781,7 +4925,8 @@ async function printInvoice(id, comp, toYm) {
     const flat = Number(all.flat || 0);                 // tagihan flat per bulan sesuai agreement (mis. PT BRR / Handara)
     if (flat || all.monthly) comp = '';                 // flat / tagihan bulanan pemesan: tidak dipisah per company
     const keyFn = groupKeyOf(all);
-    const rows = comp ? all.rows.filter(r => keyFn(r) === comp) : all.rows;
+    let rows = comp ? all.rows.filter(r => keyFn(r) === comp) : all.rows;
+    if (pick) rows = rows.filter(r => pick.has(all.rows.indexOf(r)));   // JC per transaksi yang dipilih
     const nDone = doneCount(rows), nBatal = rows.length - nDone;   // booking batal dicantumkan tanpa amount
     if (!nDone && !flat) return toast('Tidak ada trip untuk tagihan ini di sheet Nuanu Taxi Service');
     const total = flat || rows.reduce((a, r) => a + (r.Batal ? 0 : Number(r.Biaya || 0)), 0);
@@ -4800,7 +4945,8 @@ async function printInvoice(id, comp, toYm) {
     if (comp && (all.direct || comps.length > 1)) noDefault += '-' + String(comps.findIndex(c => c.key === comp) + 1).padStart(2, '0');
 
     let msg = `Job Completion ${billTo}${entity ? ' (' + entity + ')' : ''} periode ${perId}${multi ? ' (' + all.months.length + ' bulan digabung)' : ''}: ${nDone} trip${nBatal ? ' + ' + nBatal + ' cancel (tanpa amount)' : ''}, total ${rp(total)}${flat ? ' (flat sesuai agreement)' : ''}.`;
-    if (!comp && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+    if (!comp && !pick && all.total !== all.nominalIncome) msg += `\n\nPerhatian: nominal di daftar income ${rp(all.nominalIncome)} berbeda dengan data sheet sekarang. Klik Tarik Data agar sama.`;
+    if (pick) noDefault += '-' + String(Math.min(...[...pick]) + 1).padStart(3, '0');
     msg += '\n\nNomor Job Completion:';
     const no = prompt(msg, noDefault);
     if (no === null) return;
