@@ -117,7 +117,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -564,6 +564,24 @@ html,body{max-width:100%;overflow-x:hidden}
           <tbody id="list-body"></tbody>
         </table>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><h2>Top up dari Manager ke Admin</h2><div class="muted">Satu transfer dari manager dicatat sekali, lalu dibagi ke CA Internal dan External Transport.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="tu-periode" onchange="loadTopups()" style="width:auto;min-width:150px"></select>
+          <button class="btn" style="margin:0" id="btn-tu-add" onclick="openTopupSplit()">+ Top up dari manager</button>
+        </div>
+      </div>
+      <div class="tablewrap" style="margin-bottom:12px"><table>
+        <thead><tr><th>CA / grup</th><th>Manager</th><th class="num">Nominal CA</th><th class="num">Sudah top up</th><th class="num">Saldo manager</th><th class="num">Terpakai</th><th class="num">Saldo admin</th></tr></thead>
+        <tbody id="tu-cas"><tr><td colspan="7" class="muted">Memuat...</td></tr></tbody>
+      </table></div>
+      <div class="tablewrap"><table>
+        <thead id="tu-head"></thead>
+        <tbody id="tu-body"></tbody>
+      </table></div>
     </div>
 
     <div class="card">
@@ -1630,6 +1648,27 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
 </div>
 
+<!-- MODAL TOP UP DARI MANAGER (DIBAGI PER GRUP) -->
+<div class="modal hidden" id="tu-modal" onclick="if (event.target === this) closeTopupSplit()">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head"><b>Top up dari Manager</b><button class="btn sec sm" onclick="closeTopupSplit()">Tutup</button></div>
+    <div class="muted" id="tu-m-per"></div>
+    <div class="row">
+      <div><label>Tanggal transfer</label><input type="date" id="tu-tgl"></div>
+      <div><label>Dari (manager)</label><input type="text" id="tu-dari" autocomplete="off"></div>
+    </div>
+    <label>Total transfer ke admin (Rp)</label>
+    <input type="text" id="tu-total" inputmode="numeric" oninput="fmtMoneyInput(this); tuAuto()">
+    <div class="al-sec-title" style="margin-top:14px">Dibagi ke</div>
+    <div id="tu-parts"></div>
+    <div class="muted" id="tu-sisa" style="margin-top:6px"></div>
+    <label>Bukti transfer (foto / PDF)</label>
+    <input type="file" id="tu-bukti" accept="image/*,application/pdf">
+    <label>Keterangan (opsional)</label><input type="text" id="tu-ket" autocomplete="off" placeholder="Mis. top up minggu ke-2">
+    <div class="btns" style="margin-top:14px"><button class="btn" style="margin:0" id="btn-tu" onclick="saveTopupSplit()">Simpan Top up</button></div>
+  </div>
+</div>
+
 <!-- MODAL EXPORT EXCEL -->
 <div class="modal hidden" id="export-modal" onclick="if (event.target === this) closeExport()">
   <div class="modal-box" style="max-width:480px">
@@ -2014,7 +2053,7 @@ async function saveUser() {
 
 const AKSI_LABEL = {
   login: 'Login', setupFirstUser: 'Aktifkan login', createCA: 'Buat CA', addUsage: 'Tambah pemakaian CA', deleteUsage: 'Hapus pemakaian CA',
-  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', saveKdabReport: 'Laporan KDAB', editIncome: 'Edit income',
+  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', addTopupSplit: 'Top up dari manager (dibagi)', deleteTopupRef: 'Hapus top up manager', saveKdabReport: 'Laporan KDAB', editIncome: 'Edit income',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
   addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', saveAssetBatch: 'Ubah / tambah batch pembelian', deleteAssetBatch: 'Hapus batch pembelian', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
@@ -2143,6 +2182,13 @@ function fillPeriodeFilter() {
   el.innerHTML = '<option value="">Semua periode</option>' + list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('');
   if (list.includes(keep)) el.value = keep;
 
+  // Periode top up: periode yang punya CA (default bulan ini / terbaru)
+  const tu = $('tu-periode');
+  const keepT = tu.value;
+  tu.innerHTML = list.length ? list.map(p => `<option value="${esc(p)}">${esc(fmtPeriode(p))}</option>`).join('') : '<option value="">Belum ada CA</option>';
+  tu.value = list.includes(keepT) ? keepT : list.includes(thisMonth()) ? thisMonth() : (list[0] || '');
+  loadTopups();
+
   // Periode download nota: 12 bulan terakhir + periode yang ada di data CA
   const z = $('z-periode');
   const keepZ = z.value || thisMonth();
@@ -2220,6 +2266,121 @@ async function init() {
 }
 
 // ---------- DAFTAR CA ----------
+// ---------- TOP UP DARI MANAGER (DIBAGI KE CA INTERNAL / EXTERNAL) ----------
+let TU = null;
+async function loadTopups() {
+  const p = $('tu-periode').value;
+  if (!p) { $('tu-cas').innerHTML = '<tr><td colspan="7" class="muted">Belum ada CA. Buat CA dulu untuk tiap grup.</td></tr>'; $('tu-head').innerHTML = ''; $('tu-body').innerHTML = ''; return; }
+  try {
+    const d = await apiGet({ action: 'topupList', periode: p });
+    if (p !== $('tu-periode').value) return;
+    TU = d;
+    renderTopups();
+  } catch (e) {
+    $('tu-cas').innerHTML = `<tr><td colspan="7" class="muted">Gagal: ${esc(e.message)}</td></tr>`;
+  }
+}
+
+function renderTopups() {
+  if (!TU) return;
+  const cas = TU.cas;
+  const S = k => cas.reduce((a, c) => a + c[k], 0);
+  $('tu-cas').innerHTML = cas.length ? cas.map(c => `<tr class="click" onclick="openDetail('${esc(c.CA_ID)}')"><td><b>${esc(c.Grup)}</b><div class="al-sub">${esc(c.CA_ID)}${c.Status !== 'Open' ? ' · cleared' : ''}</div></td><td>${esc(c.PIC || '-')}</td>
+      <td class="num">${rp(c.Nominal)}</td><td class="num">${rp(c.Topup)}</td><td class="num">${rpCls(c.Saldo_Manager)}</td><td class="num">${rp(c.Terpakai)}</td><td class="num">${rpCls(c.Saldo_Admin)}</td></tr>`).join('') +
+    (cas.length > 1 ? `<tr class="total"><td>Total</td><td></td><td class="num">${rp(S('Nominal'))}</td><td class="num">${rp(S('Topup'))}</td><td class="num">${rpCls(S('Saldo_Manager'))}</td><td class="num">${rp(S('Terpakai'))}</td><td class="num">${rpCls(S('Saldo_Admin'))}</td></tr>` : '')
+    : '<tr><td colspan="7" class="muted">Belum ada CA di periode ini</td></tr>';
+  $('tu-head').innerHTML = `<tr><th>Tanggal</th><th>Dari</th><th class="num">Total transfer</th>${cas.map(c => `<th class="num">${esc(c.Grup)}</th>`).join('')}<th>Keterangan</th><th></th></tr>`;
+  const T = TU.topups;
+  $('tu-body').innerHTML = T.length ? T.map(t => `<tr><td>${esc(fmtTgl(t.Tanggal))}</td><td>${esc(t.Dari || '-')}</td><td class="num"><b>${rp(t.Total)}</b></td>
+      ${cas.map(c => { const n = t.parts.filter(x => x.CA_ID === c.CA_ID).reduce((a, x) => a + x.Nominal, 0); return `<td class="num">${n ? rp(n) : '<span class="muted">-</span>'}</td>`; }).join('')}
+      <td>${esc(t.Keterangan || '')}${t.Ref ? '' : '<div class="al-sub">top up langsung di CA</div>'}</td>
+      <td><div class="btns" style="flex-wrap:nowrap">${t.Bukti_URL ? `<a class="btn sec sm" style="margin:0" href="${esc(t.Bukti_URL)}" target="_blank" rel="noopener">Bukti</a>` : ''}
+        ${t.Ref ? `<button class="btn sec sm" style="margin:0" onclick="delTopupRef('${esc(t.Ref)}')">Hapus</button>` : ''}</div></td></tr>`).join('') +
+    `<tr class="total"><td colspan="2">${T.length} kali transfer</td><td class="num">${rp(T.reduce((a, t) => a + t.Total, 0))}</td>${cas.map(c => `<td class="num">${rp(c.Topup)}</td>`).join('')}<td></td><td></td></tr>`
+    : `<tr><td colspan="${cas.length + 5}" class="muted">Belum ada top up di periode ini</td></tr>`;
+}
+
+function openTopupSplit() {
+  if (!TU || !TU.cas.length) return toast('Belum ada CA di periode ini. Buat CA untuk tiap grup dulu.');
+  const open = TU.cas.filter(c => c.Status === 'Open');
+  if (!open.length) return toast('Semua CA periode ini sudah clearing');
+  $('tu-m-per').textContent = 'Periode ' + fmtPeriode(TU.periode);
+  const r = periodeRange(TU.periode), td = today();
+  $('tu-tgl').min = r.min; $('tu-tgl').max = td < r.max ? td : r.max;
+  $('tu-tgl').value = td < r.min ? r.min : td > r.max ? r.max : td;
+  $('tu-dari').value = (TU.topups.slice(-1)[0] || {}).Dari || open[0].PIC || '';
+  $('tu-total').value = '';
+  $('tu-parts').innerHTML = open.map(c => `<div class="row" style="align-items:end">
+      <div><label style="margin-top:6px">${esc(c.Grup)}</label><div class="muted" style="font-size:12px">${esc(c.CA_ID)} · saldo manager ${rp(c.Saldo_Manager)}</div></div>
+      <div><input type="text" class="tu-part" data-ca="${esc(c.CA_ID)}" inputmode="numeric" placeholder="0" oninput="fmtMoneyInput(this); this.dataset.manual = this.value ? '1' : ''; tuAuto(this)"></div>
+    </div>`).join('');
+  $('tu-bukti').value = '';
+  $('tu-ket').value = '';
+  tuAuto();
+  $('tu-modal').classList.remove('hidden');
+}
+function closeTopupSplit() { $('tu-modal').classList.add('hidden'); }
+
+// Pembagian otomatis: bila total diisi dan semua grup kecuali satu sudah diisi, sisanya masuk ke grup itu
+function tuAuto(src) {
+  const total = toNum($('tu-total').value);
+  const parts = [...document.querySelectorAll('.tu-part')];
+  if (total && parts.length > 1) {
+    const free = parts.filter(x => !x.dataset.manual && x !== src);
+    if (free.length === 1) {
+      const used = parts.filter(x => x !== free[0]).reduce((a, x) => a + toNum(x.value), 0);
+      const rest = total - used;
+      free[0].value = rest > 0 ? rest.toLocaleString('id-ID') : '';
+    }
+  } else if (total && parts.length === 1 && !parts[0].dataset.manual) parts[0].value = total.toLocaleString('id-ID');
+  const sum = parts.reduce((a, x) => a + toNum(x.value), 0);
+  const diff = total - sum;
+  $('tu-sisa').innerHTML = !total ? 'Isi total transfer, lalu bagi ke tiap grup. Bila hanya satu grup diisi, sisanya otomatis ke grup lain.'
+    : diff === 0 ? `<span class="pos">Pembagian pas: ${rp(sum)}</span>` : diff > 0 ? `<span class="neg">Sisa belum dibagi ${rp(diff)}</span>` : `<span class="neg">Pembagian melebihi total ${rp(-diff)}</span>`;
+}
+
+async function saveTopupSplit() {
+  const total = toNum($('tu-total').value);
+  const parts = [...document.querySelectorAll('.tu-part')].map(x => ({ CA_ID: x.dataset.ca, Nominal: toNum(x.value) })).filter(x => x.Nominal > 0);
+  const d = { Periode: TU.periode, Tanggal: $('tu-tgl').value, Dari: $('tu-dari').value.trim(), Keterangan: $('tu-ket').value.trim(), Total: total, Parts: parts };
+  if (!d.Tanggal) return toast('Isi tanggal transfer');
+  if (!d.Dari) return toast('Isi nama manager');
+  if (!total) return toast('Isi total transfer');
+  if (!parts.length) return toast('Bagi nominal ke minimal satu grup');
+  if (parts.reduce((a, x) => a + x.Nominal, 0) !== total) return toast('Jumlah pembagian harus sama dengan total transfer');
+  const f = $('tu-bukti').files[0];
+  if (!f && !confirm('Simpan tanpa bukti transfer?')) return;
+  const b = $('btn-tu');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    if (f) { b.textContent = 'Mengunggah bukti...'; d.Bukti = await readFile(f); }
+    TU = await apiPost('addTopupSplit', d);
+    renderTopups();
+    closeTopupSplit();
+    toast(`Top up ${rp(total)} dicatat: ` + parts.map(x => `${(TU.cas.find(c => c.CA_ID === x.CA_ID) || {}).Grup} ${rp(x.Nominal)}`).join(', '));
+    LIST = await apiGet({ action: 'list' });
+    renderList();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Top up';
+  }
+}
+
+async function delTopupRef(ref) {
+  const t = TU && TU.topups.find(x => x.Ref === ref);
+  if (!t || !confirm(`Hapus top up ${fmtTgl(t.Tanggal)} sebesar ${rp(t.Total)}? Semua bagiannya (${t.parts.map(x => x.Grup).join(', ')}) ikut terhapus.`)) return;
+  try {
+    TU = await apiPost('deleteTopupRef', { Ref: ref });
+    renderTopups();
+    toast('Top up dihapus');
+    LIST = await apiGet({ action: 'list' });
+    renderList();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  }
+}
+
 async function loadList() {
   $('list-body').innerHTML = '<tr><td colspan="9" class="muted">Memuat...</td></tr>';
   try {
@@ -2630,7 +2791,8 @@ async function addTopup() {
 }
 
 async function delTopup(topupId) {
-  if (!confirm('Hapus data top up ini?')) return;
+  const t = CURRENT && (CURRENT.topups || []).find(x => x.Topup_ID === topupId);
+  if (!confirm(t && t.Ref ? `Top up ini bagian dari transfer manager ${rp(Number(t.Total_Transfer) || 0)} yang dibagi ke beberapa CA. Semua bagiannya ikut terhapus. Lanjutkan?` : 'Hapus data top up ini?')) return;
   try {
     CURRENT = await apiPost('deleteTopup', { Topup_ID: topupId });
     renderDetail();
