@@ -346,6 +346,28 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .kd-sign .sp svg{height:56px;width:auto;fill:#14213d}
   #print-area .kd-sign .nm{margin-top:4px}
   #print-area .kd-sign .jb{margin-top:6px}
+  #print-area .rs-doc{font-size:10.5px;color:#111}
+  #print-area .rs-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e5246;padding-bottom:8px;margin-bottom:12px}
+  #print-area .rs-head .doc-logo{height:20px;margin:0 0 6px}
+  #print-area .rs-head h1{font-size:16px;margin:0;color:#1e5246}
+  #print-area .rs-head .p-sub{font-size:10px;color:#555;margin-top:2px}
+  #print-area .rs-meta{text-align:right;font-size:10px;color:#444;line-height:1.5}
+  #print-area .rs-kpi{display:flex;gap:8px;margin:0 0 12px}
+  #print-area .rs-kpi>div{flex:1;border:1px solid #d5dbd8;border-radius:6px;padding:7px 9px}
+  #print-area .rs-kpi .l{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+  #print-area .rs-kpi .v{font-size:14px;font-weight:700;margin-top:2px}
+  #print-area .rs-tbl{width:100%;border-collapse:collapse;margin-bottom:6px}
+  #print-area .rs-tbl th{background:#1e5246;color:#fff;font-size:9px;font-weight:600;text-align:left;padding:4px 6px;border:1px solid #1e5246}
+  #print-area .rs-tbl td{font-size:9.5px;padding:3.5px 6px;border:1px solid #d5dbd8;vertical-align:top}
+  #print-area .rs-tbl .n{text-align:right;white-space:nowrap}
+  #print-area .rs-tbl tr{break-inside:avoid;page-break-inside:avoid}
+  #print-area .rs-tbl tr.st td{font-weight:700;background:#eef4f1}
+  #print-area .rs-tbl tr.gt td{font-weight:700;background:#1e5246;color:#fff;border-color:#1e5246}
+  #print-area .rs-dh{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px;break-after:avoid;page-break-after:avoid}
+  #print-area .rs-dh b{font-size:12px;color:#1e5246}
+  #print-area .rs-dh span{font-size:9.5px;color:#555}
+  #print-area .rs-codes{color:#444;font-size:9px}
+  #print-area .rs-foot{margin-top:12px;font-size:8.5px;color:#666}
   #print-area .sig-box{height:60px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
   #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
   #print-area .sig-box svg.sig-tall{height:58px}
@@ -783,6 +805,7 @@ html,body{max-width:100%;overflow-x:hidden}
         <div><h2>Langganan per Departemen</h2><div class="muted" id="rs-info">-</div></div>
         <div class="ctrl" style="display:flex;gap:8px;flex-wrap:wrap">
           <input type="text" id="rs-cari" placeholder="Cari departemen / kode unit" oninput="renderRentSubs()" style="width:auto;min-width:200px">
+          <button class="btn sec" style="margin:0" id="btn-rs-pdf" onclick="rsPdf()">Download PDF</button>
           <button class="btn sec" style="margin:0" onclick="exportRentSubs()">Download Excel</button>
         </div>
       </div>
@@ -4275,6 +4298,7 @@ function renderRentSubs() {
         <div class="btns" style="margin-top:8px">
           <button class="btn sec sm" style="margin:0" onclick="openJcPick('${esc(x.row.Income_ID)}')">Job Completion</button>
           <button class="btn sec sm" style="margin:0" onclick="openIncome('${esc(x.row.Income_ID)}')">Detail tagihan</button>
+          <button class="btn sec sm" style="margin:0" onclick="rsPdf('${esc(String(x.dept).replace(/'/g, "\\'"))}')">PDF departemen ini</button>
         </div>
       </div>
     </details>`;
@@ -4285,6 +4309,70 @@ function renderRentSubs() {
   $('rs-mtable').innerHTML = `<thead><tr><th>Departemen</th>${types.map(t => `<th>${esc(t)}</th>`).join('')}<th>Total unit</th><th class="num">Nominal</th></tr></thead><tbody>` +
     list.map(x => `<tr><td>${esc(x.dept)}</td>${types.map(t => `<td>${x.units[t] || '<span class="muted">·</span>'}</td>`).join('')}<td><b>${Object.values(x.units).reduce((a, b) => a + b, 0)}</b></td><td class="num">${rp(x.total)}</td></tr>`).join('') +
     `<tr class="total"><td>Total</td>${ttl.map(n => `<td>${n}</td>`).join('')}<td>${ttl.reduce((a, b) => a + b, 0)}</td><td class="num">${rp(list.reduce((a, x) => a + x.total, 0))}</td></tr></tbody>`;
+}
+
+// PDF data langganan EV: total unit, harga per kendaraan per departemen (semua / hasil pencarian / satu departemen)
+async function rsPdf(onlyDept) {
+  const ym = $('rc-periode').value;
+  if (!ym) return toast('Belum ada data rental');
+  const q = $('rs-cari').value.trim().toLowerCase();
+  let list = rsData(ym);
+  if (onlyDept) list = list.filter(x => String(x.dept) === onlyDept);
+  else if (q) list = list.filter(x => (x.dept + ' ' + x.items.map(i => i.codes.join(' ') + ' ' + i.desc).join(' ')).toLowerCase().includes(q));
+  if (!list.length) return toast('Tidak ada data untuk dibuat PDF');
+  list = list.slice().sort((a, b) => String(a.dept).localeCompare(String(b.dept)));
+  const per = fmtPeriodeEn(ym);
+  const nUnits = x => x.items.filter(i => !i.adj).reduce((a, i) => a + i.qty, 0);
+  const totUnits = list.reduce((a, x) => a + nUnits(x), 0), totAmt = list.reduce((a, x) => a + x.total, 0);
+  // Ringkasan per jenis kendaraan
+  const byType = {};
+  list.forEach(x => x.items.filter(i => !i.adj).forEach(i => { const o = byType[i.type] = byType[i.type] || { qty: 0, amt: 0, prices: new Set() }; o.qty += i.qty; o.amt += i.total; if (i.harga) o.prices.add(i.harga); }));
+  const types = Object.entries(byType).sort((a, b) => b[1].qty - a[1].qty);
+  const one = list.length === 1;
+  const priceTxt = set => { const a = [...set].sort((x, y) => x - y); return !a.length ? '-' : a.length === 1 ? rp(a[0]) : rp(a[0]) + ' - ' + rp(a[a.length - 1]); };
+  const H = '<tr><th>Vehicle type</th><th>Description / unit codes</th><th class="n">Qty</th><th class="n">Price / unit / month</th><th class="n">Total / month</th></tr>';
+  $('print-area').innerHTML = `<div class="rs-doc">
+    <div class="rs-head">
+      <div>${logoTag()}<h1>EV Rental Subscription${one ? ' - ' + esc(list[0].dept) : ''}</h1><div class="p-sub">Transport Department &middot; vehicles rented per department</div></div>
+      <div class="rs-meta">Period: <b>${esc(per)}</b><br>Printed: ${esc(fmtTgl(today()))}${!one && (q || onlyDept) ? '<br>Filter: ' + esc(onlyDept || q) : ''}</div>
+    </div>
+    <div class="rs-kpi">
+      ${one ? '' : `<div><div class="l">Departments</div><div class="v">${list.length}</div></div>`}
+      <div><div class="l">Total EV units</div><div class="v">${totUnits}</div></div>
+      <div><div class="l">Vehicle types</div><div class="v">${types.length}</div></div>
+      <div><div class="l">Total per month</div><div class="v">${rp(totAmt)}</div></div>
+    </div>
+    <table class="rs-tbl"><thead><tr><th>Vehicle type</th><th class="n">Units</th><th class="n">Price / unit / month</th><th class="n">Total / month</th></tr></thead><tbody>
+      ${types.map(([t, o]) => `<tr><td>${esc(t)}</td><td class="n">${o.qty}</td><td class="n">${priceTxt(o.prices)}</td><td class="n">${rp(o.amt)}</td></tr>`).join('')}
+      <tr class="gt"><td>Total</td><td class="n">${totUnits}</td><td></td><td class="n">${rp(list.reduce((a, x) => a + x.items.filter(i => !i.adj).reduce((s2, i) => s2 + i.total, 0), 0))}</td></tr>
+    </tbody></table>
+    ${one ? '' : `<table class="rs-tbl"><thead><tr><th>Department</th><th>Vehicles</th><th class="n">Units</th><th class="n">Total / month</th></tr></thead><tbody>
+      ${list.map(x => `<tr><td>${esc(x.dept)}</td><td>${esc(Object.entries(x.units).map(([t, n]) => n + ' ' + t).join(', '))}</td><td class="n">${nUnits(x)}</td><td class="n">${rp(x.total)}</td></tr>`).join('')}
+      <tr class="gt"><td colspan="2">Total ${list.length} departments</td><td class="n">${totUnits}</td><td class="n">${rp(totAmt)}</td></tr>
+    </tbody></table>`}
+    ${list.map(x => `<div class="rs-dh"><b>${esc(x.dept)}</b><span>${nUnits(x)} unit${nUnits(x) === 1 ? '' : 's'} &middot; ${rp(x.total)} / month${x.row.Status === 'Lunas' ? ' &middot; paid' : ''}</span></div>
+      <table class="rs-tbl"><thead>${H}</thead><tbody>
+        ${x.items.map(i => `<tr><td>${esc(i.adj ? 'Adjustment' : i.type)}</td><td>${esc(i.desc)}${i.codes.length ? `<div class="rs-codes">${esc(i.codes.join(', '))}</div>` : ''}</td><td class="n">${i.adj ? '' : i.qty}</td><td class="n">${i.adj ? '' : rp(i.harga)}</td><td class="n">${rp(i.total)}</td></tr>`).join('')}
+        <tr class="st"><td colspan="2">Subtotal ${esc(x.dept)}</td><td class="n">${nUnits(x)}</td><td></td><td class="n">${rp(x.total)}</td></tr>
+      </tbody></table>`).join('')}
+    <div class="rs-foot">Source: EV rental BOQ per department and rental adjustments (damaged / returned / replaced units). Amounts per month, excluding tax.</div>
+  </div>`;
+  setPageSize('A4 portrait');
+  const b = $('btn-rs-pdf');
+  b.disabled = true; b.textContent = 'Membuat PDF...';
+  try {
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = safeName(`EV Rental Subscription ${one ? list[0].dept + ' ' : ''}${ym}`, 150) + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast(`PDF dibuat: ${list.length} departemen, ${totUnits} unit, ${rp(totAmt)} / bulan`);
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Download PDF';
+  }
 }
 
 function exportRentSubs() {
