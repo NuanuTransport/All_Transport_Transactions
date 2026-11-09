@@ -3766,7 +3766,7 @@ async function alDeptPdf(onlyDept, opt) {
           ${g[k].slice().sort((a, c) => String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true })).map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.Code)}</b>${u.Sticker ? `<div class="rs-codes">Sticker ${esc(u.Sticker)}</div>` : ''}</td><td>${esc(u.Type || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(condEn(u.Condition))}</td><td>${esc(u.PIC || '-')}</td><td class="n">${!u.rent ? '-' : u.rent.src === 'gratis' ? 'No charge' : rp(u.rent.harga) + (u.rent.src === 'parkir' ? '<div class="rs-codes">parking fee</div>' : '') + (u.rent.src === 'rate' || u.rent.src === 'code' ? '*' : '')}</td></tr>`).join('')}
           <tr class="st"><td colspan="6">Subtotal ${esc(k)} (${g[k].length} units)</td><td class="n">${rp(sub)}</td></tr>
         </tbody></table>`; }).join('')}
-      <div class="rs-foot">Monthly rental rates: Buggy 6 seater Rp 8.000.000, EVM-001 Rp 8.500.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Buggy Box Rp 8.000.000, Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM and Bali Baza: parking fee only, Rp 1.500.000 per unit per month. NRE: 1 buggy charged. No charge: NPG, Mr. Sergey, Site Operations Director (Kurt), Lev's friend and Sol Studio cooty, Security patrol buggy. * = special unit rate or price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).</div>
+      <div class="rs-foot">Monthly rental rates: Buggy 6 seater Rp 8.000.000, EVM-001 Rp 8.500.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Buggy Box Rp 8.000.000, Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM and Bali Baza: parking fee only, Rp 1.500.000 per unit per month. QS: Rp 1.500.000. NRE: 1 buggy charged. No charge: NPG, Infrastructure VFly, Mr. Sergey, Site Operations Director (Kurt), Lev's friend and Sol Studio cooty, Security patrol buggy. * = special unit rate or price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).</div>
     </div>`;
     setPageSize('A4 portrait');
     const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
@@ -4730,6 +4730,8 @@ let RS_MODE = 'dept';
 const RENT_TARIFF = { 'Buggy 6 seat': 8000000, 'Buggy 4 seat': 7500000, 'Buggy Cargo': 8000000, 'Buggy Box': 8000000, 'Tyranno': 1500000, 'VFly': 1000000, 'Cooty': 400000, 'Volta': 1500000, 'Kucher': 1000000 };
 // Departemen yang hanya membayar parking fee per unit per bulan (bukan sewa)
 const RENT_PARKING = [[/^\s*biom\b/i, 1500000, 'BIOM'], [/bali\s*baza/i, 1500000, 'Bali Baza']];
+// Departemen dengan tarif tetap per unit per bulan (bukan tarif jenis kendaraan)
+const RENT_FLAT_DEPT = [[/^\s*qs\b|quantity\s*survey/i, 1500000, 'QS']];
 const RENT_TARIFF_CODE = { 'EVM-001': 8500000 };
 // Unit di departemen ini dipakai internal Transport, tidak dikenai sewa
 const RENT_FREE_DEPT = /transport|internal|^vsp$|last\s*mile|mechanic|workshop|work\s*order/i;
@@ -4743,9 +4745,13 @@ function rentTariff(code, type, dept, status) {
   const d = String(dept || '').trim();
   if (!d || RENT_FREE_DEPT.test(d) || RENT_OFF_STATUS.test(String(status || ''))) return null;
   if (RENT_NOCHARGE_DEPT.test(d)) return { harga: 0, src: 'gratis', note: d + ', tidak dikenakan charge' };
+  // VFly milik Infrastructure tidak dikenai charge (Tyranno Infrastructure tetap ditagih)
+  if (/infrastru/i.test(d) && rsType({ Uraian: type }) === 'VFly') return { harga: 0, src: 'gratis', note: 'VFly Infrastructure, tidak dikenakan charge' };
   if (RENT_RENT_ONLY_DEPT.test(d) && !/rent/i.test(String(status || ''))) return { harga: 0, src: 'gratis', note: 'NRE hanya dikenakan 1 buggy' };
   const k = ucKey(code);
   if (/security/i.test(d) && (/patrol|security|jeep|\bjep\b/i.test(String(type || '')) || /^LV[SJ]-/.test(k))) return { harga: 0, src: 'gratis', note: 'Buggy patrol Security, tidak dikenakan charge' };
+  const fl = RENT_FLAT_DEPT.find(x => x[0].test(d));
+  if (fl) return { harga: fl[1], src: 'tarif', note: 'Tarif ' + fl[2] };
   const pk = RENT_PARKING.find(x => x[0].test(d));
   if (pk) return { harga: pk[1], src: 'parkir', note: 'Parking fee ' + pk[2] + ' (ditagih tiap bulan)' };
   if (RENT_TARIFF_CODE[k] != null) return { harga: RENT_TARIFF_CODE[k], src: 'kode', note: 'Tarif khusus ' + k };
