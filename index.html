@@ -4599,6 +4599,16 @@ async function fillInvoiceCompany() {
   try {
     const d = await getInvoiceData(id);
     if (token !== INV_COMP_TOKEN) return;
+    if (d.incomeUpdated && !d._done) {
+      // Tagihan mekanik diperbarui ke harga terbaru Mechanic App saat data JC diambil
+      d._done = true;
+      const r = INCOME.find(x => x.Income_ID === id);
+      if (r) r.Nominal = d.incomeUpdated.ke;
+      const opt = $('iv-pel').selectedOptions[0];
+      if (opt && r) opt.textContent = `${r.Sumber_Data} · ${r.Pelanggan} - ${rp(r.Nominal)}`;
+      toast(`Nominal tagihan diperbarui ke harga terbaru Mechanic App: ${rp(d.incomeUpdated.dari)} → ${rp(d.incomeUpdated.ke)}`);
+      loadIncome().catch(() => {});
+    }
     if (d.kind === 'RENT') {
       $('iv-comp-l').textContent = 'Sewa bulanan';
       el.innerHTML = `<option value="">${esc(d.rows.length)} item sewa - ${esc(rp(d.total))}</option>`;
@@ -4662,11 +4672,13 @@ function fillInvoicePelanggan() {
   const later = [...new Set(INCOME.filter(isInvoiceRow).map(r => String(r.Tanggal).slice(0, 7)))].filter(m => m > p).sort();
   sel.innerHTML = '<option value="">Hanya bulan ini</option>' + later.map(m => `<option value="${esc(m)}">${esc(fmtPeriode(m))}</option>`).join('');
   if (later.includes(keepTo)) sel.value = keepTo;
+  const keepPel = $('iv-pel').value;
   const list = INCOME.filter(r => isInvoiceRow(r) && String(r.Tanggal).slice(0, 7) === p)
     .sort((a, b) => String(a.Sumber_Data).localeCompare(String(b.Sumber_Data)) || String(a.Pelanggan).localeCompare(String(b.Pelanggan)));
   $('iv-pel').innerHTML = list.length
     ? list.map(r => `<option value="${esc(r.Income_ID)}">${esc(r.Sumber_Data)} · ${esc(r.Pelanggan)} - ${esc(rp(r.Nominal))}${r.Status === 'Lunas' ? ' (lunas)' : ''}</option>`).join('')
     : '<option value="">Tidak ada tagihan</option>';
+  if (keepPel && list.some(r => r.Income_ID === keepPel)) $('iv-pel').value = keepPel;
   fillInvoiceCompany();
 }
 
