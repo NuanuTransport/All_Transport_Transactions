@@ -2321,6 +2321,7 @@ function renderDetail() {
   const isOpen = h.Status === 'Open';
   const s = saldo(h);
   const divisiList = MASTER.divisiMap[h.Grup] || [];
+  const usageDiv = [...new Set([...divisiList, ...(MASTER.caExtraDivisi || ['Guest Mobility'])])];   // pemakaian: + Guest Mobility (taxi) untuk semua CA
 
   $('d-title').textContent = `${h.CA_ID} - ${fmtPeriode(h.Periode)}`;
   $('d-info').innerHTML = `
@@ -2389,8 +2390,8 @@ function renderDetail() {
     t.value = td < range.min ? range.min : td > range.max ? range.max : td;
   }
   const keepDiv = $('u-divisi').value;
-  fillSelect($('u-divisi'), divisiList, 'Pilih divisi');
-  if (divisiList.includes(keepDiv)) $('u-divisi').value = keepDiv;
+  $('u-divisi').innerHTML = '<option value="">Pilih divisi</option>' + usageDiv.map(d => `<option value="${esc(d)}">${esc(d)}${d === 'Guest Mobility' ? ' (Taxi)' : ''}</option>`).join('');
+  if (usageDiv.includes(keepDiv)) $('u-divisi').value = keepDiv;
 
   // Info clearing
   let info = `Nominal CA ${rp(s.nominal)}, terpakai ${rp(s.used)}. `;
