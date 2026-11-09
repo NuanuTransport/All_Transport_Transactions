@@ -117,7 +117,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -626,6 +626,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <div class="actions">
       <button class="btn sec" onclick="show('list')">&larr; Kembali</button>
       <button class="btn sec" id="btn-print" onclick="printReport()">Cetak Laporan Clearing</button>
+      <button class="btn sec" id="btn-ca-edit" onclick="openCaEdit('header')">Edit CA</button>
     </div>
 
     <div class="card">
@@ -1689,6 +1690,17 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
 </div>
 
+<!-- MODAL EDIT CASH ADVANCE (CA / PEMAKAIAN / TOP UP) -->
+<div class="modal hidden" id="ce-modal" onclick="if (event.target === this) closeCaEdit()">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head"><b id="ce-title">Edit</b><button class="btn sec sm" onclick="closeCaEdit()">Tutup</button></div>
+    <div class="muted" id="ce-sub"></div>
+    <div id="ce-form"></div>
+    <div class="muted" id="ce-note" style="margin-top:8px"></div>
+    <div class="btns" style="margin-top:14px"><button class="btn" style="margin:0" id="btn-ce" onclick="saveCaEdit()">Simpan Perubahan</button></div>
+  </div>
+</div>
+
 <!-- MODAL EXPORT EXCEL -->
 <div class="modal hidden" id="export-modal" onclick="if (event.target === this) closeExport()">
   <div class="modal-box" style="max-width:480px">
@@ -2073,7 +2085,7 @@ async function saveUser() {
 
 const AKSI_LABEL = {
   login: 'Login', setupFirstUser: 'Aktifkan login', createCA: 'Buat CA', addUsage: 'Tambah pemakaian CA', deleteUsage: 'Hapus pemakaian CA',
-  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', addTopupSplit: 'Top up dari manager (dibagi)', pindahSaldo: 'Pindah saldo antar grup CA', deleteTopupRef: 'Hapus top up manager', saveKdabReport: 'Laporan KDAB', editIncome: 'Edit income',
+  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', addTopupSplit: 'Top up dari manager (dibagi)', editCA: 'Edit CA', editUsage: 'Edit pemakaian CA', editTopup: 'Edit top up CA', pindahSaldo: 'Pindah saldo antar grup CA', deleteTopupRef: 'Hapus top up manager', saveKdabReport: 'Laporan KDAB', editIncome: 'Edit income',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
   addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', saveAssetBatch: 'Ubah / tambah batch pembelian', deleteAssetBatch: 'Hapus batch pembelian', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
@@ -2594,7 +2606,7 @@ function renderDetail() {
       <td>${esc(t.Keterangan) || '<span class="muted">-</span>'}</td>
       <td class="num">${rp(t.Nominal)}</td>
       <td>${fileTag(t.Bukti_URL)}</td>
-      <td>${isOpen ? `<button class="btn sec sm" onclick="event.stopPropagation(); delTopup('${esc(t.Topup_ID)}')">Hapus</button>` : ''}</td>
+      <td>${isOpen ? `<div class="btns" style="flex-wrap:nowrap"><button class="btn sec sm" onclick="event.stopPropagation(); openCaEdit('topup', ${idx})">Edit</button><button class="btn sec sm" onclick="event.stopPropagation(); delTopup('${esc(t.Topup_ID)}')">Hapus</button></div>` : ''}</td>
     </tr>`).join('') + `<tr class="total"><td colspan="3">Total top up</td><td class="num">${rp(s.topup)}</td><td></td><td></td></tr>`
     : '<tr><td colspan="6" class="muted">Belum ada top up</td></tr>';
   if (!$('t-dari').value) $('t-dari').value = h.PIC || '';
@@ -2612,7 +2624,7 @@ function renderDetail() {
       <td>${esc(i.Keterangan)}</td>
       <td class="num">${rp(i.Nominal)}</td>
       <td>${fileTag(i.Nota_URL)}</td>
-      <td>${isOpen ? `<button class="btn sec sm" onclick="event.stopPropagation(); delUsage('${esc(i.Detail_ID)}')">Hapus</button>` : ''}</td>
+      <td>${isOpen ? `<div class="btns" style="flex-wrap:nowrap"><button class="btn sec sm" onclick="event.stopPropagation(); openCaEdit('usage', ${idx})">Edit</button><button class="btn sec sm" onclick="event.stopPropagation(); delUsage('${esc(i.Detail_ID)}')">Hapus</button></div>` : ''}</td>
     </tr>`).join('') : '<tr><td colspan="7" class="muted">Belum ada pemakaian</td></tr>';
 
   // Form pemakaian
@@ -2641,6 +2653,7 @@ function renderDetail() {
 
   $('usage-form').classList.toggle('hidden', !isOpen);
   $('topup-form').classList.toggle('hidden', !isOpen);
+  $('btn-ca-edit').classList.toggle('hidden', !isOpen);
   $('clear-form').classList.toggle('hidden', !isOpen);
 }
 
@@ -2862,6 +2875,93 @@ async function addTopup() {
     toast('Gagal: ' + e.message);
   } finally {
     b.disabled = false; b.textContent = 'Tambah Top Up';
+  }
+}
+
+// ---------- EDIT CASH ADVANCE ----------
+let CE = null;
+function openCaEdit(mode, idx) {
+  if (!CURRENT) return;
+  const h = CURRENT.header;
+  if (h.Status !== 'Open') return toast('CA sudah clearing, tidak bisa diedit');
+  const F = (id, label, html) => `<div><label for="${id}">${label}</label>${html}</div>`;
+  const inp = (id, v, type, extra) => `<input type="${type || 'text'}" id="${id}" value="${esc(v == null ? '' : v)}" autocomplete="off" ${extra || ''}>`;
+  const money = (id, v) => inp(id, Number(v || 0).toLocaleString('id-ID'), 'text', 'inputmode="numeric" oninput="fmtMoneyInput(this)"');
+  const sel = (id, list, v, ph) => `<select id="${id}">${ph !== undefined ? `<option value="">${esc(ph)}</option>` : ''}${list.map(x => `<option value="${esc(x)}"${x === v ? ' selected' : ''}>${esc(x)}${x === 'Guest Mobility' && id === 'ce-div' ? ' (Taxi)' : ''}</option>`).join('')}</select>`;
+  const r = periodeRange(h.Periode);
+  let html = '', title = '', sub = '', note = '';
+  if (mode === 'header') {
+    CE = { mode, id: h.CA_ID };
+    title = 'Edit CA ' + h.CA_ID;
+    sub = `${h.Grup} · periode ${fmtPeriode(h.Periode)}`;
+    html = `<div class="row">${F('ce-tgl', 'Tanggal CA cair', inp('ce-tgl', String(h.Tanggal_Terima).slice(0, 10), 'date'))}${F('ce-pic', 'Manager pemegang CA', inp('ce-pic', h.PIC, 'text', 'list="pic-list"'))}</div>
+      ${F('ce-nom', 'Nominal CA (Rp)', money('ce-nom', h.Nominal))}${F('ce-ket', 'Keterangan', inp('ce-ket', h.Keterangan))}`;
+    note = `Sudah di-top up ke admin ${rp(h.Topup)}: nominal CA tidak boleh lebih kecil dari angka ini. Grup dan periode tidak bisa diubah.`;
+  } else if (mode === 'usage') {
+    const it = CURRENT.items[idx];
+    CE = { mode, id: it.Detail_ID };
+    title = 'Edit Pemakaian';
+    sub = `${h.CA_ID} · ${h.Grup}`;
+    const divs = [...new Set([...(MASTER.divisiMap[h.Grup] || []), ...(MASTER.caExtraDivisi || ['Guest Mobility'])])];
+    if (it.Divisi && !divs.includes(it.Divisi)) divs.push(it.Divisi);
+    const kat = (MASTER.kategori || []).slice(); if (it.Kategori && !kat.includes(it.Kategori)) kat.push(it.Kategori);
+    const unit = (MASTER.unit || []).slice(); if (it.Unit && !unit.includes(it.Unit)) unit.push(it.Unit);
+    html = `<div class="row">${F('ce-tgl', 'Tanggal', inp('ce-tgl', String(it.Tanggal).slice(0, 10), 'date', `min="${r.min}" max="${r.max}"`))}${F('ce-div', 'Divisi', sel('ce-div', divs, it.Divisi, 'Pilih divisi'))}</div>
+      <div class="row">${F('ce-kat', 'Kategori', sel('ce-kat', kat, it.Kategori, 'Pilih kategori'))}${F('ce-unit', 'Unit kendaraan', sel('ce-unit', unit, it.Unit || '', '- Tidak terkait unit -'))}</div>
+      <div class="row">${F('ce-ket', 'Keterangan', inp('ce-ket', it.Keterangan))}${F('ce-nom', 'Nominal (Rp)', money('ce-nom', it.Nominal))}</div>
+      ${F('ce-file', 'Ganti foto nota (opsional)', '<input type="file" id="ce-file" accept="image/*,application/pdf">')}`;
+    note = it.Nota_URL ? `Nota tersimpan: <a href="${esc(it.Nota_URL)}" target="_blank" rel="noopener">lihat</a>. Pilih file baru untuk mengganti.` : '';
+  } else {
+    const t = CURRENT.topups[idx];
+    const ref = !!t.Ref;
+    CE = { mode, id: t.Topup_ID, ref, nominal: Number(t.Nominal) };
+    title = t.Jenis === 'Pindah' ? 'Edit Pindah Saldo' : 'Edit Top Up';
+    sub = `${h.CA_ID} · ${h.Grup}`;
+    html = `<div class="row">${F('ce-tgl', 'Tanggal', inp('ce-tgl', String(t.Tanggal).slice(0, 10), 'date', `max="${today()}"`))}${F('ce-dari', 'Dari', inp('ce-dari', t.Dari, 'text', ref ? 'disabled' : 'list="pic-list"'))}</div>
+      <div class="row">${F('ce-nom', 'Nominal (Rp)', ref ? inp('ce-nom', rp(t.Nominal), 'text', 'disabled') : money('ce-nom', t.Nominal))}${F('ce-ket', 'Keterangan', inp('ce-ket', t.Keterangan))}</div>
+      ${t.Jenis === 'Pindah' ? '' : F('ce-file', 'Ganti bukti transfer (opsional)', '<input type="file" id="ce-file" accept="image/*,application/pdf">')}`;
+    note = ref ? (t.Jenis === 'Pindah' ? 'Perubahan tanggal dan keterangan berlaku untuk kedua sisi pindah saldo. Untuk mengubah nominal, hapus lalu catat ulang.' : `Top up ini bagian dari transfer manager ${rp(Number(t.Total_Transfer) || 0)} yang dibagi ke beberapa CA. Tanggal, keterangan dan bukti berlaku untuk semua bagiannya. Untuk mengubah nominal, hapus lalu catat ulang di kartu Top up dari Manager.`) : '';
+  }
+  $('ce-title').textContent = title;
+  $('ce-sub').textContent = sub;
+  $('ce-form').innerHTML = html;
+  $('ce-note').innerHTML = note;
+  $('ce-modal').classList.remove('hidden');
+}
+function closeCaEdit() { $('ce-modal').classList.add('hidden'); }
+
+async function saveCaEdit() {
+  if (!CE) return;
+  const v = id => ($(id) ? $(id).value.trim() : '');
+  let action, d;
+  if (CE.mode === 'header') {
+    action = 'editCA';
+    d = { CA_ID: CE.id, Tanggal_Terima: v('ce-tgl'), PIC: v('ce-pic'), Nominal: toNum(v('ce-nom')), Keterangan: v('ce-ket') };
+    if (!d.Tanggal_Terima || !d.PIC || !d.Nominal) return toast('Lengkapi tanggal, manager dan nominal');
+  } else if (CE.mode === 'usage') {
+    action = 'editUsage';
+    d = { Detail_ID: CE.id, Tanggal: v('ce-tgl'), Divisi: v('ce-div'), Kategori: v('ce-kat'), Unit: v('ce-unit'), Keterangan: v('ce-ket'), Nominal: toNum(v('ce-nom')) };
+    if (!d.Tanggal || !d.Divisi || !d.Kategori || !d.Keterangan || !d.Nominal) return toast('Lengkapi tanggal, divisi, kategori, keterangan dan nominal');
+  } else {
+    action = 'editTopup';
+    d = { Topup_ID: CE.id, Tanggal: v('ce-tgl'), Keterangan: v('ce-ket') };
+    if (!CE.ref) { d.Dari = v('ce-dari'); d.Nominal = toNum(v('ce-nom')); if (!d.Dari || !d.Nominal) return toast('Lengkapi dari dan nominal'); }
+    if (!d.Tanggal) return toast('Isi tanggal');
+  }
+  const b = $('btn-ce');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('ce-file') && $('ce-file').files[0];
+    if (f) { b.textContent = 'Mengunggah file...'; d[CE.mode === 'usage' ? 'Nota' : 'Bukti'] = await readFile(f); }
+    CURRENT = await apiPost(action, d);
+    renderDetail();
+    closeCaEdit();
+    toast('Perubahan disimpan');
+    apiGet({ action: 'list' }).then(l => { LIST = l; renderList(); }).catch(() => {});
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Perubahan';
   }
 }
 
