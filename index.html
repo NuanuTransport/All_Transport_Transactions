@@ -114,7 +114,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -148,6 +148,18 @@ body.viewer [onclick*="openBatch("],body.viewer #btn-ab,body:not(.head) #btn-ab-
 .rs-chip b{font-size:13px}
 .rs-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .rs-tabs::-webkit-scrollbar{display:none}
+.kd-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:13px}
+.kd-range input[type=date]{width:auto}
+.kd-st{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.kd-st.s0{background:#eef1f4;color:#6b7280}.kd-st.s1{background:#fff4e5;color:#b45309}.kd-st.s2{background:#e8f0fe;color:#1d4ed8}.kd-st.s3{background:#e7f6ec;color:#15803d}
+tr.kd-open>td{background:#fafbfc}
+.kd-sub{margin:4px 0 6px;width:100%}
+.kd-sub th,.kd-sub td{font-size:12px;padding:4px 6px}
+@media(max-width:640px){.kd-sub{display:block;overflow-x:auto;white-space:nowrap}}
+.kd-steps{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.kd-steps span{font-size:12px;padding:3px 8px;border-radius:10px;background:#eef1f4;color:#6b7280}
+.kd-steps span.on{background:#e7f6ec;color:#15803d;font-weight:600}
+
 .rs-tabs button{border:0;background:none;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap;flex:0 0 auto}
 .rs-tabs button.active{color:#1e5246;border-bottom-color:#1e5246;font-weight:600}
 details.rs-dept{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
@@ -299,6 +311,26 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .jc-text td:first-child{width:24%}
   #print-area .inv-end{break-inside:avoid;page-break-inside:avoid}
   #print-area .inv-end .sign .line{margin-top:0}
+  #print-area .kd-doc{border:1px solid #000;padding:18px 0 40px;font-family:Poppins,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#000}
+  #print-area .kd-title{text-align:center;font-size:15px;font-weight:700;margin:6px 0 16px}
+  #print-area .kd-tbl{width:100%;border-collapse:collapse}
+  #print-area .kd-tbl th{background:#e5e5e5;font-size:9.5px;font-weight:700;border:1px solid #000;padding:3px 5px;text-align:center}
+  #print-area .kd-tbl td{font-size:9.5px;border:1px solid #000;padding:2px 5px}
+  #print-area .kd-tbl tr{break-inside:avoid;page-break-inside:avoid}
+  #print-area .kd-tbl td.c{text-align:center}
+  #print-area .kd-tbl td.n{text-align:right;white-space:nowrap}
+  #print-area .kd-tbl .kd-tot td{font-weight:700}
+  #print-area .kd-tbl .kd-tot td.hl{background:#00ffff;text-align:center}
+  #print-area .kd-tbl .kd-tot td.hl.n{text-align:right}
+  #print-area .kd-tbl th:first-child,#print-area .kd-tbl td:first-child{border-left:0}
+  #print-area .kd-tbl th:last-child,#print-area .kd-tbl td:last-child{border-right:0}
+  #print-area .kd-note{color:#e00000;font-style:italic;font-size:9.5px;margin:18px 4px 26px}
+  #print-area .kd-sign{display:grid;grid-template-columns:1fr 1fr;row-gap:34px;text-align:center;font-size:9.5px;break-inside:avoid;page-break-inside:avoid}
+  #print-area .kd-sign .lbl{margin-bottom:6px}
+  #print-area .kd-sign .sp{height:62px;display:flex;align-items:center;justify-content:center}
+  #print-area .kd-sign .sp svg{height:56px;width:auto;fill:#14213d}
+  #print-area .kd-sign .nm{margin-top:4px}
+  #print-area .kd-sign .jb{margin-top:6px}
   #print-area .sig-box{height:60px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
   #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
   #print-area .sig-box svg.sig-tall{height:58px}
@@ -334,19 +366,19 @@ html,body{max-width:100%;overflow-x:hidden}
   input,select,textarea{font-size:16px!important}
   /* Tabel jadi kartu (tabel dengan >= 5 kolom; label kolom diisi otomatis dari header) */
   .tablewrap:has(table.mcard){overflow:visible}
-  table.mcard,table.mcard tbody,table.mcard tr,table.mcard td{display:block;width:100%}
-  table.mcard thead{display:none}
-  table.mcard tr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box}
-  table.mcard tr.total{background:#f6f8fa;font-weight:700}
-  table.mcard td{border:0!important;padding:4px 0 4px 40%!important;position:relative;text-align:left!important;min-height:18px;box-sizing:border-box;word-break:break-word}
-  table.mcard td::before{content:attr(data-l);position:absolute;left:0;top:4px;width:37%;color:var(--muted);font-size:12px;font-weight:400;line-height:1.35}
-  table.mcard td:first-child{padding-left:0!important;font-size:15px;font-weight:600;border-bottom:1px solid var(--line)!important;padding-bottom:6px!important;margin-bottom:4px}
-  table.mcard td:first-child::before,table.mcard td[colspan]::before,table.mcard td.mc-nolabel::before{display:none}
-  table.mcard td[colspan],table.mcard td.mc-nolabel{padding-left:0!important}
-  table.mcard td[colspan]:first-child{border:0!important;margin:0;font-weight:400;font-size:13px}
-  table.mcard td:empty{display:none}
-  table.mcard td .btns{justify-content:flex-start;flex-wrap:wrap}
-  table.mcard tr.total td:first-child{border:0!important;font-size:14px}
+  table.mcard,table.mcard>tbody,table.mcard>tbody>tr,table.mcard>tbody>tr>td{display:block;width:100%}
+  table.mcard>thead{display:none}
+  table.mcard>tbody>tr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box}
+  table.mcard>tbody>tr.total{background:#f6f8fa;font-weight:700}
+  table.mcard>tbody>tr>td{border:0!important;padding:4px 0 4px 40%!important;position:relative;text-align:left!important;min-height:18px;box-sizing:border-box;word-break:break-word}
+  table.mcard>tbody>tr>td::before{content:attr(data-l);position:absolute;left:0;top:4px;width:37%;color:var(--muted);font-size:12px;font-weight:400;line-height:1.35}
+  table.mcard>tbody>tr>td:first-child{padding-left:0!important;font-size:15px;font-weight:600;border-bottom:1px solid var(--line)!important;padding-bottom:6px!important;margin-bottom:4px}
+  table.mcard>tbody>tr>td:first-child::before,table.mcard>tbody>tr>td[colspan]::before,table.mcard>tbody>tr>td.mc-nolabel::before{display:none}
+  table.mcard>tbody>tr>td[colspan],table.mcard>tbody>tr>td.mc-nolabel{padding-left:0!important}
+  table.mcard>tbody>tr>td[colspan]:first-child{border:0!important;margin:0;font-weight:400;font-size:13px}
+  table.mcard>tbody>tr>td:empty{display:none}
+  table.mcard>tbody>tr>td .btns{justify-content:flex-start;flex-wrap:wrap}
+  table.mcard>tbody>tr.total td:first-child{border:0!important;font-size:14px}
 }
 </style>
 <style id="page-size"></style>
@@ -374,6 +406,7 @@ html,body{max-width:100%;overflow-x:hidden}
 <nav>
   <button data-v="summary" class="active" onclick="show('summary')">Dashboard</button>
   <button data-v="income" onclick="show('income')">Income</button>
+  <button data-v="kdab" onclick="show('kdab')">KDAB</button>
   <button data-v="pr" onclick="show('pr')">Purchase</button>
   <button data-v="list" onclick="show('list')">Cash Advance</button>
   <button data-v="alloc" onclick="show('alloc')">Alokasi EV</button>
@@ -575,7 +608,6 @@ html,body{max-width:100%;overflow-x:hidden}
       <button data-s="daftar" class="active" onclick="setSub('income','daftar')">Daftar Income</button>
       <button data-s="jc" onclick="setSub('income','jc')">Job Completion</button>
       <button data-s="rental" onclick="setSub('income','rental')">Rental EV</button>
-      <button data-s="kdab" onclick="setSub('income','kdab')">Taxi Lokal KDAB</button>
       <button data-s="sync" onclick="setSub('income','sync')">Tarik Data &amp; Pelunasan<span class="badge hidden" id="sync-badge"></span></button>
       <button data-s="manual" onclick="setSub('income','manual')">Input Manual</button>
     </div>
@@ -701,38 +733,6 @@ html,body{max-width:100%;overflow-x:hidden}
           <tbody id="ra-body"><tr><td colspan="7" class="muted">Memuat...</td></tr></tbody>
         </table>
       </div>
-    </div>
-    </div>
-
-    <div class="sub hidden" data-g="income" data-s="kdab">
-    <div class="card">
-      <div class="card-head">
-        <div><h2>Taxi Lokal KDAB</h2><div class="muted" id="kd-info">Pilih bulan lalu klik Tampilkan.</div></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select id="kd-periode" style="width:auto;min-width:160px" onchange="loadKdab()"></select>
-          <button class="btn sec" style="margin:0" onclick="loadKdab(true)">Muat ulang</button>
-          <button class="btn sec" style="margin:0" onclick="exportKdab()">Download Excel</button>
-        </div>
-      </div>
-      <div class="stats" id="kd-stats"></div>
-      <div class="rs-chips" id="kd-chips"></div>
-      <div class="chart-box" id="kd-chart"></div>
-      <div class="rs-tabs" id="kd-tabs">
-        <button class="active" data-m="driver" onclick="setKdMode('driver')">Per driver</button>
-        <button data-m="tujuan" onclick="setKdMode('tujuan')">Per tujuan</button>
-        <button data-m="harian" onclick="setKdMode('harian')">Harian &amp; cocokkan setoran</button>
-        <button data-m="trip" onclick="setKdMode('trip')">Daftar trip</button>
-      </div>
-      <div class="filters" id="kd-filter">
-        <input type="text" id="kd-cari" placeholder="Cari driver / tujuan / mobil" oninput="renderKdab()">
-        <select id="kd-bayar" onchange="renderKdab()"><option value="">Semua pembayaran</option><option>Cash</option><option>Card</option><option>QRIS</option><option>Transfer</option></select>
-        <select id="kd-jenis" onchange="renderKdab()"><option value="">Car &amp; Bike</option><option>Car</option><option>Bike</option></select>
-      </div>
-      <div class="tablewrap"><table>
-        <thead id="kd-head"></thead>
-        <tbody id="kd-body"><tr><td class="muted">Belum dimuat</td></tr></tbody>
-      </table></div>
-      <div class="muted" style="margin-top:8px" id="kd-note"></div>
     </div>
     </div>
 
@@ -1042,6 +1042,47 @@ html,body{max-width:100%;overflow-x:hidden}
   </section>
 
   <!-- PENGGUNA & LOG AKTIVITAS (Head) -->
+  <!-- TAXI LOKAL KDAB (KOPERASI KENCANA) -->
+  <section id="view-kdab" class="hidden">
+    <div class="page-head">
+      <div><h2>KDAB · Taxi Lokal</h2><div class="muted" id="kd-info">Booking taxi lokal Koperasi Kencana per hari dan laporan untuk tanda tangan COO</div></div>
+      <div class="ctrl" style="flex-wrap:wrap">
+        <select id="kd-periode" onchange="loadKdab()"></select>
+        <button class="btn sec" style="margin:0" onclick="loadKdab(true)">Muat ulang</button>
+        <button class="btn sec" style="margin:0" onclick="exportKdab()">Download Excel</button>
+      </div>
+    </div>
+    <div class="stats" id="kd-stats"></div>
+    <div class="card">
+      <div class="card-head"><div><h2>Revenue per hari</h2><div class="rs-chips" id="kd-chips" style="margin-top:6px"></div></div></div>
+      <div class="chart-box" id="kd-chart"></div>
+    </div>
+    <div class="card">
+      <div class="rs-tabs" id="kd-tabs">
+        <button class="active" data-m="harian" onclick="setKdMode('harian')">Laporan harian</button>
+        <button data-m="driver" onclick="setKdMode('driver')">Per driver</button>
+        <button data-m="tujuan" onclick="setKdMode('tujuan')">Per tujuan</button>
+        <button data-m="trip" onclick="setKdMode('trip')">Daftar trip</button>
+      </div>
+      <div id="kd-range" class="kd-range">
+        <span class="muted">Laporan rentang tanggal:</span>
+        <input type="date" id="kd-dari"> <span class="muted">s/d</span> <input type="date" id="kd-sampai">
+        <button class="btn sec sm" style="margin:0" onclick="kdPrintRange()">Cetak / PDF</button>
+        <button class="btn sec sm" style="margin:0" onclick="kdSendRange()">Kirim ke COO</button>
+      </div>
+      <div class="filters hidden" id="kd-filter">
+        <input type="text" id="kd-cari" placeholder="Cari driver / tujuan / mobil" oninput="renderKdab()">
+        <select id="kd-bayar" onchange="renderKdab()"><option value="">Semua pembayaran</option><option>Cash</option><option>Card</option><option>QRIS</option><option>Transfer</option></select>
+        <select id="kd-jenis" onchange="renderKdab()"><option value="">Car &amp; Bike</option><option>Car</option><option>Bike</option></select>
+      </div>
+      <div class="tablewrap"><table id="kd-table">
+        <thead id="kd-head"></thead>
+        <tbody id="kd-body"><tr><td class="muted">Belum dimuat</td></tr></tbody>
+      </table></div>
+      <div class="muted" style="margin-top:8px" id="kd-note"></div>
+    </div>
+  </section>
+
   <section id="view-users" class="hidden">
     <div class="page-head">
       <div><h2>Pengguna &amp; Riwayat</h2><div class="muted">Akun login, hak akses, dan catatan semua perubahan data</div></div>
@@ -1404,6 +1445,32 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
 </div>
 
+<!-- MODAL STATUS LAPORAN KDAB -->
+<div class="modal hidden" id="kd-modal" onclick="if (event.target === this) closeKdStatus()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head"><b id="kd-m-title">Laporan KDAB</b><button class="btn sec sm" onclick="closeKdStatus()">Tutup</button></div>
+    <div class="send-file" style="display:block">
+      <div id="kd-m-per" style="font-weight:600">-</div>
+      <div class="muted" id="kd-m-sub"></div>
+    </div>
+    <div class="kd-steps" id="kd-m-steps"></div>
+    <div class="row">
+      <div><label>Status</label>
+        <select id="kd-m-status"><option>Dibuat</option><option>Dikirim ke COO</option><option>Ditandatangani</option></select>
+      </div>
+      <div><label>Tanggal ditandatangani</label><input type="date" id="kd-m-tgl"></div>
+    </div>
+    <label>Scan laporan yang sudah ditandatangani (foto / PDF)</label>
+    <div class="muted" id="kd-m-file" style="margin-bottom:4px"></div>
+    <input type="file" id="kd-m-upload" accept="image/*,application/pdf">
+    <label>Catatan (opsional)</label><input type="text" id="kd-m-cat" autocomplete="off">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-kd-m" onclick="saveKdStatus()">Simpan</button>
+      <button class="btn sec" style="margin:0" onclick="kdPrintCur()">Cetak ulang</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EXPORT EXCEL -->
 <div class="modal hidden" id="export-modal" onclick="if (event.target === this) closeExport()">
   <div class="modal-box" style="max-width:480px">
@@ -1598,7 +1665,7 @@ async function refreshAll() {
   if (INCOME_LOADED || ['income', 'summary'].includes(CUR_VIEW)) jobs.push(loadIncome());
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
   Object.keys(KD_CACHE).forEach(k => delete KD_CACHE[k]);
-  if (KD) jobs.push(loadKdab());
+  if (KD || CUR_VIEW === 'kdab') jobs.push(loadKdab());
   if (CUR_VIEW === 'summary') jobs.push(loadSummary());
   if (CUR_VIEW === 'users') jobs.push(loadUsers());
   if (ALLOC_LOADED || CUR_VIEW === 'alloc') { UC = null; LIFE = null; jobs.push(loadAlloc().then(() => { if (AL_MODE === 'cost') return loadUnitCost(); if (AL_MODE === 'hist') return loadUnitHist(); if (AL_MODE === 'life') return loadUnitLife(); })); }
@@ -1788,7 +1855,7 @@ async function saveUser() {
 
 const AKSI_LABEL = {
   login: 'Login', setupFirstUser: 'Aktifkan login', createCA: 'Buat CA', addUsage: 'Tambah pemakaian CA', deleteUsage: 'Hapus pemakaian CA',
-  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', editIncome: 'Edit income',
+  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', saveKdabReport: 'Laporan KDAB', editIncome: 'Edit income',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
   addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', saveAssetBatch: 'Ubah / tambah batch pembelian', deleteAssetBatch: 'Hapus batch pembelian', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
@@ -1813,13 +1880,14 @@ function centerTab(b) {
 }
 
 function show(view) {
-  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc', 'kdab'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
   centerTab(document.querySelector('nav button.active'));
   window.scrollTo(0, 0);
   if (view === 'income' && !INCOME_LOADED) loadIncome();
+  if (view === 'kdab') initKdab();
   if (view === 'pr' && !PR_LOADED) loadPR();
   if (view === 'summary') loadSummary();
   if (view === 'users') loadUsers();
@@ -1833,7 +1901,6 @@ function setSub(group, name) {
   document.querySelectorAll(`.sub[data-g="${group}"]`).forEach(el => el.classList.toggle('hidden', el.dataset.s !== name));
   try { localStorage.setItem('tf-sub-' + group, name); } catch (e) {}
   if (group === 'income' && name === 'rental') renderRentChart();
-  if (group === 'income' && name === 'kdab') initKdab();
   redrawCharts();
 }
 
@@ -3273,19 +3340,19 @@ async function deleteAlloc() {
 function labelTables() {
   document.querySelectorAll('main table').forEach(t => {
     if (t.classList.contains('items') || t.id === 'rs-mtable' || t.closest('#print-area')) return;
-    const th = [...t.querySelectorAll('thead th')];
+    const th = t.tHead ? [...t.tHead.querySelectorAll('th')] : [];
     if (th.length < 5) return;
     t.classList.add('mcard');
     const labels = [];
     th.forEach(h => { const n = Number(h.getAttribute('colspan')) || 1; for (let i = 0; i < n; i++) labels.push(h.textContent.trim()); });
-    t.querySelectorAll('tbody tr').forEach(tr => {
+    [...t.tBodies].forEach(tb => [...tb.rows].forEach(tr => {
       let i = 0;
       [...tr.children].forEach(td => {
         if (td.dataset.l === undefined) td.dataset.l = labels[i] || '';
         if (!td.dataset.l) td.classList.add('mc-nolabel');
         i += Number(td.getAttribute('colspan')) || 1;
       });
-    });
+    }));
   });
 }
 let LT_PENDING = false;
@@ -3295,33 +3362,64 @@ new MutationObserver(() => {
   requestAnimationFrame(() => { LT_PENDING = false; labelTables(); });
 }).observe(document.documentElement, { childList: true, subtree: true });
 
-// ---------- TAXI LOKAL KDAB ----------
+// ---------- TAXI LOKAL KDAB (KOPERASI KENCANA) ----------
 // Sumber: sheet KDAB 2026, tab REPORT ORDER (per trip) + tab "<BULAN> REVENUE" (setoran harian per metode & No POS).
-let KD = null, KD_MODE = 'driver';
-const KD_CACHE = {};
+// Tarif sudah termasuk pajak 10% -> dasar = revenue / 1,1; net revenue koperasi = dasar x 95% (bagi hasil Nuanu 5%).
+let KD = null, KD_MODE = 'harian';
+const KD_CACHE = {}, KD_OPEN = new Set();
 const KD_PAY = { Cash: '#2a78d6', Card: '#9cc0ee', QRIS: '#eb6834', Transfer: '#f6c9b4' };
+const KD_PAYS = ['Cash', 'Card', 'QRIS', 'Transfer'];
+// Penandatangan laporan (format laporan Koperasi Kencana). Ubah di sini bila ada pergantian pejabat.
+const KD_SIGN = [
+  { lbl: 'Prepared by,', nama: 'Ni Putu Angie Friska Nanda', jabatan: 'Supervisor Transportation', ttd: () => EXT_SUP_SVG },
+  { lbl: 'Approve by,', nama: 'Wayan Suastika', jabatan: 'Sekretaris 2 Koperasi Kencana' },
+  { lbl: 'Acknowledged by:', nama: 'I Made Gede Budiarta SH', jabatan: 'Bendahara Koperasi Kencana' },
+  { lbl: 'Acknowledged by:', nama: 'Brian Hartman', jabatan: 'Nuanu Chief of Operations' }
+];
+const KD_COO = 'Brian Hartman';
+const kdTax = () => (KD && KD.tax) || 0.1, kdNsf = () => (KD && KD.nsf) || 0.05;
+const kdNet = rev => rev / (1 + kdTax()) * (1 - kdNsf());
+const kdShare = rev => rev - kdNet(rev);
+const kdId = (a, b) => 'KD-' + a.replace(/-/g, '') + (b !== a ? '-' + b.replace(/-/g, '') : '');
+const kdRep = (a, b) => ((KD && KD.reports) || []).find(r => r.Report_ID === kdId(a, b));
+const KD_ST = ['Belum dibuat', 'Dibuat', 'Dikirim ke COO', 'Ditandatangani'];
+const kdStTag = r => { const s = r ? r.Status : 'Belum dibuat', i = Math.max(0, KD_ST.indexOf(s)); return `<span class="kd-st s${i}">${esc(s)}</span>`; };
+const rp2 = n => (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const idTgl = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }); };
+const mdy = iso => { const [y, m, d] = iso.split('-').map(Number); return m + '/' + d + '/' + y; };
+function kdPeriodeTxt(a, b) {
+  if (a === b) return idTgl(a);
+  const A = idTgl(a), B = idTgl(b);
+  return a.slice(0, 7) === b.slice(0, 7) ? a.slice(8) + ' - ' + B : A + ' - ' + B;
+}
 
 function initKdab() {
   const sel = $('kd-periode');
   if (!sel.options.length) {
-    const opts = [];
-    const now = new Date();
+    const opts = [], now = new Date();
     for (let i = 0; i < 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (ym >= '2026-01') opts.push(ym); }
     sel.innerHTML = opts.map(ym => `<option value="${ym}">${esc(fmtPeriode(ym))}</option>`).join('');
   }
-  if (!KD) loadKdab();
-  else redrawCharts();
+  if (!KD) loadKdab(); else redrawCharts();
+}
+
+async function kdFetch(ym, force) {
+  if (force) delete KD_CACHE[ym];
+  return KD_CACHE[ym] || (KD_CACHE[ym] = await apiGet({ action: 'kdab', periode: ym }));
 }
 
 async function loadKdab(force) {
   const ym = $('kd-periode').value;
   if (!ym) return;
-  if (force) delete KD_CACHE[ym];
   $('kd-info').textContent = 'Memuat data ' + fmtPeriode(ym) + ' dari sheet KDAB...';
   $('kd-body').innerHTML = '<tr><td class="muted">Memuat...</td></tr>';
   try {
-    KD = KD_CACHE[ym] || (KD_CACHE[ym] = await apiGet({ action: 'kdab', periode: ym }));
-    if (KD.periode !== $('kd-periode').value) return;
+    const d = await kdFetch(ym, force);
+    if (ym !== $('kd-periode').value) return;
+    KD = d;
+    KD_OPEN.clear();
+    const last = KD.trips.map(t => t.tgl).sort().pop() || ym + '-01';
+    if (!$('kd-dari').value || $('kd-dari').value.slice(0, 7) !== ym) { $('kd-dari').value = ym + '-01'; $('kd-sampai').value = last; }
     renderKdab();
   } catch (e) {
     $('kd-info').textContent = 'Gagal: ' + e.message;
@@ -3338,6 +3436,7 @@ function setKdMode(m) {
 
 function kdTrips() {
   const q = $('kd-cari').value.trim().toLowerCase(), fb = $('kd-bayar').value, fj = $('kd-jenis').value;
+  if (KD_MODE === 'harian') return KD.trips;
   return KD.trips.filter(t => (!fb || t.bayar === fb) && (!fj || t.jenis === fj) && (!q || [t.driver, t.tujuan, t.mobil, t.admin].join(' ').toLowerCase().includes(q)));
 }
 
@@ -3363,116 +3462,267 @@ function kdDaily() {
     tr.forEach(t => pay[t.bayar] = (pay[t.bayar] || 0) + t.rev);
     const dep = KD.days.find(d => d.tgl === tgl) || null;
     const rev = tr.reduce((a, t) => a + t.rev, 0);
-    if (!tr.length && !dep && tgl > today()) continue;
-    out.push({ tgl, n: tr.length, rev, pay, dep, selisih: dep ? dep.total - rev : null });
+    if (!tr.length && !dep) continue;
+    out.push({ tgl, n: tr.length, rev, net: kdNet(rev), pay, dep, selisih: dep ? dep.total - rev : null, trips: tr });
   }
-  return out;
+  return out.reverse();
 }
 
 function renderKdab() {
   if (!KD) return;
   const all = KD.trips, rows = kdTrips();
-  const rev = rows.reduce((a, t) => a + t.rev, 0);
-  const kom = Math.round(rev * (KD.tax + KD.nsf));
+  const rev = rows.reduce((a, t) => a + t.rev, 0), net = kdNet(rev);
   const drivers = new Set(rows.map(t => t.driver).filter(Boolean)).size;
-  const dep = KD.days.reduce((a, d) => a + d.total, 0);
-  const allRev = all.reduce((a, t) => a + t.rev, 0);
+  const dep = KD.days.reduce((a, d) => a + d.total, 0), allRev = all.reduce((a, t) => a + t.rev, 0);
   const bike = rows.filter(t => t.jenis === 'Bike').length;
-  const filtered = rows.length !== all.length;
-  $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ' · tab revenue bulan ini tidak ditemukan'}${filtered ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
+  const days = kdDaily();
+  const signed = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Status === 'Ditandatangani').length;
+  $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ''}${rows.length !== all.length ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
   $('kd-stats').innerHTML = `
     <div class="stat"><div class="l">Trip</div><div class="v">${rows.length.toLocaleString('id-ID')}</div><div class="muted">${rows.length - bike} car · ${bike} bike · ${drivers} driver</div></div>
-    <div class="stat"><div class="l">Revenue</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
-    <div class="stat"><div class="l">Komisi Nuanu ${Math.round((KD.tax + KD.nsf) * 100)}%</div><div class="v">${rp(kom)}</div><div class="muted">tax ${Math.round(KD.tax * 100)}% ${rp(Math.round(rev * KD.tax))} + NSF ${Math.round(KD.nsf * 100)}% ${rp(Math.round(rev * KD.nsf))}</div></div>
-    <div class="stat"><div class="l">Setoran (tab revenue)</div><div class="v">${KD.days.length ? rp(dep) : '-'}</div><div class="muted">${KD.days.length ? (dep === allRev ? 'cocok dengan REPORT ORDER' : `<span class="neg">selisih ${rp(dep - allRev)} vs REPORT ORDER</span>`) : 'belum ada'}</div></div>`;
+    <div class="stat"><div class="l">Revenue (termasuk pajak)</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
+    <div class="stat"><div class="l">Net revenue koperasi</div><div class="v">${rp(Math.round(net))}</div><div class="muted">bagian Nuanu ${rp(Math.round(rev - net))} (pajak 10% + bagi hasil 5%)</div></div>
+    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
   const byPay = {};
   rows.forEach(t => { const o = byPay[t.bayar] = byPay[t.bayar] || { n: 0, rev: 0 }; o.n++; o.rev += t.rev; });
   $('kd-chips').innerHTML = Object.entries(byPay).sort((a, b) => b[1].rev - a[1].rev).map(([k, o]) => `<span class="rs-chip"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${KD_PAY[k] || '#c9c8c3'};margin-right:4px"></i>${esc(k)} <b>${rp(o.rev)}</b> · ${o.n} trip</span>`).join('');
-  // grafik revenue harian per metode bayar
   const ym = KD.periode, [y, m] = ym.split('-').map(Number), nd = new Date(y, m, 0).getDate();
-  const labels = [], pays = ['Cash', 'Card', 'QRIS', 'Transfer'], data = {};
-  pays.forEach(p => data[p] = []);
+  const labels = [], data = {};
+  KD_PAYS.forEach(p => data[p] = []);
   for (let i = 1; i <= nd; i++) {
     const tgl = ym + '-' + String(i).padStart(2, '0');
     labels.push(String(i));
-    pays.forEach(p => data[p].push(rows.filter(t => t.tgl === tgl && t.bayar === p).reduce((a, t) => a + t.rev, 0)));
+    KD_PAYS.forEach(p => data[p].push(rows.filter(t => t.tgl === tgl && t.bayar === p).reduce((a, t) => a + t.rev, 0)));
   }
   barChart('kd-chart', {
     labels, legend: true,
-    series: pays.map(p => ({ label: p, color: KD_PAY[p], stack: 's', data: data[p] })),
+    series: KD_PAYS.map(p => ({ label: p, color: KD_PAY[p], stack: 's', data: data[p] })),
     tipTitle: i => fmtTgl(ym + '-' + String(i + 1).padStart(2, '0')),
     tipFooter: i => { const tr = rows.filter(t => t.tgl === ym + '-' + String(i + 1).padStart(2, '0')); return tr.length + ' trip · <b>' + rp(tr.reduce((a, t) => a + t.rev, 0)) + '</b>'; },
     empty: 'Belum ada trip di bulan ini'
   });
 
   $('kd-filter').classList.toggle('hidden', KD_MODE === 'harian');
+  $('kd-range').classList.toggle('hidden', KD_MODE !== 'harian');
   const H = a => '<tr>' + a.map(x => x[0] === '>' ? `<th class="num">${x.slice(1)}</th>` : `<th>${x}</th>`).join('') + '</tr>';
-  const payTxt = p => pays.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
+  const payTxt = p => KD_PAYS.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
   let body = '';
-  if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
+  if (KD_MODE === 'harian') {
+    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', '']);
+    body = days.map(x => {
+      const r = kdRep(x.tgl, x.tgl), open = KD_OPEN.has(x.tgl);
+      const setor = !x.dep ? '<span class="muted">-</span>' : x.selisih === 0 ? `<span class="pos">cocok</span> <span class="muted">${esc(x.dep.pos || '')}</span>` : `<b class="neg">selisih ${x.selisih > 0 ? '+' : '−'}${rp(Math.abs(x.selisih))}</b> <span class="muted">${esc(x.dep.pos || '')}</span>`;
+      let h = `<tr class="click${open ? ' kd-open' : ''}" onclick="kdToggle('${x.tgl}')"><td><b>${esc(fmtTgl(x.tgl))}</b><div class="al-sub">${esc(new Date(x.tgl + 'T00:00').toLocaleDateString('id-ID', { weekday: 'long' }))}</div></td>
+        <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp2(x.net)}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
+        <td>${setor}</td>
+        <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
+        <td><div class="btns" style="flex-wrap:nowrap">
+          <button class="btn sec sm" onclick="event.stopPropagation(); kdPrint('${x.tgl}','${x.tgl}')">Cetak</button>
+          <button class="btn sec sm" onclick="event.stopPropagation(); kdSend('${x.tgl}','${x.tgl}')">Kirim</button>
+          <button class="btn sec sm" onclick="event.stopPropagation(); kdStatus('${x.tgl}','${x.tgl}')">TTD</button>
+        </div></td></tr>`;
+      if (open) h += `<tr class="kd-open"><td colspan="8"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
+        x.trips.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.bayar)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp2(kdNet(t.rev))}</td></tr>`).join('') +
+        `</tbody></table><div class="muted">${esc(payTxt(x.pay))}${x.dep && x.dep.remarks ? ' · ' + esc(x.dep.remarks) : ''}</div></td></tr>`;
+      return h;
+    }).join('');
+    const tr = days.reduce((a, x) => a + x.rev, 0);
+    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp2(kdNet(tr))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td></td></tr>`;
+  } else if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
     const g = kdGroup(rows, KD_MODE === 'driver' ? 'driver' : 'tujuan');
-    $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Komisi 15%', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
-    body = g.map(o => `<tr><td><b>${esc(o.k)}</b></td><td class="num">${o.n}</td><td class="num">${rp(o.rev)}</td><td class="num">${rp(Math.round(o.rev * (KD.tax + KD.nsf)))}</td><td class="num">${rp(Math.round(o.rev / o.n))}</td>
+    $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Net revenue', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
+    body = g.map(o => `<tr><td><b>${esc(o.k)}</b></td><td class="num">${o.n}</td><td class="num">${rp(o.rev)}</td><td class="num">${rp2(kdNet(o.rev))}</td><td class="num">${rp(Math.round(o.rev / o.n))}</td>
       <td>${KD_MODE === 'driver' ? `${o.days.size} hari${o.mobil.size ? '<div class="muted">' + esc([...o.mobil].join(', ')) + '</div>' : ''}` : `${o.car} car · ${o.bike} bike`}</td><td class="muted">${esc(payTxt(o.pay))}</td></tr>`).join('');
-    if (g.length) body += `<tr class="total"><td>Total (${g.length})</td><td class="num">${rows.length}</td><td class="num">${rp(rev)}</td><td class="num">${rp(kom)}</td><td class="num">${rp(rows.length ? Math.round(rev / rows.length) : 0)}</td><td></td><td></td></tr>`;
-  } else if (KD_MODE === 'harian') {
-    const d = kdDaily();
-    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue (report order)', '>Setoran (tab revenue)', '>Selisih', 'No POS', 'Per metode / catatan']);
-    body = d.map(x => `<tr><td>${esc(fmtTgl(x.tgl))}</td><td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${x.dep ? rp(x.dep.total) : '<span class="muted">-</span>'}</td>
-      <td class="num">${x.selisih == null ? '<span class="muted">-</span>' : x.selisih === 0 ? '<span class="pos">cocok</span>' : `<b class="neg">${x.selisih > 0 ? '+' : '−'}${rp(Math.abs(x.selisih))}</b>`}</td>
-      <td>${x.dep ? esc(x.dep.pos || '-') : '-'}</td>
-      <td class="muted">${esc(payTxt(x.pay))}${x.dep && x.selisih ? `<div>Setoran: ${esc(['Cash ' + rp(x.dep.cash), 'Card ' + rp(x.dep.card), 'QRIS ' + rp(x.dep.qris), 'Transfer ' + rp(x.dep.transfer)].filter(s => !/Rp\s?0$/.test(s)).join(' · '))}</div>` : ''}${x.dep && x.dep.remarks ? `<div>${esc(x.dep.remarks)}</div>` : ''}</td></tr>`).join('');
-    const tr = d.reduce((a, x) => a + x.rev, 0), td = d.reduce((a, x) => a + (x.dep ? x.dep.total : 0), 0), nb = d.filter(x => x.selisih).length;
-    body += `<tr class="total"><td>Total${nb ? ` · <span class="neg">${nb} hari selisih</span>` : ''}</td><td class="num">${d.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(td)}</td><td class="num">${td - tr ? rp(td - tr) : 'cocok'}</td><td></td><td></td></tr>`;
+    if (g.length) body += `<tr class="total"><td>Total (${g.length})</td><td class="num">${rows.length}</td><td class="num">${rp(rev)}</td><td class="num">${rp2(net)}</td><td class="num">${rp(rows.length ? Math.round(rev / rows.length) : 0)}</td><td></td><td></td></tr>`;
   } else {
-    $('kd-head').innerHTML = H(['Tanggal', 'Jam', 'Driver', 'Tujuan', '>Revenue', 'Pembayaran', 'Jenis / mobil', 'Admin']);
+    $('kd-head').innerHTML = H(['Tanggal', 'Jam', 'Driver', 'Tujuan', '>Revenue', '>Net revenue', 'Pembayaran', 'Jenis / mobil', 'Admin']);
     const list = rows.slice().sort((a, b) => b.tgl.localeCompare(a.tgl) || String(b.jam).localeCompare(String(a.jam)));
     const max = 400;
-    body = list.slice(0, max).map(t => `<tr><td>${esc(fmtTgl(t.tgl))}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td class="num">${rp(t.rev)}</td><td>${esc(t.bayar)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.admin)}</td></tr>`).join('');
-    if (list.length > max) body += `<tr><td colspan="8" class="muted">Menampilkan ${max} dari ${list.length} trip. Gunakan pencarian, atau Download Excel untuk semua trip.</td></tr>`;
+    body = list.slice(0, max).map(t => `<tr><td>${esc(fmtTgl(t.tgl))}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp2(kdNet(t.rev))}</td><td>${esc(t.bayar)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.admin)}</td></tr>`).join('');
+    if (list.length > max) body += `<tr><td colspan="9" class="muted">Menampilkan ${max} dari ${list.length} trip. Gunakan pencarian, atau Download Excel untuk semua trip.</td></tr>`;
   }
-  $('kd-body').innerHTML = body || '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
-  $('kd-note').innerHTML = `Komisi Nuanu = tax ${Math.round(KD.tax * 100)}% + NSF ${Math.round(KD.nsf * 100)}% dari revenue trip; angka yang sama masuk ke income "Komisi KDAB 15%" saat Tarik Data. ` +
-    `Setoran harian dari tab revenue bulan berjalan dicocokkan dengan total REPORT ORDER per tanggal. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+  $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
+  $('kd-note').innerHTML = 'Net revenue = revenue ÷ 1,1 (pajak 10% sudah termasuk tarif) × 95% (bagi hasil Nuanu 5%), sama dengan laporan Koperasi Kencana. Klik tanggal untuk melihat trip hari itu. ' +
+    `Alur laporan: Cetak / Kirim ke COO → upload scan yang sudah ditandatangani di tombol TTD. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+}
+
+function kdToggle(tgl) {
+  if (KD_OPEN.has(tgl)) KD_OPEN.delete(tgl); else KD_OPEN.add(tgl);
+  renderKdab();
+}
+
+// Trip untuk rentang tanggal (bisa lintas bulan)
+async function kdTripsRange(a, b) {
+  const yms = [];
+  let [y, m] = a.slice(0, 7).split('-').map(Number);
+  while (true) { const ym = y + '-' + String(m).padStart(2, '0'); yms.push(ym); if (ym >= b.slice(0, 7)) break; m++; if (m > 12) { m = 1; y++; } }
+  const res = await Promise.all(yms.map(ym => kdFetch(ym)));
+  // urutan sama dengan sheet REPORT ORDER (per tanggal)
+  return [].concat(...res.map(r => r.trips)).filter(t => t.tgl >= a && t.tgl <= b)
+    .map((t, i) => [t, i]).sort((x, y2) => x[0].tgl.localeCompare(y2[0].tgl) || x[1] - y2[1]).map(x => x[0]);
+}
+
+// Dokumen laporan format Koperasi Kencana (tanpa logo Nuanu)
+async function kdPrint(a, b) {
+  let trips;
+  try { trips = await kdTripsRange(a, b); } catch (e) { toast('Gagal memuat trip: ' + e.message); return null; }
+  if (!trips.length) { toast('Tidak ada trip pada periode ini'); return null; }
+  const rev = trips.reduce((s, t) => s + t.rev, 0), net = trips.reduce((s, t) => s + kdNet(t.rev), 0);
+  const per = kdPeriodeTxt(a, b);
+  $('print-area').innerHTML = `<div class="kd-doc">
+    <div class="kd-title">Koperasi Kencana Transportation Report</div>
+    <table class="kd-tbl">
+      <thead><tr><th style="width:8%">No</th><th style="width:11%">Date</th><th style="width:21%">Driver Name</th><th style="width:24%">Destination</th><th style="width:14%">Vehicle Type</th><th style="width:22%">Net Revenue</th></tr></thead>
+      <tbody>${trips.map((t, i) => `<tr><td class="c">${i + 1}</td><td class="c">${esc(mdy(t.tgl))}</td><td>${esc(t.driver)}</td><td>${esc(t.tujuan)}</td><td class="c">${esc(t.jenis || 'Car')}</td><td class="n">${rp2(kdNet(t.rev))}</td></tr>`).join('')}
+        <tr class="kd-tot"><td></td><td></td><td></td><td></td><td class="hl">TOTAL</td><td class="hl n">${rp2(net)}</td></tr>
+      </tbody>
+    </table>
+    <div class="kd-note">*Note: Harga yang tertera diatas sudah mencakup potongan bagi hasil ${Math.round(kdNsf() * 100)}% dan pajak sebesar ${Math.round(kdTax() * 100)}% Periode ${esc(per)}</div>
+    <div class="kd-sign">${KD_SIGN.map(s => `<div><div class="lbl">${esc(s.lbl)}</div><div class="sp">${s.ttd ? s.ttd() : ''}</div><div class="nm">${esc(s.nama)}</div><div class="jb">${esc(s.jabatan)}</div></div>`).join('')}</div>
+  </div>`;
+  setPageSize('A4 portrait');
+  const title = 'Koperasi Kencana Transportation Report - ' + per;
+  const info = { a, b, title, trips: trips.length, rev, net, per };
+  try {
+    const res = await apiPost('saveKdabReport', { Dari: a, Sampai: b, Status: 'Dibuat', Trip: trips.length, Revenue: rev, Net_Revenue: Math.round(net * 100) / 100 });
+    kdSetReports(a, res.reports);
+  } catch (e) { /* viewer / gagal simpan: tetap bisa dicetak */ }
+  printAs(title);
+  return info;
+}
+
+function kdSetReports(a, reps) {
+  const ym = a.slice(0, 7);
+  if (KD_CACHE[ym]) KD_CACHE[ym].reports = reps || KD_CACHE[ym].reports;
+  if (KD && KD.periode === ym) { KD.reports = reps || KD.reports; renderKdab(); }
+}
+
+function kdPrintRange() {
+  const a = $('kd-dari').value, b = $('kd-sampai').value;
+  if (!a || !b || b < a) return toast('Isi rentang tanggal dengan benar');
+  kdPrint(a, b);
+}
+function kdSendRange() {
+  const a = $('kd-dari').value, b = $('kd-sampai').value;
+  if (!a || !b || b < a) return toast('Isi rentang tanggal dengan benar');
+  kdSend(a, b);
+}
+
+async function kdSend(a, b) {
+  let info, cap;
+  JC_CAPTURE = {};
+  try { info = await kdPrint(a, b); } finally { cap = JC_CAPTURE; JC_CAPTURE = null; }
+  if (!info || !cap || !cap.title) return;
+  toast('Membuat PDF...');
+  try {
+    const pdf = await makePrintPdf();
+    JC_PDF = { id: kdId(a, b), title: info.title, pelanggan: 'COO - KDAB Report', total: 'Rp ' + rp2(info.net), bank: false, kdab: info, ...pdf };
+    openSend();
+    $('sd-last').textContent = (() => { const r = kdRep(a, b); return r && r.Dikirim ? `Laporan ini sudah pernah dikirim ${fmtTgl(String(r.Dikirim).slice(0, 10))}.` : ''; })();
+    $('sd-subject').value = info.title;
+    $('sd-body').value = `Dear Mr. ${KD_COO},\n\nPlease find attached the Koperasi Kencana Transportation Report for ${info.per} (${info.trips} trips, net revenue Rp ${rp2(info.net)}) for your review and signature.\n\nThank you.\n\nBest regards,\nTransport Department`;
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  }
+}
+
+// dipanggil setelah laporan KDAB berhasil dikirim lewat modal kirim
+async function kdAfterSend(d) {
+  try {
+    const res = await apiPost('saveKdabReport', { Dari: d.kdab.a, Sampai: d.kdab.b, Status: 'Dikirim ke COO' });
+    kdSetReports(d.kdab.a, res.reports);
+  } catch (e) { toast('Terkirim, tetapi status laporan gagal disimpan: ' + e.message); }
+}
+
+let KD_CUR = null;
+function kdStatus(a, b) {
+  KD_CUR = { a, b };
+  const r = kdRep(a, b);
+  const tr = KD && a.slice(0, 7) === KD.periode ? KD.trips.filter(t => t.tgl >= a && t.tgl <= b) : [];
+  const rev = tr.reduce((s, t) => s + t.rev, 0);
+  $('kd-m-title').textContent = 'Laporan ' + kdId(a, b);
+  $('kd-m-per').textContent = 'Periode ' + kdPeriodeTxt(a, b);
+  $('kd-m-sub').textContent = `${tr.length || (r && r.Trip) || 0} trip · net revenue Rp ${rp2(tr.length ? kdNet(rev) : Number((r && r.Net_Revenue) || 0))}`;
+  const st = r ? r.Status : '';
+  const i = KD_ST.indexOf(st || 'Belum dibuat');
+  $('kd-m-steps').innerHTML = ['Dibuat', 'Dikirim ke COO', 'Ditandatangani'].map((s, k) => {
+    const when = r ? (k === 0 ? r.Dibuat : k === 1 ? r.Dikirim : r.Ditandatangani) : '';
+    return `<span class="${i >= k + 1 ? 'on' : ''}">${k + 1}. ${esc(s)}${when ? ' · ' + esc(fmtTgl(String(when).slice(0, 10))) : ''}</span>`;
+  }).join('');
+  $('kd-m-status').value = st && st !== 'Belum dibuat' ? (st === 'Ditandatangani' ? st : 'Ditandatangani') : 'Ditandatangani';
+  $('kd-m-tgl').value = r && r.Ditandatangani ? String(r.Ditandatangani).slice(0, 10) : today();
+  $('kd-m-tgl').max = today();
+  $('kd-m-upload').value = '';
+  $('kd-m-cat').value = (r && r.Catatan) || '';
+  $('kd-m-file').innerHTML = r && r.File_TTD ? `Scan tersimpan · <a href="${esc(r.File_TTD)}" target="_blank" rel="noopener">lihat</a> · pilih file baru untuk mengganti` : 'Belum ada scan terlampir';
+  $('kd-modal').classList.remove('hidden');
+}
+function closeKdStatus() { $('kd-modal').classList.add('hidden'); }
+function kdPrintCur() { if (KD_CUR) { closeKdStatus(); kdPrint(KD_CUR.a, KD_CUR.b); } }
+
+async function saveKdStatus() {
+  if (!KD_CUR) return;
+  const d = { Dari: KD_CUR.a, Sampai: KD_CUR.b, Status: $('kd-m-status').value, Paksa: true, Catatan: $('kd-m-cat').value.trim() };
+  if (d.Status === 'Ditandatangani') {
+    d.Tgl_TTD = $('kd-m-tgl').value;
+    if (!d.Tgl_TTD) return toast('Isi tanggal ditandatangani');
+  }
+  const tr = KD && KD_CUR.a.slice(0, 7) === KD.periode ? KD.trips.filter(t => t.tgl >= KD_CUR.a && t.tgl <= KD_CUR.b) : [];
+  if (tr.length) { const rev = tr.reduce((s, t) => s + t.rev, 0); d.Trip = tr.length; d.Revenue = rev; d.Net_Revenue = Math.round(kdNet(rev) * 100) / 100; }
+  const b = $('btn-kd-m');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('kd-m-upload').files[0];
+    if (f) { b.textContent = 'Mengunggah scan...'; d.File = await readFile(f); }
+    const res = await apiPost('saveKdabReport', d);
+    kdSetReports(KD_CUR.a, res.reports);
+    closeKdStatus();
+    toast('Status laporan disimpan');
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan';
+  }
 }
 
 function exportKdab() {
   if (!KD) return toast('Data KDAB belum dimuat');
-  const ym = KD.periode, all = KD.trips, rate = KD.tax + KD.nsf;
-  const rev = all.reduce((a, t) => a + t.rev, 0);
+  const ym = KD.periode, all = KD.trips;
+  const rev = all.reduce((a, t) => a + t.rev, 0), net = kdNet(rev);
+  const r2 = n => Math.round(n * 100) / 100;
   const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
-  const pays = ['Cash', 'Card', 'QRIS', 'Transfer'];
-  const S = [[{ v: 'KDAB Local Taxi - ' + monEn(ym), s: 'title' }], [{ v: 'Source: KDAB 2026 sheet (REPORT ORDER and daily revenue tab). Nuanu commission = tax ' + Math.round(KD.tax * 100) + '% + NSF ' + Math.round(KD.nsf * 100) + '% of trip revenue.', s: 'sub' }], [],
+  const base = rev / (1 + kdTax());
+  const S = [[{ v: 'KDAB Local Taxi (Koperasi Kencana) - ' + monEn(ym), s: 'title' }], [{ v: 'Source: KDAB 2026 sheet (REPORT ORDER and daily revenue tab). Fares include 10% tax; net revenue = fare / 1.1 x 95% (5% revenue share to Nuanu).', s: 'sub' }], [],
     H(['Item', '>Value']),
     ['Trips', { v: all.length, s: 'int' }], ['Car trips', { v: all.filter(t => t.jenis !== 'Bike').length, s: 'int' }], ['Bike trips', { v: all.filter(t => t.jenis === 'Bike').length, s: 'int' }],
     ['Drivers', { v: new Set(all.map(t => t.driver).filter(Boolean)).size, s: 'int' }],
-    ['Revenue', rev], ...pays.map(p => ['  ' + p, all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0)]),
-    ['Tax ' + Math.round(KD.tax * 100) + '%', Math.round(rev * KD.tax)], ['NSF ' + Math.round(KD.nsf * 100) + '%', Math.round(rev * KD.nsf)],
-    [{ v: 'Nuanu commission', s: 'b' }, { v: Math.round(rev * rate), s: 'moneyb' }],
+    ['Revenue (incl. tax)', rev], ...KD_PAYS.map(p => ['  ' + p, all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0)]),
+    ['Tax 10%', r2(base * kdTax())], ['Revenue share 5% (Nuanu)', r2(base * kdNsf())],
+    [{ v: 'Net revenue (cooperative)', s: 'b' }, { v: r2(net), s: 'moneyb' }],
     ['Daily deposit (revenue tab)', KD.days.reduce((a, d) => a + d.total, 0)]];
+  const daily = kdDaily().slice().reverse();
+  const R = [[{ v: 'Daily Reports - ' + monEn(ym), s: 'title' }], [], H(['Date', '>Trips', '>Revenue', '>Net revenue', '>Nuanu share', '>Deposit (revenue tab)', '>Difference', 'POS no', 'Report status', 'Signed on', 'Signed scan'])];
+  daily.forEach(x => { const r = kdRep(x.tgl, x.tgl) || {}; R.push([{ v: x.tgl, s: 'date' }, { v: x.n, s: 'int' }, x.rev, r2(x.net), r2(x.rev - x.net), x.dep ? x.dep.total : '', x.selisih == null ? '' : x.selisih, x.dep ? x.dep.pos : '',
+    ({ 'Dibuat': 'Prepared', 'Dikirim ke COO': 'Sent to COO', 'Ditandatangani': 'Signed' })[r.Status] || 'Not yet', r.Ditandatangani ? { v: String(r.Ditandatangani).slice(0, 10), s: 'date' } : '', r.File_TTD || '']); });
   const drv = kdGroup(all, 'driver');
-  const D = [[{ v: 'By Driver - ' + monEn(ym), s: 'title' }], [], H(['Driver', '>Trips', '>Revenue', '>Commission', '>Avg / trip', '>Days', 'Cars', ...pays.map(p => '>' + p)])];
-  drv.forEach(o => D.push([o.k, { v: o.n, s: 'int' }, o.rev, Math.round(o.rev * rate), Math.round(o.rev / o.n), { v: o.days.size, s: 'int' }, [...o.mobil].join(', '), ...pays.map(p => o.pay[p] || 0)]));
-  D.push([{ v: 'Total', s: 'b' }, { v: all.length, s: 'int' }, { v: rev, s: 'moneyb' }, { v: Math.round(rev * rate), s: 'moneyb' }, '', '', '', ...pays.map(p => ({ v: all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0), s: 'moneyb' }))]);
+  const D = [[{ v: 'By Driver - ' + monEn(ym), s: 'title' }], [], H(['Driver', '>Trips', '>Revenue', '>Net revenue', '>Avg / trip', '>Days', 'Cars', ...KD_PAYS.map(p => '>' + p)])];
+  drv.forEach(o => D.push([o.k, { v: o.n, s: 'int' }, o.rev, r2(kdNet(o.rev)), Math.round(o.rev / o.n), { v: o.days.size, s: 'int' }, [...o.mobil].join(', '), ...KD_PAYS.map(p => o.pay[p] || 0)]));
+  D.push([{ v: 'Total', s: 'b' }, { v: all.length, s: 'int' }, { v: rev, s: 'moneyb' }, { v: r2(net), s: 'moneyb' }, '', '', '', ...KD_PAYS.map(p => ({ v: all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0), s: 'moneyb' }))]);
   const dst = kdGroup(all, 'tujuan');
-  const T = [[{ v: 'By Destination - ' + monEn(ym), s: 'title' }], [], H(['Destination', '>Trips', '>Revenue', '>Commission', '>Car', '>Bike'])];
-  dst.forEach(o => T.push([o.k, { v: o.n, s: 'int' }, o.rev, Math.round(o.rev * rate), { v: o.car, s: 'int' }, { v: o.bike, s: 'int' }]));
-  const daily = kdDaily();
-  const R = [[{ v: 'Daily Reconciliation - ' + monEn(ym), s: 'title' }], [], H(['Date', '>Trips', '>Revenue (orders)', '>Deposit (revenue tab)', '>Difference', 'POS no', '>Cash', '>Card/EDC', '>QRIS', '>Transfer', 'Remarks'])];
-  daily.forEach(x => R.push([{ v: x.tgl, s: 'date' }, { v: x.n, s: 'int' }, x.rev, x.dep ? x.dep.total : '', x.selisih == null ? '' : x.selisih, x.dep ? x.dep.pos : '',
-    x.dep ? x.dep.cash : '', x.dep ? x.dep.card : '', x.dep ? x.dep.qris : '', x.dep ? x.dep.transfer : '', x.dep ? x.dep.remarks : '']));
-  const L = [[{ v: 'Trips - ' + monEn(ym), s: 'title' }], [], H(['Date', 'Time', 'Driver', 'Destination', '>Revenue', 'Payment', 'Type', 'Car', 'Handled by'])];
-  all.slice().sort((a, b) => a.tgl.localeCompare(b.tgl) || String(a.jam).localeCompare(String(b.jam))).forEach(t => L.push([{ v: t.tgl, s: 'date' }, t.jam, t.driver, t.tujuan, t.rev, t.bayar, t.jenis, t.mobil, t.admin]));
+  const T = [[{ v: 'By Destination - ' + monEn(ym), s: 'title' }], [], H(['Destination', '>Trips', '>Revenue', '>Net revenue', '>Car', '>Bike'])];
+  dst.forEach(o => T.push([o.k, { v: o.n, s: 'int' }, o.rev, r2(kdNet(o.rev)), { v: o.car, s: 'int' }, { v: o.bike, s: 'int' }]));
+  const L = [[{ v: 'Trips - ' + monEn(ym), s: 'title' }], [], H(['Date', 'Time', 'Driver', 'Destination', '>Revenue', '>Net revenue', 'Payment', 'Type', 'Car', 'Handled by'])];
+  all.slice().sort((a, b) => a.tgl.localeCompare(b.tgl) || String(a.jam).localeCompare(String(b.jam))).forEach(t => L.push([{ v: t.tgl, s: 'date' }, t.jam, t.driver, t.tujuan, t.rev, r2(kdNet(t.rev)), t.bayar, t.jenis, t.mobil, t.admin]));
   const blob = buildXlsx([
     { name: 'Summary', cols: [30, 18], rows: S },
-    { name: 'By driver', cols: [24, 8, 15, 14, 13, 7, 30, 14, 14, 14, 14], rows: D, freeze: 3, filter: `A3:K${D.length - 1}` },
-    { name: 'By destination', cols: [28, 8, 15, 14, 8, 8], rows: T, freeze: 3, filter: `A3:F${T.length}` },
-    { name: 'Daily reconciliation', cols: [12, 8, 16, 18, 13, 13, 13, 13, 13, 13, 40], rows: R, freeze: 3 },
-    { name: 'Trips', cols: [12, 8, 22, 26, 13, 11, 8, 16, 12], rows: L, freeze: 3, filter: `A3:I${L.length}` }
+    { name: 'Daily reports', cols: [12, 8, 15, 15, 14, 18, 13, 13, 14, 12, 40], rows: R, freeze: 3, filter: `A3:K${R.length}` },
+    { name: 'By driver', cols: [24, 8, 15, 15, 13, 7, 30, 14, 14, 14, 14], rows: D, freeze: 3, filter: `A3:K${D.length - 1}` },
+    { name: 'By destination', cols: [28, 8, 15, 15, 8, 8], rows: T, freeze: 3, filter: `A3:F${T.length}` },
+    { name: 'Trips', cols: [12, 8, 22, 26, 13, 14, 11, 8, 16, 12], rows: L, freeze: 3, filter: `A3:J${L.length}` }
   ]);
-  const url = URL.createObjectURL(blob), a = document.createElement('a');
-  a.href = url; a.download = `KDAB_Local_Taxi_${ym}.xlsx`;
-  document.body.appendChild(a); a.click(); a.remove();
+  const url = URL.createObjectURL(blob), x = document.createElement('a');
+  x.href = url; x.download = `KDAB_Local_Taxi_${ym}.xlsx`;
+  document.body.appendChild(x); x.click(); x.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
@@ -5360,9 +5610,9 @@ async function doSendJC() {
     CONTACTS = res.contacts || CONTACTS;
     JC_SENT = res.jcSent || JC_SENT;
     closeSend();
-    renderIncome();
-    renderSentInfo();
-    toast('Job Completion terkirim' + (res.email ? ' ke ' + to : '') + (res.telegram ? (res.email ? ' dan' : ' ke') + ' Telegram' : ''));
+    if (d.kdab) await kdAfterSend(d);
+    else { renderIncome(); renderSentInfo(); }
+    toast((d.kdab ? 'Laporan KDAB terkirim' : 'Job Completion terkirim') + (res.email ? ' ke ' + to : '') + (res.telegram ? (res.email ? ' dan' : ' ke') + ' Telegram' : ''));
   } catch (e) {
     toast('Gagal kirim: ' + e.message);
   } finally {
