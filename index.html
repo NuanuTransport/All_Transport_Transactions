@@ -1099,7 +1099,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <div id="al-deptview-w" class="hidden">
         <div class="card-head" style="margin-bottom:8px">
           <div class="muted">Unit per departemen dengan harga sewa per bulan (dari tagihan Rental EV terbaru). Ikuti filter di atas.</div>
-          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="alDeptPdf()">Download PDF</button>
+          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="openAlPdfPick()">Download PDF</button>
         </div>
         <div id="al-deptview"></div>
       </div>
@@ -1704,6 +1704,24 @@ html,body{max-width:100%;overflow-x:hidden}
     <div id="ce-form"></div>
     <div class="muted" id="ce-note" style="margin-top:8px"></div>
     <div class="btns" style="margin-top:14px"><button class="btn" style="margin:0" id="btn-ce" onclick="saveCaEdit()">Simpan Perubahan</button></div>
+  </div>
+</div>
+
+<!-- MODAL PILIH DEPARTEMEN UNTUK PDF ALOKASI -->
+<div class="modal hidden" id="ap-modal" onclick="if (event.target === this) closeAlPdfPick()">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head"><b>Download PDF per departemen</b><button class="btn sec sm" onclick="closeAlPdfPick()">Tutup</button></div>
+    <div class="btns" style="justify-content:flex-start;margin-bottom:8px">
+      <button class="btn sec sm" style="margin:0" onclick="apSelect('all')">Semua</button>
+      <button class="btn sec sm" style="margin:0" onclick="apSelect('paid')">Hanya yang bayar</button>
+      <button class="btn sec sm" style="margin:0" onclick="apSelect('free')">Hanya yang tidak bayar</button>
+      <button class="btn sec sm" style="margin:0" onclick="apSelect('none')">Kosongkan</button>
+    </div>
+    <input type="text" id="ap-cari" placeholder="Cari departemen" oninput="apRender()" style="margin-bottom:6px">
+    <div class="jp-list" id="ap-list"></div>
+    <div class="muted" id="ap-info" style="margin-top:6px"></div>
+    <label class="jp-row" style="border:0;padding:8px 0 0"><input type="checkbox" id="ap-hidefree" onchange="apInfo()"> <span class="jp-main">Rincian unit: tampilkan hanya unit yang dikenai biaya<div class="muted">Unit tanpa biaya (internal, gratis, tidak aktif) tidak dicantumkan</div></span></label>
+    <div class="btns" style="margin-top:12px"><button class="btn" style="margin:0" id="btn-ap" onclick="apDownload()">Download PDF</button></div>
   </div>
 </div>
 
@@ -3653,7 +3671,50 @@ function alRentOf(u, R, used) {
   return { harga: Math.round(tot / q), src: 'rate' };
 }
 
-async function alDeptPdf(onlyDept) {
+// Pilih departemen yang dimasukkan ke PDF (mis. hanya yang bayar / hanya yang tidak bayar)
+let AP = null;
+const alUnitRent = u => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status); return t ? t.harga : 0; };
+function openAlPdfPick() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const g = {};
+  alFiltered().forEach(u => { const k = u.Department || '(tanpa departemen)'; const o = g[k] = g[k] || { k, n: 0, amt: 0 }; o.n++; o.amt += alUnitRent(u); });
+  AP = { list: Object.values(g).sort((a, b) => a.k.localeCompare(b.k)), sel: new Set() };
+  AP.list.forEach(x => AP.sel.add(x.k));
+  $('ap-cari').value = '';
+  apRender();
+  $('ap-modal').classList.remove('hidden');
+}
+function closeAlPdfPick() { $('ap-modal').classList.add('hidden'); }
+function apRender() {
+  const q = $('ap-cari').value.trim().toLowerCase();
+  $('ap-list').innerHTML = AP.list.filter(x => !q || x.k.toLowerCase().includes(q)).map(x => `<label class="jp-row"><input type="checkbox" ${AP.sel.has(x.k) ? 'checked' : ''} onchange="apToggle(this, '${esc(x.k.replace(/'/g, "\\'"))}')">
+    <span class="jp-main"><b>${esc(x.k)}</b><div class="muted">${x.n} unit</div></span><span class="jp-amt">${x.amt ? rp(x.amt) : '<span class="muted" style="font-weight:400">tidak bayar</span>'}</span></label>`).join('') || '<div class="muted" style="padding:12px">Tidak ada departemen</div>';
+  apInfo();
+}
+function apToggle(el, k) { if (el.checked) AP.sel.add(k); else AP.sel.delete(k); apInfo(); }
+function apSelect(m) {
+  AP.sel.clear();
+  AP.list.forEach(x => { if (m === 'all' || (m === 'paid' && x.amt > 0) || (m === 'free' && !x.amt)) AP.sel.add(x.k); });
+  apRender();
+}
+function apInfo() {
+  const sel = AP.list.filter(x => AP.sel.has(x.k));
+  $('ap-info').textContent = `${sel.length} dari ${AP.list.length} departemen dipilih · ${sel.reduce((a, x) => a + x.n, 0)} unit · ${rp(sel.reduce((a, x) => a + x.amt, 0))} / bulan`;
+}
+async function apDownload() {
+  if (!AP.sel.size) return toast('Pilih minimal satu departemen');
+  const b = $('btn-ap');
+  b.disabled = true; b.textContent = 'Membuat PDF...';
+  try {
+    await alDeptPdf(null, { depts: new Set(AP.sel), hideFree: $('ap-hidefree').checked, all: AP.sel.size === AP.list.length });
+    closeAlPdfPick();
+  } finally {
+    b.disabled = false; b.textContent = 'Download PDF';
+  }
+}
+
+async function alDeptPdf(onlyDept, opt) {
+  opt = opt || {};
   if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
   const b = $('btn-al-pdf');
   b.disabled = true; b.textContent = 'Membuat PDF...';
@@ -3662,11 +3723,14 @@ async function alDeptPdf(onlyDept) {
     const R = alRentIndex();
     let rows = alFiltered();
     if (onlyDept) rows = rows.filter(u => (u.Department || '(tanpa departemen)') === onlyDept);
+    if (opt.depts) rows = rows.filter(u => opt.depts.has(u.Department || '(tanpa departemen)'));
     if (!rows.length) { toast('Tidak ada unit untuk dibuat PDF'); return; }
     const g = {}, used = {};
     // unit dengan kode di BOQ dulu, lalu sisanya diberi tarif departemen sampai qty yang ditagih
     rows.slice().sort((a, c) => (R && R.byCode[ucKey(c.Code)] ? 1 : 0) - (R && R.byCode[ucKey(a.Code)] ? 1 : 0) || String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true }))
       .forEach(u => { const k = u.Department || '(No department)'; (g[k] = g[k] || []).push(Object.assign({ rent: alRentOf(u, R, used) }, u)); });
+    if (opt.hideFree) Object.keys(g).forEach(k => { g[k] = g[k].filter(u => u.rent && u.rent.harga > 0); if (!g[k].length) delete g[k]; });
+    if (!Object.keys(g).length) { toast('Tidak ada unit berbayar di departemen yang dipilih'); return; }
     const keys = Object.keys(g).sort((a, c) => a.localeCompare(c));
     const typeOf = u => alType(u.Type) === 'Lainnya' ? (u.Type || 'Other') : alType(u.Type);
     const all = keys.flatMap(k => g[k]);
@@ -3680,7 +3744,7 @@ async function alDeptPdf(onlyDept) {
     $('print-area').innerHTML = `<div class="rs-doc">
       <div class="rs-head">
         <div>${logoTag()}<h1>EV Allocation per Department${one ? ' - ' + esc(keys[0]) : ''}</h1><div class="p-sub">Transport Department &middot; vehicles used and monthly rental price</div></div>
-        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b><br>Rates: standard EV rental rates${R ? ' (other types: ' + esc(fmtPeriodeEn(R.ym)) + ' BOQ)' : ''}${filt && !onlyDept ? '<br>Filter: ' + esc(filt) : ''}</div>
+        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b><br>Rates: standard EV rental rates${R ? ' (other types: ' + esc(fmtPeriodeEn(R.ym)) + ' BOQ)' : ''}${filt && !onlyDept ? '<br>Filter: ' + esc(filt) : ''}${opt.depts && !opt.all ? '<br>Selected departments: ' + Object.keys(g).length : ''}${opt.hideFree ? '<br>Charged units only' : ''}</div>
       </div>
       <div class="rs-kpi">
         ${one ? '' : `<div><div class="l">Departments</div><div class="v">${keys.length}</div></div>`}
@@ -4668,7 +4732,7 @@ const RENT_TARIFF = { 'Buggy 6 seat': 8000000, 'Buggy 4 seat': 7500000, 'Buggy C
 const RENT_PARKING = [[/^\s*biom\b/i, 1500000, 'BIOM'], [/bali\s*baza/i, 1500000, 'Bali Baza']];
 const RENT_TARIFF_CODE = { 'EVM-001': 8500000 };
 // Unit di departemen ini dipakai internal Transport, tidak dikenai sewa
-const RENT_FREE_DEPT = /transport|internal|^vsp$|last\s*mile|mechanic|workshop|box\s*office/i;
+const RENT_FREE_DEPT = /transport|internal|^vsp$|last\s*mile|mechanic|workshop|work\s*order/i;
 const RENT_OFF_STATUS = /in\s*-?active|sold|dispos|standby|available|idle|spare/i;
 // Hasil: { harga, src: 'tarif' | 'kode' | 'gratis', note } atau null bila tidak ada tarif
 function rentTariff(code, type, dept, status) {
