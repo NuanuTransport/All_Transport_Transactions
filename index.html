@@ -114,7 +114,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -1052,6 +1052,29 @@ html,body{max-width:100%;overflow-x:hidden}
         <button class="btn sec" style="margin:0" onclick="exportKdab()">Download Excel</button>
       </div>
     </div>
+    <div class="card">
+      <h2>Cetak Laporan KDAB</h2>
+      <div class="hint">Laporan format Koperasi Kencana (tanpa logo Nuanu) untuk ditandatangani COO. Pilih jenis dan periode, lalu cetak atau kirim.</div>
+      <div class="row4" style="grid-template-columns:1fr 1fr 1fr">
+        <div><label>Jenis laporan</label>
+          <select id="kr-jenis" onchange="krJenis()">
+            <option value="harian">Harian</option><option value="mingguan">Mingguan (Senin - Minggu)</option><option value="bulanan">Bulanan</option><option value="rentang">Rentang bebas</option>
+          </select>
+        </div>
+        <div><label id="kr-dari-l">Tanggal</label><input type="date" id="kd-dari" onchange="krSync()"></div>
+        <div id="kr-sampai-w"><label>s/d</label><input type="date" id="kd-sampai" onchange="krInfo()"></div>
+      </div>
+      <div class="btns" style="margin-top:14px">
+        <button class="btn" style="margin:0" onclick="kdPrintRange()">Cetak Laporan</button>
+        <button class="btn sec" style="margin:0" onclick="kdSendRange()">Kirim Email / Telegram</button>
+        <button class="btn sec" style="margin:0" onclick="kdPreview()">Lihat laporan</button>
+        <button class="btn sec" style="margin:0" onclick="kdStatusRange()">Status / upload TTD</button>
+      </div>
+      <div class="muted" id="kr-info" style="margin-top:8px"></div>
+      <div id="kr-preview" class="hidden" style="margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:auto;background:#f3f4f6;padding:12px">
+        <iframe id="kr-frame" title="Pratinjau laporan KDAB" style="display:block;margin:0 auto;border:0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)"></iframe>
+      </div>
+    </div>
     <div class="stats" id="kd-stats"></div>
     <div class="card">
       <div class="card-head"><div><h2>Revenue per hari</h2><div class="rs-chips" id="kd-chips" style="margin-top:6px"></div></div></div>
@@ -1063,12 +1086,6 @@ html,body{max-width:100%;overflow-x:hidden}
         <button data-m="driver" onclick="setKdMode('driver')">Per driver</button>
         <button data-m="tujuan" onclick="setKdMode('tujuan')">Per tujuan</button>
         <button data-m="trip" onclick="setKdMode('trip')">Daftar trip</button>
-      </div>
-      <div id="kd-range" class="kd-range">
-        <span class="muted">Laporan rentang tanggal:</span>
-        <input type="date" id="kd-dari"> <span class="muted">s/d</span> <input type="date" id="kd-sampai">
-        <button class="btn sec sm" style="margin:0" onclick="kdPrintRange()">Cetak / PDF</button>
-        <button class="btn sec sm" style="margin:0" onclick="kdSendRange()">Kirim ke COO</button>
       </div>
       <div class="filters hidden" id="kd-filter">
         <input type="text" id="kd-cari" placeholder="Cari driver / tujuan / mobil" oninput="renderKdab()">
@@ -3419,7 +3436,8 @@ async function loadKdab(force) {
     KD = d;
     KD_OPEN.clear();
     const last = KD.trips.map(t => t.tgl).sort().pop() || ym + '-01';
-    if (!$('kd-dari').value || $('kd-dari').value.slice(0, 7) !== ym) { $('kd-dari').value = ym + '-01'; $('kd-sampai').value = last; }
+    if (!$('kd-dari').value || $('kd-dari').value.slice(0, 7) !== ym) { $('kd-dari').value = last; krSync(); }
+    krInfo();
     renderKdab();
   } catch (e) {
     $('kd-info').textContent = 'Gagal: ' + e.message;
@@ -3503,7 +3521,6 @@ function renderKdab() {
   });
 
   $('kd-filter').classList.toggle('hidden', KD_MODE === 'harian');
-  $('kd-range').classList.toggle('hidden', KD_MODE !== 'harian');
   const H = a => '<tr>' + a.map(x => x[0] === '>' ? `<th class="num">${x.slice(1)}</th>` : `<th>${x}</th>`).join('') + '</tr>';
   const payTxt = p => KD_PAYS.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
   let body = '';
@@ -3563,13 +3580,12 @@ async function kdTripsRange(a, b) {
 }
 
 // Dokumen laporan format Koperasi Kencana (tanpa logo Nuanu)
-async function kdPrint(a, b) {
-  let trips;
-  try { trips = await kdTripsRange(a, b); } catch (e) { toast('Gagal memuat trip: ' + e.message); return null; }
-  if (!trips.length) { toast('Tidak ada trip pada periode ini'); return null; }
+async function kdDocHtml(a, b) {
+  const trips = await kdTripsRange(a, b);
+  if (!trips.length) return null;
   const rev = trips.reduce((s, t) => s + t.rev, 0), net = trips.reduce((s, t) => s + kdNet(t.rev), 0);
   const per = kdPeriodeTxt(a, b);
-  $('print-area').innerHTML = `<div class="kd-doc">
+  const doc = `<div class="kd-doc">
     <div class="kd-title">Koperasi Kencana Transportation Report</div>
     <table class="kd-tbl">
       <thead><tr><th style="width:8%">No</th><th style="width:11%">Date</th><th style="width:21%">Driver Name</th><th style="width:24%">Destination</th><th style="width:14%">Vehicle Type</th><th style="width:22%">Net Revenue</th></tr></thead>
@@ -3580,6 +3596,15 @@ async function kdPrint(a, b) {
     <div class="kd-note">*Note: Harga yang tertera diatas sudah mencakup potongan bagi hasil ${Math.round(kdNsf() * 100)}% dan pajak sebesar ${Math.round(kdTax() * 100)}% Periode ${esc(per)}</div>
     <div class="kd-sign">${KD_SIGN.map(s => `<div><div class="lbl">${esc(s.lbl)}</div><div class="sp">${s.ttd ? s.ttd() : ''}</div><div class="nm">${esc(s.nama)}</div><div class="jb">${esc(s.jabatan)}</div></div>`).join('')}</div>
   </div>`;
+  return { doc, trips, rev, net, per };
+}
+
+async function kdPrint(a, b) {
+  let h;
+  try { h = await kdDocHtml(a, b); } catch (e) { toast('Gagal memuat trip: ' + e.message); return null; }
+  if (!h) { toast('Tidak ada trip pada periode ini'); return null; }
+  const { trips, rev, net, per } = h;
+  $('print-area').innerHTML = h.doc;
   setPageSize('A4 portrait');
   const title = 'Koperasi Kencana Transportation Report - ' + per;
   const info = { a, b, title, trips: trips.length, rev, net, per };
@@ -3594,19 +3619,68 @@ async function kdPrint(a, b) {
 function kdSetReports(a, reps) {
   const ym = a.slice(0, 7);
   if (KD_CACHE[ym]) KD_CACHE[ym].reports = reps || KD_CACHE[ym].reports;
-  if (KD && KD.periode === ym) { KD.reports = reps || KD.reports; renderKdab(); }
+  if (KD && KD.periode === ym) { KD.reports = reps || KD.reports; renderKdab(); krInfo(); }
 }
 
-function kdPrintRange() {
-  const a = $('kd-dari').value, b = $('kd-sampai').value;
-  if (!a || !b || b < a) return toast('Isi rentang tanggal dengan benar');
-  kdPrint(a, b);
+// Kartu Cetak Laporan: atur tanggal akhir sesuai jenis laporan
+function krJenis() {
+  const j = $('kr-jenis').value;
+  $('kr-dari-l').textContent = j === 'harian' ? 'Tanggal' : j === 'bulanan' ? 'Bulan (pilih tanggal mana saja)' : j === 'mingguan' ? 'Minggu (pilih tanggal mana saja)' : 'Dari';
+  $('kr-sampai-w').classList.toggle('hidden', j === 'harian');
+  krSync();
 }
-function kdSendRange() {
-  const a = $('kd-dari').value, b = $('kd-sampai').value;
-  if (!a || !b || b < a) return toast('Isi rentang tanggal dengan benar');
-  kdSend(a, b);
+function krSync() {
+  const j = $('kr-jenis').value, v = $('kd-dari').value;
+  if (!v) return krInfo();
+  const [y, m, d] = v.split('-').map(Number);
+  const iso = dt => dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+  if (j === 'harian') $('kd-sampai').value = v;
+  else if (j === 'bulanan') { $('kd-dari').value = iso(new Date(y, m - 1, 1)); $('kd-sampai').value = iso(new Date(y, m, 0)); }
+  else if (j === 'mingguan') { const dt = new Date(y, m - 1, d), off = (dt.getDay() + 6) % 7; const a = new Date(y, m - 1, d - off); $('kd-dari').value = iso(a); $('kd-sampai').value = iso(new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6)); }
+  else if (!$('kd-sampai').value || $('kd-sampai').value < v) $('kd-sampai').value = v;
+  krInfo();
 }
+function krInfo() {
+  const a = $('kd-dari').value, b = $('kd-sampai').value || a;
+  if (!a || !KD) { $('kr-info').textContent = ''; return; }
+  const r = kdRep(a, b);
+  const tr = KD.trips.filter(t => t.tgl >= a && t.tgl <= b), rev = tr.reduce((s2, t) => s2 + t.rev, 0);
+  const lintas = a.slice(0, 7) !== KD.periode || b.slice(0, 7) !== KD.periode;
+  $('kr-info').innerHTML = `Periode ${esc(kdPeriodeTxt(a, b))}` + (lintas ? ' · sebagian di luar bulan yang dipilih, trip dimuat saat cetak' : ` · ${tr.length} trip · net revenue Rp ${rp2(kdNet(rev))}`) +
+    ` · status: ${kdStTag(r)}${r && r.Dikirim ? ' dikirim ' + esc(fmtTgl(String(r.Dikirim).slice(0, 10))) : ''}${r && r.Ditandatangani ? ' · ttd ' + esc(fmtTgl(String(r.Ditandatangani).slice(0, 10))) : ''}${r && r.File_TTD ? ` · <a href="${esc(r.File_TTD)}" target="_blank" rel="noopener">scan TTD</a>` : ''}`;
+  if (!$('kr-preview').classList.contains('hidden')) kdPreview(true);
+}
+function krRange() {
+  const a = $('kd-dari').value, b = $('kr-jenis').value === 'harian' ? a : $('kd-sampai').value;
+  if (!a || !b || b < a) { toast('Isi tanggal laporan dengan benar'); return null; }
+  return [a, b];
+}
+function kdStatusRange() { const r = krRange(); if (r) kdStatus(r[0], r[1]); }
+
+// Pratinjau laporan di halaman (CSS sama dengan dokumen cetak / PDF)
+async function kdPreview(refresh) {
+  const box = $('kr-preview');
+  if (!refresh && !box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+  const r = krRange();
+  if (!r) return;
+  let html;
+  try { html = await kdDocHtml(r[0], r[1]); } catch (e) { return toast('Gagal memuat trip: ' + e.message); }
+  if (!html) { box.classList.add('hidden'); return toast('Tidak ada trip pada periode ini'); }
+  box.classList.remove('hidden');
+  const W = Math.round((210 - 24) * PX_MM);
+  const f = $('kr-frame');
+  f.style.width = W + 'px';
+  const css = '*{box-sizing:border-box}#pdf-doc{background:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:11px;color:#000;line-height:normal}\n' + printCssText();
+  const d = f.contentDocument;
+  d.open();
+  d.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><style>${css}</style></head><body style="margin:0;padding:${Math.round(12 * PX_MM)}px;background:#fff"><div id="pdf-doc">${html.doc}</div></body></html>`);
+  d.close();
+  f.style.width = (W + Math.round(24 * PX_MM)) + 'px';
+  setTimeout(() => { try { f.style.height = (d.body.scrollHeight + 4) + 'px'; } catch (e) {} }, 50);
+}
+
+function kdPrintRange() { const r = krRange(); if (r) kdPrint(r[0], r[1]); }
+function kdSendRange() { const r = krRange(); if (r) kdSend(r[0], r[1]); }
 
 async function kdSend(a, b) {
   let info, cap;
