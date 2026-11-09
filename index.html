@@ -2,13 +2,13 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Transport Finance</title>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--warn:#d97706;--bad:#b91c1c}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
-header{background:#1e5246;color:#fff;padding:14px 16px;display:flex;align-items:center;gap:14px}
+header{background:#1e5246;color:#fff;padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));display:flex;align-items:center;gap:14px}
 header .logo svg{height:22px;width:auto;display:block;fill:#fff}
 header .brand-sep{width:1px;align-self:stretch;background:rgba(255,255,255,.35)}
 header h1{margin:0;font-size:17px}
@@ -98,6 +98,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .hdr-btn.busy .ic{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:560px){header p,.hdr-time{display:none}.hdr-btn{padding:7px 10px}}
+
 .user-chip.hidden{display:none!important}
 .user-chip{display:flex;align-items:center;gap:8px;font-size:12px;color:#c9ddd6;flex-wrap:wrap;justify-content:flex-end}
 .user-chip b{color:#fff;font-size:13px}
@@ -113,7 +114,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer [onclick*="payIncome("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -145,8 +146,9 @@ body.viewer [onclick*="openBatch("],body.viewer #btn-ab,body:not(.head) #btn-ab-
 .rs-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
 .rs-chip{border:1px solid var(--line);border-radius:99px;padding:4px 10px;font-size:12px;background:#fff}
 .rs-chip b{font-size:13px}
-.rs-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px}
-.rs-tabs button{border:0;background:none;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+.rs-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.rs-tabs::-webkit-scrollbar{display:none}
+.rs-tabs button{border:0;background:none;padding:8px 12px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;white-space:nowrap;flex:0 0 auto}
 .rs-tabs button.active{color:#1e5246;border-bottom-color:#1e5246;font-weight:600}
 details.rs-dept{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
 details.rs-dept>summary{list-style:none;cursor:pointer;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -300,6 +302,51 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .sig-box{height:60px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
   #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
   #print-area .sig-box svg.sig-tall{height:58px}
+}
+/* ===== Tampilan HP ===== */
+html,body{max-width:100%;overflow-x:hidden}
+@media(max-width:640px){
+  header{flex-wrap:wrap;gap:10px;padding-bottom:10px}
+  header .logo svg{height:18px}
+  header h1{font-size:15px;line-height:1.2}
+  header>div:nth-child(3){flex:1;min-width:0}
+  .hdr-actions{display:contents}
+  #btn-refresh{margin-left:auto}
+  .user-chip{order:3;width:100%;justify-content:space-between;flex-wrap:nowrap;font-size:12px;padding-top:8px;border-top:1px solid rgba(255,255,255,.18)}
+  .user-chip button{padding:5px 9px!important;font-size:12px}
+  nav{padding:6px 10px;scrollbar-width:none}
+  nav::-webkit-scrollbar{display:none}
+  nav button{padding:8px 10px}
+  main{padding:12px 12px max(16px,env(safe-area-inset-bottom))}
+  .card{padding:12px;border-radius:10px}
+  .page-head{flex-direction:column;align-items:stretch!important;gap:10px}
+  .page-head .btns,.page-head>div:last-child{flex-wrap:wrap}
+  .stats{grid-template-columns:1fr 1fr;gap:8px}
+  .stat{padding:10px 12px}
+  .stat .v{font-size:17px;word-break:break-word}
+  .filters{grid-template-columns:1fr 1fr}
+  .filters input[type=text]{grid-column:1/-1}
+  .card-head{flex-wrap:wrap;gap:8px}
+  .card-head>div:last-child{width:100%}
+  .card-head select,.card-head .btn{flex:1 1 auto}
+  .modal{padding:0!important;align-items:flex-end!important}
+  .modal-box{max-width:100%!important;width:100%;max-height:92vh;border-radius:14px 14px 0 0!important;padding-bottom:max(16px,env(safe-area-inset-bottom))}
+  input,select,textarea{font-size:16px!important}
+  /* Tabel jadi kartu (tabel dengan >= 5 kolom; label kolom diisi otomatis dari header) */
+  .tablewrap:has(table.mcard){overflow:visible}
+  table.mcard,table.mcard tbody,table.mcard tr,table.mcard td{display:block;width:100%}
+  table.mcard thead{display:none}
+  table.mcard tr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box}
+  table.mcard tr.total{background:#f6f8fa;font-weight:700}
+  table.mcard td{border:0!important;padding:4px 0 4px 40%!important;position:relative;text-align:left!important;min-height:18px;box-sizing:border-box;word-break:break-word}
+  table.mcard td::before{content:attr(data-l);position:absolute;left:0;top:4px;width:37%;color:var(--muted);font-size:12px;font-weight:400;line-height:1.35}
+  table.mcard td:first-child{padding-left:0!important;font-size:15px;font-weight:600;border-bottom:1px solid var(--line)!important;padding-bottom:6px!important;margin-bottom:4px}
+  table.mcard td:first-child::before,table.mcard td[colspan]::before,table.mcard td.mc-nolabel::before{display:none}
+  table.mcard td[colspan],table.mcard td.mc-nolabel{padding-left:0!important}
+  table.mcard td[colspan]:first-child{border:0!important;margin:0;font-weight:400;font-size:13px}
+  table.mcard td:empty{display:none}
+  table.mcard td .btns{justify-content:flex-start;flex-wrap:wrap}
+  table.mcard tr.total td:first-child{border:0!important;font-size:14px}
 }
 </style>
 <style id="page-size"></style>
@@ -1256,7 +1303,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
     <div class="row">
       <div><label>Tanggal pembayaran</label><input type="date" id="py-tgl"></div>
       <div><label>Metode</label>
-        <select id="py-metode">
+        <select id="py-metode" onchange="pyMetode()">
           <option>Transfer bank</option>
           <option>Cost transfer (internal)</option>
           <option>Cash</option>
@@ -1265,12 +1312,61 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
         </select>
       </div>
     </div>
-    <label>Bukti pembayaran (foto / PDF, opsional)</label>
+    <label id="py-bukti-l">Bukti pembayaran (foto / PDF, opsional)</label>
     <input type="file" id="py-bukti" accept="image/*,application/pdf">
+    <div class="muted" id="py-so-note" style="margin-top:4px"></div>
     <label>Catatan (opsional)</label>
     <input type="text" id="py-cat" placeholder="Mis. ref transfer, nama pengirim">
     <div class="btns" style="margin-top:14px">
       <button class="btn ok" style="margin:0" id="btn-py" onclick="doPay()">Simpan Lunas</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT INCOME -->
+<div class="modal hidden" id="ei-modal" onclick="if (event.target === this) closeEditIncome()">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head"><b>Edit Income</b><button class="btn sec sm" onclick="closeEditIncome()">Tutup</button></div>
+    <div class="send-file" style="display:block">
+      <div id="ei-title" style="font-weight:600">-</div>
+      <div class="muted" id="ei-sub"></div>
+    </div>
+    <label>Cara bayar</label>
+    <select id="ei-cara" onchange="eiCara()">
+      <option value="Departemen">Oleh departemen (pakai SO, cost transfer internal)</option>
+      <option value="Transfer">Transfer langsung (tanpa SO, lampirkan bukti transfer)</option>
+    </select>
+    <div class="muted" id="ei-cara-note" style="margin-top:4px"></div>
+    <div id="ei-manual">
+      <div class="row">
+        <div><label>Tanggal</label><input type="date" id="ei-tgl"></div>
+        <div><label>Nominal (Rp)</label><input type="text" id="ei-nom" inputmode="numeric" oninput="fmtMoneyInput(this)"></div>
+      </div>
+      <div class="row">
+        <div><label>Divisi</label><input type="text" id="ei-div" list="ei-div-l" autocomplete="off"><datalist id="ei-div-l"></datalist></div>
+        <div><label>Sumber</label><input type="text" id="ei-sumber" list="ei-sumber-l" autocomplete="off"><datalist id="ei-sumber-l"></datalist></div>
+      </div>
+      <label>Ditagihkan ke</label><input type="text" id="ei-pel" autocomplete="off">
+      <label>Keterangan</label><input type="text" id="ei-ket" autocomplete="off">
+    </div>
+    <div class="muted" id="ei-auto-note" style="margin-top:8px"></div>
+    <div id="ei-pay">
+      <div class="al-sec-title" style="margin-top:12px">Pembayaran</div>
+      <div class="row">
+        <div><label>Tanggal pembayaran</label><input type="date" id="ei-tglbayar"></div>
+        <div><label>Metode</label>
+          <select id="ei-metode" onchange="eiMetode()">
+            <option>Transfer bank</option><option>Cost transfer (internal)</option><option>Cash</option><option>QRIS</option><option>Lainnya</option>
+          </select>
+        </div>
+      </div>
+      <label>Catatan bayar</label><input type="text" id="ei-catbayar" placeholder="Mis. ref transfer, nama pengirim">
+    </div>
+    <label id="ei-bukti-l">Bukti transfer (foto / PDF)</label>
+    <div class="muted" id="ei-bukti-cur" style="margin-bottom:4px"></div>
+    <input type="file" id="ei-bukti" accept="image/*,application/pdf">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-ei" onclick="saveEditIncome()">Simpan Perubahan</button>
     </div>
   </div>
 </div>
@@ -1657,7 +1753,7 @@ async function saveUser() {
 
 const AKSI_LABEL = {
   login: 'Login', setupFirstUser: 'Aktifkan login', createCA: 'Buat CA', addUsage: 'Tambah pemakaian CA', deleteUsage: 'Hapus pemakaian CA',
-  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas',
+  addTopup: 'Tambah top up', deleteTopup: 'Hapus top up', clearing: 'Clearing CA', addIncome: 'Tambah income', payIncome: 'Tandai lunas', editIncome: 'Edit income',
   deleteIncome: 'Hapus income', payIncomeBulk: 'Lunaskan tagihan lama', syncIncome: 'Tarik data', sendUnpaidReport: 'Kirim laporan Telegram',
   setAutoSync: 'Ubah jadwal tarik data', sendJC: 'Kirim Job Completion', addPR: 'Tambah purchase', updatePR: 'Ubah purchase', deletePR: 'Hapus purchase',
   addRentalAdj: 'Tambah penyesuaian rental', unpayIncome: 'Batalkan lunas', saveAlloc: 'Ubah / tambah unit alokasi', deleteAlloc: 'Hapus unit alokasi', saveAssetBatch: 'Ubah / tambah batch pembelian', deleteAssetBatch: 'Hapus batch pembelian', setSO: 'Isi No SO', releaseSO: 'Release SO', clearSO: 'Hapus SO', deleteRentalAdj: 'Hapus penyesuaian rental', saveUser: 'Simpan pengguna', changePin: 'Ganti PIN', resetLogin: 'Reset login'
@@ -1674,11 +1770,19 @@ function renderLog() {
   </tr>`).join('') : '<tr><td colspan="4" class="muted">Belum ada aktivitas</td></tr>';
 }
 
+// Geser tab aktif ke tengah (tab bar yang bisa digeser di HP), tanpa menggulung halaman
+function centerTab(b) {
+  if (!b || !b.parentElement) return;
+  const c = b.parentElement;
+  c.scrollLeft = Math.max(0, b.offsetLeft - c.offsetLeft - (c.clientWidth - b.offsetWidth) / 2);
+}
+
 function show(view) {
   ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
+  centerTab(document.querySelector('nav button.active'));
   window.scrollTo(0, 0);
   if (view === 'income' && !INCOME_LOADED) loadIncome();
   if (view === 'pr' && !PR_LOADED) loadPR();
@@ -2122,10 +2226,12 @@ function openIncome(id) {
     ['Nominal', '<b>' + rp(r.Nominal) + '</b>' + (r.Auto && p >= thisMonth() ? ' <span class="muted">(sementara, masih bertambah)</span>' : '')],
     lang ? ['Transaksi s/d', esc(fmtTgl(r.Tgl_Bayar))] : ['Status', incomeTag(r)],
     ...(lang ? [] : [['Tanggal bayar', r.Tgl_Bayar ? esc(fmtTgl(r.Tgl_Bayar)) : '-']]),
-    ...(!lang ? [['Sales Order', soDetail(r)]] : []),
+    ...(!lang ? [['Cara bayar', r.Cara_Bayar === 'Transfer' ? 'Transfer langsung (tanpa SO)' : 'Oleh departemen (SO + cost transfer)']] : []),
+    ...(!lang && r.Cara_Bayar !== 'Transfer' ? [['Sales Order', soDetail(r)]] : []),
     ...(!lang && r.Metode_Bayar ? [['Metode bayar', esc(r.Metode_Bayar)]] : []),
     ...(!lang && r.Catatan_Bayar ? [['Catatan bayar', esc(r.Catatan_Bayar)]] : []),
-    ...(!lang && r.Status === 'Lunas' ? [['Koreksi', `<button class="btn sec sm" style="margin:0" onclick="unpayIncome('${esc(r.Income_ID)}')">Batalkan lunas</button>`]] : []),
+    ...(!lang ? [['Ubah', `<div class="btns" style="justify-content:flex-start"><button class="btn sec sm" style="margin:0" onclick="closeModal(); editIncome('${esc(r.Income_ID)}')">Edit</button>` +
+      (r.Status === 'Lunas' ? `<button class="btn sec sm" style="margin:0" onclick="unpayIncome('${esc(r.Income_ID)}')">Batalkan lunas</button>` : '') + '</div>']] : []),
     ['Sumber data', esc(r.Sumber_Data)]
   ];
   if (r.Auto) {
@@ -2138,7 +2244,7 @@ function openIncome(id) {
     else if (String(r.Sync_Key || '').indexOf('MECH|') === 0) rows.push(['Pekerjaan', '<div id="mj-live" class="muted">Memuat dari Mechanic Apps...</div>']);
     if (url) rows.push(['Sheet sumber', `<a href="${esc(url)}" target="_blank" rel="noopener">Buka sheet ${esc(r.Sumber_Data)}</a>`]);
   }
-  showModal('Detail Income', rows, r.Bukti_URL, 'Bukti');
+  showModal('Detail Income', rows, r.Bukti_URL, r.Status === 'Lunas' && !lang ? 'Bukti pembayaran' : 'Bukti');
   // Belum ada rincian tersimpan (belum Tarik Data dengan versi baru): ambil langsung dari Mechanic Apps
   if (String(r.Sync_Key || '').indexOf('MECH|') === 0 && !mechJobs(r).length) loadMechJobsLive(r.Income_ID);
 }
@@ -2664,8 +2770,9 @@ function renderIncome() {
       <td>${lang ? esc(fmtTgl(r.Tgl_Bayar)) : incomeTag(r)}${!lang && r.Status === 'Lunas' && r.Tgl_Bayar ? `<div class="muted" style="margin-top:3px">${esc(fmtTgl(r.Tgl_Bayar))}${r.Metode_Bayar ? ' · ' + esc(r.Metode_Bayar) : ''}${r.Bukti_URL ? ' · bukti' : ''}</div>` : ''}${JC_SENT[r.Income_ID] ? `<div class="muted" style="margin-top:3px">JC terkirim ${esc(fmtTgl(JC_SENT[r.Income_ID].waktu))}</div>` : ''}${lang ? '' : soLine(r)}</td>
       <td><div class="btns">
         ${isInvoiceRow(r) ? `<button class="btn sec sm" onclick="event.stopPropagation(); printInvoice('${esc(r.Income_ID)}')">Job Completion</button>` : ''}
-        ${!lang && r.SO_Status !== 'Released' ? `<button class="btn sec sm" onclick="event.stopPropagation(); openSO('${esc(r.Income_ID)}')">${r.No_SO ? 'Release SO' : 'Isi SO'}</button>` : ''}
+        ${!lang && r.SO_Status && r.SO_Status !== 'Released' ? `<button class="btn sec sm" onclick="event.stopPropagation(); openSO('${esc(r.Income_ID)}')">${r.No_SO ? 'Release SO' : 'Isi SO'}</button>` : ''}
         ${!lang && r.Status !== 'Lunas' ? `<button class="btn ok sm" onclick="event.stopPropagation(); payIncome('${esc(r.Income_ID)}')">Lunas</button>` : ''}
+        ${!lang ? `<button class="btn sec sm" onclick="event.stopPropagation(); editIncome('${esc(r.Income_ID)}')">Edit</button>` : ''}
         ${!r.Auto ? `<button class="btn sec sm" onclick="event.stopPropagation(); delIncome('${esc(r.Income_ID)}')">Hapus</button>` : ''}
       </div></td>
     </tr>`).join('') + `<tr class="total"><td colspan="4">Total (${rows.length} baris)</td><td class="num">${rp(sumNom(rows))}</td><td colspan="2"></td></tr>`
@@ -2840,6 +2947,7 @@ function setAlloc(d) {
 function setAlMode(m) {
   AL_MODE = m;
   document.querySelectorAll('#al-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  centerTab(document.querySelector('#al-tabs button.active'));
   $('al-list').classList.toggle('hidden', m !== 'list');
   $('al-deptview').classList.toggle('hidden', m !== 'dept');
   $('al-boq').classList.toggle('hidden', m !== 'boq');
@@ -3123,6 +3231,33 @@ async function deleteAlloc() {
     toast('Gagal: ' + e.message);
   }
 }
+
+// ---------- TAMPILAN HP: tabel -> kartu ----------
+// Tabel di halaman (>= 5 kolom) diberi class mcard; tiap sel diberi data-l = judul kolomnya.
+function labelTables() {
+  document.querySelectorAll('main table').forEach(t => {
+    if (t.classList.contains('items') || t.id === 'rs-mtable' || t.closest('#print-area')) return;
+    const th = [...t.querySelectorAll('thead th')];
+    if (th.length < 5) return;
+    t.classList.add('mcard');
+    const labels = [];
+    th.forEach(h => { const n = Number(h.getAttribute('colspan')) || 1; for (let i = 0; i < n; i++) labels.push(h.textContent.trim()); });
+    t.querySelectorAll('tbody tr').forEach(tr => {
+      let i = 0;
+      [...tr.children].forEach(td => {
+        if (td.dataset.l === undefined) td.dataset.l = labels[i] || '';
+        if (!td.dataset.l) td.classList.add('mc-nolabel');
+        i += Number(td.getAttribute('colspan')) || 1;
+      });
+    });
+  });
+}
+let LT_PENDING = false;
+new MutationObserver(() => {
+  if (LT_PENDING) return;
+  LT_PENDING = true;
+  requestAnimationFrame(() => { LT_PENDING = false; labelTables(); });
+}).observe(document.documentElement, { childList: true, subtree: true });
 
 // ---------- MASA GUNA ----------
 // Nilai perolehan = harga + biaya impor per unit (sheet Aset_Batch). Nilai buku: garis lurus sampai 0 di akhir umur pakai.
@@ -3528,6 +3663,7 @@ function mechJobs(r) {
 // ---------- SALES ORDER ----------
 // Alur: tagihan -> admin isi No SO -> team service release -> Lunas
 function soLine(r) {
+  if (!r.SO_Status) return r.Cara_Bayar === 'Transfer' ? `<div class="so-line muted">Transfer langsung${r.Status === 'Lunas' ? (r.Bukti_URL ? '' : ' · <span class="neg">bukti belum ada</span>') : ' · tanpa SO'}</div>` : '';
   if (r.SO_Status === 'Released') return `<div class="so-line muted">SO ${esc(r.No_SO)} &middot; released ${esc(fmtTgl(r.Tgl_Release))}</div>`;
   if (r.SO_Status === 'Menunggu release') return `<div class="so-line">SO ${esc(r.No_SO)} <span class="tag open">Menunggu release</span></div>`;
   if (r.Berjalan) return '';
@@ -3634,13 +3770,24 @@ function payIncome(id) {
   $('py-tgl').value = today();
   $('py-tgl').max = today();
   const lastMetode = (() => { try { return localStorage.getItem('tf-metode'); } catch (e) { return null; } })();
-  $('py-metode').value = /^(RENT|WO|MECH)\|/.test(String(r.Sync_Key || '')) ? 'Cost transfer (internal)' : (lastMetode || 'Transfer bank');
+  $('py-metode').value = r.Cara_Bayar === 'Transfer' ? (lastMetode || 'Transfer bank') : 'Cost transfer (internal)';
   $('py-bukti').value = '';
+  pyMetode();
   $('py-cat').value = '';
   $('pay-modal').classList.remove('hidden');
 }
 
 function closePay() { $('pay-modal').classList.add('hidden'); }
+
+// Transfer bank / QRIS: bukti transfer wajib dilampirkan. Cost transfer: tidak perlu bukti, pakai SO.
+const butuhBukti = m => /^(Transfer bank|QRIS)$/.test(m);
+function pyMetode() {
+  const m = $('py-metode').value, r = INCOME.find(x => x.Income_ID === PAY_ID) || {};
+  $('py-bukti-l').innerHTML = butuhBukti(m) ? 'Bukti transfer (foto / PDF) <span class="neg">*wajib</span>' : 'Bukti pembayaran (foto / PDF, opsional)';
+  $('py-so-note').textContent = /^Cost/.test(m)
+    ? (r.SO_Status === 'Belum SO' || (r.Cara_Bayar === 'Transfer') ? 'Dibayar oleh departemen: tagihan ini akan memakai SO. Isi No SO lewat tombol Isi SO.' : '')
+    : 'Bayar langsung: tagihan ini tidak memerlukan SO.';
+}
 
 async function doPay() {
   const r = INCOME.find(x => x.Income_ID === PAY_ID);
@@ -3652,6 +3799,7 @@ async function doPay() {
   b.disabled = true; b.textContent = 'Menyimpan...';
   try {
     const f = $('py-bukti').files[0];
+    if (!f && butuhBukti($('py-metode').value)) { b.disabled = false; b.textContent = 'Simpan Lunas'; return toast('Lampirkan bukti transfer dulu'); }
     const d = { Income_ID: PAY_ID, Tgl_Bayar: tgl, Metode_Bayar: $('py-metode').value, Catatan_Bayar: $('py-cat').value.trim() };
     if (f) { b.textContent = 'Mengunggah bukti...'; d.Bukti = await readFile(f); }
     setIncome(await apiPost('payIncome', d));
@@ -3662,6 +3810,80 @@ async function doPay() {
     toast('Gagal: ' + e.message);
   } finally {
     b.disabled = false; b.textContent = 'Simpan Lunas';
+  }
+}
+
+// ---------- EDIT INCOME ----------
+let EI_ID = null;
+function editIncome(id) {
+  const r = INCOME.find(x => x.Income_ID === id);
+  if (!r) return;
+  EI_ID = id;
+  $('ei-title').textContent = (r.Pelanggan || '-') + ' · ' + r.Sumber;
+  $('ei-sub').textContent = (r.Auto ? 'Periode ' + fmtPeriode(periodeOf(r)) : 'Tanggal ' + fmtTgl(r.Tanggal)) + ' · ' + rp(r.Nominal) + ' · ' + (r.Status === 'Lunas' ? 'Lunas' : 'Belum dibayar');
+  $('ei-cara').value = r.Cara_Bayar || 'Departemen';
+  $('ei-manual').classList.toggle('hidden', !!r.Auto);
+  $('ei-auto-note').textContent = r.Auto ? 'Data tagihan otomatis (nominal, pelanggan, keterangan) mengikuti sheet sumber dan diperbarui saat Tarik Data.' : '';
+  if (!r.Auto) {
+    $('ei-tgl').value = String(r.Tanggal || '').slice(0, 10);
+    $('ei-nom').value = Number(r.Nominal || 0).toLocaleString('id-ID');
+    $('ei-div').value = r.Divisi || ''; $('ei-sumber').value = r.Sumber || ''; $('ei-pel').value = r.Pelanggan || ''; $('ei-ket').value = r.Keterangan || '';
+    const uniq = k => [...new Set(INCOME.map(x => x[k]).filter(Boolean))].sort().map(v => `<option value="${esc(v)}">`).join('');
+    $('ei-div-l').innerHTML = uniq('Divisi'); $('ei-sumber-l').innerHTML = uniq('Sumber');
+  }
+  const lunas = r.Status === 'Lunas';
+  $('ei-pay').classList.toggle('hidden', !lunas);
+  if (lunas) {
+    $('ei-tglbayar').value = String(r.Tgl_Bayar || '').slice(0, 10); $('ei-tglbayar').max = today();
+    $('ei-metode').value = r.Metode_Bayar && [...$('ei-metode').options].some(o => o.value === r.Metode_Bayar) ? r.Metode_Bayar : (r.Cara_Bayar === 'Transfer' ? 'Transfer bank' : 'Cost transfer (internal)');
+    $('ei-catbayar').value = r.Catatan_Bayar || '';
+  }
+  $('ei-bukti').value = '';
+  $('ei-bukti-cur').innerHTML = r.Bukti_URL ? `Sudah ada bukti · <a href="${esc(r.Bukti_URL)}" target="_blank" rel="noopener">lihat</a> · pilih file baru untuk mengganti` : 'Belum ada bukti terlampir';
+  eiCara();
+  $('ei-modal').classList.remove('hidden');
+}
+function closeEditIncome() { $('ei-modal').classList.add('hidden'); }
+function eiCara() {
+  const t = $('ei-cara').value === 'Transfer', r = INCOME.find(x => x.Income_ID === EI_ID) || {};
+  $('ei-cara-note').textContent = t ? 'Tidak perlu SO. ' + (r.No_SO ? `No SO ${r.No_SO} tetap tersimpan tapi tidak ditagih lagi.` : '') : 'Tagihan ini perlu No SO dan release dari team service.';
+  $('ei-bukti-l').innerHTML = t ? 'Bukti transfer (foto / PDF)' + (r.Status === 'Lunas' && !r.Bukti_URL ? ' <span class="neg">belum dilampirkan</span>' : '') : 'Bukti / lampiran (foto / PDF, opsional)';
+}
+function eiMetode() {
+  const m = $('ei-metode').value;
+  $('ei-cara').value = /^Cost/.test(m) ? 'Departemen' : 'Transfer';
+  eiCara();
+}
+async function saveEditIncome() {
+  const r = INCOME.find(x => x.Income_ID === EI_ID);
+  if (!r) return;
+  const d = { Income_ID: EI_ID, Cara_Bayar: $('ei-cara').value };
+  if (!r.Auto) {
+    d.Tanggal = $('ei-tgl').value;
+    d.Nominal = Number(String($('ei-nom').value).replace(/[^\d]/g, '')) || 0;
+    d.Divisi = $('ei-div').value.trim(); d.Sumber = $('ei-sumber').value.trim(); d.Pelanggan = $('ei-pel').value.trim(); d.Keterangan = $('ei-ket').value.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.Tanggal)) return toast('Isi tanggal');
+    if (!(d.Nominal > 0)) return toast('Isi nominal');
+    if (!d.Divisi) return toast('Isi divisi');
+  }
+  if (r.Status === 'Lunas') {
+    d.Tgl_Bayar = $('ei-tglbayar').value; d.Metode_Bayar = $('ei-metode').value; d.Catatan_Bayar = $('ei-catbayar').value.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d.Tgl_Bayar)) return toast('Isi tanggal pembayaran');
+    if (d.Tgl_Bayar > today()) return toast('Tanggal bayar tidak boleh setelah hari ini');
+  }
+  const b = $('btn-ei');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('ei-bukti').files[0];
+    if (f) { b.textContent = 'Mengunggah bukti...'; d.Bukti = await readFile(f); }
+    setIncome(await apiPost('editIncome', d));
+    closeEditIncome();
+    const n = INCOME.find(x => x.Income_ID === EI_ID);
+    toast('Income diperbarui' + (n && n.Cara_Bayar === 'Transfer' && n.Status === 'Lunas' && !n.Bukti_URL ? '. Bukti transfer belum dilampirkan.' : ''));
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan Perubahan';
   }
 }
 
