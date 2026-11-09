@@ -1146,7 +1146,7 @@ html,body{max-width:100%;overflow-x:hidden}
       </div>
       <div class="btns" style="margin-top:14px">
         <button class="btn" style="margin:0" onclick="kdPrintRange()">Cetak Laporan</button>
-        <button class="btn sec" style="margin:0" onclick="kdSendRange()">Kirim Email / Telegram</button>
+        <button class="btn sec" style="margin:0" onclick="kdSendRange()">Kirim Email ke COO</button>
         <button class="btn sec" style="margin:0" onclick="kdPreview()">Lihat laporan</button>
         <button class="btn sec" style="margin:0" onclick="kdStatusRange()">Status / upload TTD</button>
       </div>
@@ -1610,7 +1610,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <input type="text" id="sd-subject">
     <label>Pesan</label>
     <textarea id="sd-body" rows="7"></textarea>
-    <label class="chk"><input type="checkbox" id="sd-tg"> Kirim juga PDF ke grup Telegram Transport</label>
+    <label class="chk" id="sd-tg-w"><input type="checkbox" id="sd-tg"> Kirim juga PDF ke grup Telegram Transport</label>
     <div class="muted" style="margin-top:6px">Email tujuan disimpan otomatis untuk pengiriman berikutnya. Salinan PDF diarsipkan di Google Drive.</div>
     <div class="btns" style="margin-top:14px">
       <button class="btn" style="margin:0" id="btn-sd" onclick="doSendJC()">Kirim</button>
@@ -3640,7 +3640,7 @@ function renderKdab() {
   }
   $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
   $('kd-note').innerHTML = 'Net revenue = revenue ÷ 1,1 (pajak 10% sudah termasuk tarif) × 95% (bagi hasil Nuanu 5%), sama dengan laporan Koperasi Kencana. Klik tanggal untuk melihat trip hari itu. ' +
-    `Alur laporan: Cetak / Kirim ke COO → upload scan yang sudah ditandatangani di tombol TTD. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+    `Alur laporan: Cetak / kirim email ke COO → upload scan yang sudah ditandatangani di tombol TTD. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
 }
 
 function kdToggle(tgl) {
@@ -5731,6 +5731,7 @@ function openSend() {
   $('sd-subject').value = d.title;
   $('sd-body').value = `Dear ${d.pelanggan || 'Sir/Madam'},\n\nPlease find attached the ${d.title}${d.total ? ' with a total amount of ' + d.total : ''}.\n${d.bank ? 'Kindly transfer the total amount to the bank account stated in the attachment.' : 'Kindly review and process the payment via cost transfer to the Transport Department.'}\n\nThank you.\n\nBest regards,\nTransport Department\nNuanu`;
   $('sd-tg').checked = false;
+  $('sd-tg-w').classList.toggle('hidden', !!d.kdab);   // laporan KDAB hanya lewat email, tidak ke Telegram
   $('send-modal').classList.remove('hidden');
   if (!c) setTimeout(() => $('sd-to').focus(), 50);
 }
@@ -5751,8 +5752,8 @@ function downloadJcPdf() {
 async function doSendJC() {
   const d = JC_PDF;
   if (!d) return;
-  const to = $('sd-to').value.trim(), tg = $('sd-tg').checked;
-  if (!to && !tg) return toast('Isi email penerima atau centang kirim ke Telegram');
+  const to = $('sd-to').value.trim(), tg = !d.kdab && $('sd-tg').checked;
+  if (!to && !tg) return toast(d.kdab ? 'Isi email COO' : 'Isi email penerima atau centang kirim ke Telegram');
   const b = $('btn-sd');
   b.disabled = true; b.textContent = 'Mengirim...';
   try {
