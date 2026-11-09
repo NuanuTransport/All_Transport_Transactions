@@ -3766,7 +3766,7 @@ async function alDeptPdf(onlyDept, opt) {
           ${g[k].slice().sort((a, c) => String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true })).map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.Code)}</b>${u.Sticker ? `<div class="rs-codes">Sticker ${esc(u.Sticker)}</div>` : ''}</td><td>${esc(u.Type || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(condEn(u.Condition))}</td><td>${esc(u.PIC || '-')}</td><td class="n">${!u.rent ? '-' : u.rent.src === 'gratis' ? 'No charge' : rp(u.rent.harga) + (u.rent.src === 'parkir' ? '<div class="rs-codes">parking fee</div>' : '') + (u.rent.src === 'rate' || u.rent.src === 'code' ? '*' : '')}</td></tr>`).join('')}
           <tr class="st"><td colspan="6">Subtotal ${esc(k)} (${g[k].length} units)</td><td class="n">${rp(sub)}</td></tr>
         </tbody></table>`; }).join('')}
-      <div class="rs-foot">Monthly rental rates: Buggy 6 seater Rp 8.000.000, EVM-001 Rp 8.500.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM and Bali Baza: parking fee only, Rp 1.500.000 per unit per month. Security patrol buggy: no charge. * = special unit rate or price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).</div>
+      <div class="rs-foot">Monthly rental rates: Buggy 6 seater Rp 8.000.000, EVM-001 Rp 8.500.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Buggy Box Rp 8.000.000, Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM and Bali Baza: parking fee only, Rp 1.500.000 per unit per month. NRE: 1 buggy charged. No charge: NPG, Mr. Sergey, Site Operations Director (Kurt), Lev's friend and Sol Studio cooty, Security patrol buggy. * = special unit rate or price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).</div>
     </div>`;
     setPageSize('A4 portrait');
     const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
@@ -4577,7 +4577,7 @@ function renderUnitLife() {
     <td>${lifeFlagTag(u.flag)}${u.alasan && u.flag ? `<div class="al-sub">${esc(u.alasan)}</div>` : ''}</td>
   </tr>`).join('') : '<tr><td colspan="12" class="muted">Tidak ada data</td></tr>';
   $('al-life-note').innerHTML = 'Penyusutan garis lurus: nilai perolehan (harga + impor) ÷ umur pakai, sampai nilai buku 0. Servis/bulan = biaya Mechanic Apps, CA dan purchase sejak beli ÷ jumlah bulan ada data. ' +
-    'Biaya kepemilikan = penyusutan + servis (belum termasuk gaji driver, BBM/charging dan asuransi). Sewa = tarif sewa per bulan (Buggy 6 seat Rp 8 jt, EVM-001 Rp 8,5 jt, Buggy 4 seat Rp 7,5 jt, Buggy Cargo Rp 8 jt, Tyranno & Volta Rp 1,5 jt, Kucher & VFly Rp 1 jt, Cooty Rp 400 rb; BIOM & Bali Baza parking fee Rp 1,5 jt; buggy patrol Security gratis); jenis lain memakai tagihan Rental EV 12 bulan terakhir. Bus dan unit internal Transport tidak punya sewa bulanan (pendapatannya dari trip / WO). ' +
+    'Biaya kepemilikan = penyusutan + servis (belum termasuk gaji driver, BBM/charging dan asuransi). Sewa = tarif sewa per bulan (Buggy 6 seat Rp 8 jt, EVM-001 Rp 8,5 jt, Buggy 4 seat Rp 7,5 jt, Buggy Cargo & Buggy Box Rp 8 jt, Tyranno & Volta Rp 1,5 jt, Kucher & VFly Rp 1 jt, Cooty Rp 400 rb; BIOM & Bali Baza parking fee Rp 1,5 jt; buggy patrol Security gratis); jenis lain memakai tagihan Rental EV 12 bulan terakhir. Bus dan unit internal Transport tidak punya sewa bulanan (pendapatannya dari trip / WO). ' +
     'Pertimbangkan ganti bila umur pakai habis, servis 12 bulan ≥ 50% nilai buku, atau cost spending sejak beli ≥ 60% harga beli. Pantau bila sisa umur ≤ 12 bulan, servis 12 bulan ≥ 25% nilai buku, atau cost spending ≥ 30% harga beli. Cost spending = semua biaya servis, sparepart, CA dan purchase unit sejak beli; dibandingkan dengan harga beli tanpa biaya impor.' +
     (LIFE.dataStart ? ` Catatan servis baru ada sejak ${esc(fmtPeriode(LIFE.dataStart))}.` : '');
 }
@@ -4727,7 +4727,7 @@ async function deleteBatch() {
 let RS_MODE = 'dept';
 // ---------- TARIF SEWA EV PER BULAN (ketentuan Transport) ----------
 // Dipakai untuk harga sewa per unit di Alokasi EV dan Masa guna. Jenis lain (cargo, 8 seat, bus, dll.) memakai harga di BOQ.
-const RENT_TARIFF = { 'Buggy 6 seat': 8000000, 'Buggy 4 seat': 7500000, 'Buggy Cargo': 8000000, 'Tyranno': 1500000, 'VFly': 1000000, 'Cooty': 400000, 'Volta': 1500000, 'Kucher': 1000000 };
+const RENT_TARIFF = { 'Buggy 6 seat': 8000000, 'Buggy 4 seat': 7500000, 'Buggy Cargo': 8000000, 'Buggy Box': 8000000, 'Tyranno': 1500000, 'VFly': 1000000, 'Cooty': 400000, 'Volta': 1500000, 'Kucher': 1000000 };
 // Departemen yang hanya membayar parking fee per unit per bulan (bukan sewa)
 const RENT_PARKING = [[/^\s*biom\b/i, 1500000, 'BIOM'], [/bali\s*baza/i, 1500000, 'Bali Baza']];
 const RENT_TARIFF_CODE = { 'EVM-001': 8500000 };
@@ -4735,9 +4735,15 @@ const RENT_TARIFF_CODE = { 'EVM-001': 8500000 };
 const RENT_FREE_DEPT = /transport|internal|^vsp$|last\s*mile|mechanic|workshop|work\s*order/i;
 const RENT_OFF_STATUS = /in\s*-?active|sold|dispos|standby|available|idle|spare/i;
 // Hasil: { harga, src: 'tarif' | 'kode' | 'gratis', note } atau null bila tidak ada tarif
+// NRE hanya membayar 1 buggy: unit NRE berstatus Rent (saat ini LV6-003), unit lainnya gratis.
+// Tidak dikenai charge: NPG, buggy Mr. Sergey, unit Kurt (Site Operations Director), cooty teman Lev (lev friend) dan Sol Studio
+const RENT_NOCHARGE_DEPT = /^\s*npg\b|mr\.?\s*serg|site\s*operations?\s*director|lev\s*friend|sol\s*studio/i;
+const RENT_RENT_ONLY_DEPT = /^\s*nre\s*$/i;
 function rentTariff(code, type, dept, status) {
   const d = String(dept || '').trim();
   if (!d || RENT_FREE_DEPT.test(d) || RENT_OFF_STATUS.test(String(status || ''))) return null;
+  if (RENT_NOCHARGE_DEPT.test(d)) return { harga: 0, src: 'gratis', note: d + ', tidak dikenakan charge' };
+  if (RENT_RENT_ONLY_DEPT.test(d) && !/rent/i.test(String(status || ''))) return { harga: 0, src: 'gratis', note: 'NRE hanya dikenakan 1 buggy' };
   const k = ucKey(code);
   if (/security/i.test(d) && (/patrol|security|jeep|\bjep\b/i.test(String(type || '')) || /^LV[SJ]-/.test(k))) return { harga: 0, src: 'gratis', note: 'Buggy patrol Security, tidak dikenakan charge' };
   const pk = RENT_PARKING.find(x => x[0].test(d));
@@ -4749,7 +4755,7 @@ function rentTariff(code, type, dept, status) {
 }
 
 const RS_TYPES = [
-  ['Buggy 4 seat', /4\s*seat/i], ['Buggy 6 seat', /6\s*seat|club\s*car/i], ['Buggy 8 seat', /8\s*seat/i], ['Buggy Cargo', /cargo/i],
+  ['Buggy 4 seat', /4\s*seat/i], ['Buggy 6 seat', /6\s*seat|club\s*car/i], ['Buggy 8 seat', /8\s*seat/i], ['Buggy Box', /buggy\s*box|\bbox\s*buggy/i], ['Buggy Cargo', /cargo/i],
   ['Tyranno', /tyran/i], ['VFly', /v[\s-]?fly|vfl\b/i], ['Cooty', /coot|scoot/i], ['Yadea', /yadea/i], ['Volta', /volta/i],
   ['Kucher', /kut?ch?er/i], ['Alva', /alva/i], ['Goda', /goda|gda-/i], ['Bus 13 seat', /13\s*seat/i], ['Bus 23 seat', /23\s*seat/i]
 ];
