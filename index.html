@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Transport Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--text:#1f2933;--muted:#6b7280;--line:#e5e7eb;--pri:#1d4ed8;--ok:#15803d;--warn:#d97706;--bad:#b91c1c}
 *{box-sizing:border-box}
@@ -335,6 +338,79 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
   #print-area .sig-box svg.sig-tall{height:58px}
 }
+/* ===== Tampilan profesional (lapisan gaya; warna utama hijau Nuanu) ===== */
+:root{--bg:#f4f6f5;--card:#fff;--text:#18211e;--muted:#66706c;--line:#e3e7e5;--line2:#eef1ef;--pri:#1e5246;--pri-h:#163f36;--pri-soft:#e7f0ec;--ok:#15803d;--warn:#b45309;--bad:#c0262d;
+  --sh:0 1px 2px rgba(16,24,20,.04),0 1px 3px rgba(16,24,20,.06);--sh-lg:0 12px 32px rgba(16,24,20,.18);--r:12px}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:-.003em}
+.num,.stat .v,td.num,th.num{font-variant-numeric:tabular-nums}
+header{background:linear-gradient(180deg,#1f5649 0%,#1b4b40 100%);box-shadow:inset 0 -1px 0 rgba(255,255,255,.06)}
+header h1{font-size:16px;font-weight:600;letter-spacing:-.01em}
+header p{color:#b9d3ca;font-size:12px}
+.hdr-btn{border-radius:8px;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.user-chip button{border-radius:7px}
+nav{position:sticky;top:0;z-index:5;gap:2px;padding:0 16px;background:rgba(255,255,255,.96);backdrop-filter:saturate(1.4) blur(6px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(16,24,20,.02)}
+nav button{padding:13px 14px 12px;border-radius:0;font-size:13.5px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;font-family:inherit;transition:color .15s,border-color .15s}
+nav button:hover{color:var(--text)}
+nav button.active{background:none;color:var(--pri);font-weight:600;border-bottom-color:var(--pri)}
+main{max-width:1120px;padding:20px 20px 32px}
+.page-head{margin:4px 0 16px}
+.page-head h2{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.card{border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh);margin-bottom:16px}
+.card h2{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.hint{font-size:12.5px;margin:0 0 12px}
+.stats{gap:12px;margin-bottom:16px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.stat{border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);position:relative}
+.stat .l{font-size:12.5px;font-weight:500;color:var(--muted)}
+.stat .v{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:6px}
+.stat .muted{margin-top:4px;line-height:1.4}
+label{font-size:12px;font-weight:500;color:#4a5450;margin:12px 0 5px}
+input,select,textarea{border:1px solid #d6dcd9;border-radius:8px;padding:9px 11px;transition:border-color .15s,box-shadow .15s;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(30,82,70,.14)}
+select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2366706c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+input[type=file]{padding:7px;background:#fafbfa}
+.btn{background:var(--pri);border-radius:8px;font-weight:600;font-size:13.5px;padding:9px 16px;transition:background .15s,box-shadow .15s,border-color .15s;box-shadow:0 1px 2px rgba(16,24,20,.08);font-family:inherit}
+.btn:hover:not(:disabled){background:var(--pri-h)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(30,82,70,.25)}
+.btn.sec{background:#fff;color:var(--text);border:1px solid #d6dcd9;box-shadow:0 1px 2px rgba(16,24,20,.04)}
+.btn.sec:hover:not(:disabled){background:#f5f7f6;border-color:#c5ccc9}
+.btn.ok{background:#15803d}.btn.ok:hover:not(:disabled){background:#126c34}
+.btn.sm{padding:5px 10px;font-size:12px;font-weight:600;border-radius:7px}
+table{font-size:13.5px}
+th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#6b7571;background:#f8faf9;border-bottom:1px solid var(--line);padding:10px 10px;white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--line2)}
+tbody tr:last-child td{border-bottom:0}
+tr.click:hover{background:#f6faf8}
+tr.total td{background:#f8faf9;border-top:1px solid var(--line);font-weight:700}
+.tablewrap{border:1px solid var(--line);border-radius:10px;overflow:auto}
+.tablewrap table{margin:0}
+.tag{border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;letter-spacing:.01em}
+.tag.open{background:#e6effd;color:#1d4ed8}
+.tag.cleared{background:#e3f4e9;color:#15803d}
+.tag.over{background:#fde8e8;color:#b42318}
+.tag.auto{background:#eef1ef;color:#46514d}
+.tag.wait{background:#fdf1dc;color:#93500a}
+.tabs,.rs-tabs{border-bottom:1px solid var(--line)}
+.tabs button,.rs-tabs button{font-weight:500;font-size:13.5px}
+.tabs button.active,.rs-tabs button.active{color:var(--pri);border-bottom-color:var(--pri);font-weight:600}
+.subnav{gap:4px;padding:4px;background:#e9eeec;border-radius:10px;display:inline-flex;flex-wrap:wrap;margin-bottom:16px}
+.subnav button{border:0;background:transparent;color:#4a5450;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:500}
+.subnav button:hover{color:var(--text)}
+.subnav button.active{background:#fff;color:var(--pri);font-weight:600;box-shadow:0 1px 2px rgba(16,24,20,.1)}
+.subnav .badge{background:#fde8e8}
+.rs-chip{border-color:var(--line);border-radius:7px;background:#fafbfa;padding:4px 10px}
+.login-banner{border-radius:var(--r);padding:12px 16px}
+.modal{background:rgba(15,23,20,.55);backdrop-filter:blur(2px)}
+.modal-box{border-radius:14px;padding:20px 22px;box-shadow:var(--sh-lg)}
+.modal-head{padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line2)}
+.modal-head b{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.send-file{border-radius:10px;background:#fafbfa}
+.toast{border-radius:10px;box-shadow:var(--sh-lg);font-weight:500}
+.kv>div:nth-child(odd){font-size:13px}
+.chart-box{margin-top:12px}
+.kd-st{border-radius:6px}
+.al-sec-title{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#4a5450}
+details.guide>summary{color:var(--pri);font-weight:500}
+::selection{background:rgba(30,82,70,.18)}
 /* ===== Tampilan HP ===== */
 html,body{max-width:100%;overflow-x:hidden}
 @media(max-width:640px){
@@ -365,7 +441,11 @@ html,body{max-width:100%;overflow-x:hidden}
   .modal-box{max-width:100%!important;width:100%;max-height:92vh;border-radius:14px 14px 0 0!important;padding-bottom:max(16px,env(safe-area-inset-bottom))}
   input,select,textarea{font-size:16px!important}
   /* Tabel jadi kartu (tabel dengan >= 5 kolom; label kolom diisi otomatis dari header) */
-  .tablewrap:has(table.mcard){overflow:visible}
+  .tablewrap:has(table.mcard){overflow:visible;border:0;border-radius:0}
+  .row,.row3,.row4,.row5{grid-template-columns:1fr!important}
+  nav button{padding:12px 11px 11px}
+  .card{padding:14px}
+  .subnav{display:flex}
   table.mcard,table.mcard>tbody,table.mcard>tbody>tr,table.mcard>tbody>tr>td{display:block;width:100%}
   table.mcard>thead{display:none}
   table.mcard>tbody>tr{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box}
@@ -1055,7 +1135,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <div class="card">
       <h2>Cetak Laporan KDAB</h2>
       <div class="hint">Laporan format Koperasi Kencana (tanpa logo Nuanu) untuk ditandatangani COO. Pilih jenis dan periode, lalu cetak atau kirim.</div>
-      <div class="row4" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="row3">
         <div><label>Jenis laporan</label>
           <select id="kr-jenis" onchange="krJenis()">
             <option value="harian">Harian</option><option value="mingguan">Mingguan (Senin - Minggu)</option><option value="bulanan">Bulanan</option><option value="rentang">Rentang bebas</option>
@@ -3384,7 +3464,7 @@ new MutationObserver(() => {
 // Tarif sudah termasuk pajak 10% -> dasar = revenue / 1,1; net revenue koperasi = dasar x 95% (bagi hasil Nuanu 5%).
 let KD = null, KD_MODE = 'harian';
 const KD_CACHE = {}, KD_OPEN = new Set();
-const KD_PAY = { Cash: '#2a78d6', Card: '#9cc0ee', QRIS: '#eb6834', Transfer: '#f6c9b4' };
+const KD_PAY = { Cash: '#1e5246', Card: '#8cbcac', QRIS: '#e07a3f', Transfer: '#f2c7a8' };
 const KD_PAYS = ['Cash', 'Card', 'QRIS', 'Transfer'];
 // Penandatangan laporan (format laporan Koperasi Kencana). Ubah di sini bila ada pergantian pejabat.
 const KD_SIGN = [
@@ -3530,7 +3610,7 @@ function renderKdab() {
       const r = kdRep(x.tgl, x.tgl), open = KD_OPEN.has(x.tgl);
       const setor = !x.dep ? '<span class="muted">-</span>' : x.selisih === 0 ? `<span class="pos">cocok</span> <span class="muted">${esc(x.dep.pos || '')}</span>` : `<b class="neg">selisih ${x.selisih > 0 ? '+' : '−'}${rp(Math.abs(x.selisih))}</b> <span class="muted">${esc(x.dep.pos || '')}</span>`;
       let h = `<tr class="click${open ? ' kd-open' : ''}" onclick="kdToggle('${x.tgl}')"><td><b>${esc(fmtTgl(x.tgl))}</b><div class="al-sub">${esc(new Date(x.tgl + 'T00:00').toLocaleDateString('id-ID', { weekday: 'long' }))}</div></td>
-        <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp2(x.net)}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
+        <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp(Math.round(x.net))}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
         <td>${setor}</td>
         <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
         <td><div class="btns" style="flex-wrap:nowrap">
@@ -3539,23 +3619,23 @@ function renderKdab() {
           <button class="btn sec sm" onclick="event.stopPropagation(); kdStatus('${x.tgl}','${x.tgl}')">TTD</button>
         </div></td></tr>`;
       if (open) h += `<tr class="kd-open"><td colspan="8"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
-        x.trips.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.bayar)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp2(kdNet(t.rev))}</td></tr>`).join('') +
+        x.trips.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.bayar)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp(Math.round(kdNet(t.rev)))}</td></tr>`).join('') +
         `</tbody></table><div class="muted">${esc(payTxt(x.pay))}${x.dep && x.dep.remarks ? ' · ' + esc(x.dep.remarks) : ''}</div></td></tr>`;
       return h;
     }).join('');
     const tr = days.reduce((a, x) => a + x.rev, 0);
-    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp2(kdNet(tr))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td></td></tr>`;
+    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(Math.round(kdNet(tr)))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td></td></tr>`;
   } else if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
     const g = kdGroup(rows, KD_MODE === 'driver' ? 'driver' : 'tujuan');
     $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Net revenue', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
-    body = g.map(o => `<tr><td><b>${esc(o.k)}</b></td><td class="num">${o.n}</td><td class="num">${rp(o.rev)}</td><td class="num">${rp2(kdNet(o.rev))}</td><td class="num">${rp(Math.round(o.rev / o.n))}</td>
+    body = g.map(o => `<tr><td><b>${esc(o.k)}</b></td><td class="num">${o.n}</td><td class="num">${rp(o.rev)}</td><td class="num">${rp(Math.round(kdNet(o.rev)))}</td><td class="num">${rp(Math.round(o.rev / o.n))}</td>
       <td>${KD_MODE === 'driver' ? `${o.days.size} hari${o.mobil.size ? '<div class="muted">' + esc([...o.mobil].join(', ')) + '</div>' : ''}` : `${o.car} car · ${o.bike} bike`}</td><td class="muted">${esc(payTxt(o.pay))}</td></tr>`).join('');
-    if (g.length) body += `<tr class="total"><td>Total (${g.length})</td><td class="num">${rows.length}</td><td class="num">${rp(rev)}</td><td class="num">${rp2(net)}</td><td class="num">${rp(rows.length ? Math.round(rev / rows.length) : 0)}</td><td></td><td></td></tr>`;
+    if (g.length) body += `<tr class="total"><td>Total (${g.length})</td><td class="num">${rows.length}</td><td class="num">${rp(rev)}</td><td class="num">${rp(Math.round(net))}</td><td class="num">${rp(rows.length ? Math.round(rev / rows.length) : 0)}</td><td></td><td></td></tr>`;
   } else {
     $('kd-head').innerHTML = H(['Tanggal', 'Jam', 'Driver', 'Tujuan', '>Revenue', '>Net revenue', 'Pembayaran', 'Jenis / mobil', 'Admin']);
     const list = rows.slice().sort((a, b) => b.tgl.localeCompare(a.tgl) || String(b.jam).localeCompare(String(a.jam)));
     const max = 400;
-    body = list.slice(0, max).map(t => `<tr><td>${esc(fmtTgl(t.tgl))}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp2(kdNet(t.rev))}</td><td>${esc(t.bayar)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.admin)}</td></tr>`).join('');
+    body = list.slice(0, max).map(t => `<tr><td>${esc(fmtTgl(t.tgl))}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp(Math.round(kdNet(t.rev)))}</td><td>${esc(t.bayar)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.admin)}</td></tr>`).join('');
     if (list.length > max) body += `<tr><td colspan="9" class="muted">Menampilkan ${max} dari ${list.length} trip. Gunakan pencarian, atau Download Excel untuk semua trip.</td></tr>`;
   }
   $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
@@ -3646,7 +3726,7 @@ function krInfo() {
   const r = kdRep(a, b);
   const tr = KD.trips.filter(t => t.tgl >= a && t.tgl <= b), rev = tr.reduce((s2, t) => s2 + t.rev, 0);
   const lintas = a.slice(0, 7) !== KD.periode || b.slice(0, 7) !== KD.periode;
-  $('kr-info').innerHTML = `Periode ${esc(kdPeriodeTxt(a, b))}` + (lintas ? ' · sebagian di luar bulan yang dipilih, trip dimuat saat cetak' : ` · ${tr.length} trip · net revenue Rp ${rp2(kdNet(rev))}`) +
+  $('kr-info').innerHTML = `Periode ${esc(kdPeriodeTxt(a, b))}` + (lintas ? ' · sebagian di luar bulan yang dipilih, trip dimuat saat cetak' : ` · ${tr.length} trip · net revenue ${rp(Math.round(kdNet(rev)))}`) +
     ` · status: ${kdStTag(r)}${r && r.Dikirim ? ' dikirim ' + esc(fmtTgl(String(r.Dikirim).slice(0, 10))) : ''}${r && r.Ditandatangani ? ' · ttd ' + esc(fmtTgl(String(r.Ditandatangani).slice(0, 10))) : ''}${r && r.File_TTD ? ` · <a href="${esc(r.File_TTD)}" target="_blank" rel="noopener">scan TTD</a>` : ''}`;
   if (!$('kr-preview').classList.contains('hidden')) kdPreview(true);
 }
@@ -3716,7 +3796,7 @@ function kdStatus(a, b) {
   const rev = tr.reduce((s, t) => s + t.rev, 0);
   $('kd-m-title').textContent = 'Laporan ' + kdId(a, b);
   $('kd-m-per').textContent = 'Periode ' + kdPeriodeTxt(a, b);
-  $('kd-m-sub').textContent = `${tr.length || (r && r.Trip) || 0} trip · net revenue Rp ${rp2(tr.length ? kdNet(rev) : Number((r && r.Net_Revenue) || 0))}`;
+  $('kd-m-sub').textContent = `${tr.length || (r && r.Trip) || 0} trip · net revenue ${rp(Math.round(tr.length ? kdNet(rev) : Number((r && r.Net_Revenue) || 0)))}`;
   const st = r ? r.Status : '';
   const i = KD_ST.indexOf(st || 'Belum dibuat');
   $('kd-m-steps').innerHTML = ['Dibuat', 'Dikirim ke COO', 'Ditandatangani'].map((s, k) => {
@@ -5938,8 +6018,8 @@ function reportSheets(d) {
 
 // ---------- GRAFIK (SVG ringan, tanpa library luar) ----------
 const C = {
-  paid: '#2a78d6',      // income sudah dibayar
-  unpaid: '#9cc0ee',    // income belum dibayar (biru muda, entitas yang sama)
+  paid: '#1e5246',      // income sudah dibayar (hijau Nuanu)
+  unpaid: '#9cc4b6',    // income belum dibayar (biru muda, entitas yang sama)
   exp: '#eb6834',       // pengeluaran
   aging: ['#c9c8c3', '#f6c9b4', '#f19a76', '#eb6834', '#b8441a'],
   grid: '#eef0f2', axis: '#e5e7eb', text: '#6b7280'
