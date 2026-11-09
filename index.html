@@ -575,6 +575,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <button data-s="daftar" class="active" onclick="setSub('income','daftar')">Daftar Income</button>
       <button data-s="jc" onclick="setSub('income','jc')">Job Completion</button>
       <button data-s="rental" onclick="setSub('income','rental')">Rental EV</button>
+      <button data-s="kdab" onclick="setSub('income','kdab')">Taxi Lokal KDAB</button>
       <button data-s="sync" onclick="setSub('income','sync')">Tarik Data &amp; Pelunasan<span class="badge hidden" id="sync-badge"></span></button>
       <button data-s="manual" onclick="setSub('income','manual')">Input Manual</button>
     </div>
@@ -700,6 +701,38 @@ html,body{max-width:100%;overflow-x:hidden}
           <tbody id="ra-body"><tr><td colspan="7" class="muted">Memuat...</td></tr></tbody>
         </table>
       </div>
+    </div>
+    </div>
+
+    <div class="sub hidden" data-g="income" data-s="kdab">
+    <div class="card">
+      <div class="card-head">
+        <div><h2>Taxi Lokal KDAB</h2><div class="muted" id="kd-info">Pilih bulan lalu klik Tampilkan.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="kd-periode" style="width:auto;min-width:160px" onchange="loadKdab()"></select>
+          <button class="btn sec" style="margin:0" onclick="loadKdab(true)">Muat ulang</button>
+          <button class="btn sec" style="margin:0" onclick="exportKdab()">Download Excel</button>
+        </div>
+      </div>
+      <div class="stats" id="kd-stats"></div>
+      <div class="rs-chips" id="kd-chips"></div>
+      <div class="chart-box" id="kd-chart"></div>
+      <div class="rs-tabs" id="kd-tabs">
+        <button class="active" data-m="driver" onclick="setKdMode('driver')">Per driver</button>
+        <button data-m="tujuan" onclick="setKdMode('tujuan')">Per tujuan</button>
+        <button data-m="harian" onclick="setKdMode('harian')">Harian &amp; cocokkan setoran</button>
+        <button data-m="trip" onclick="setKdMode('trip')">Daftar trip</button>
+      </div>
+      <div class="filters" id="kd-filter">
+        <input type="text" id="kd-cari" placeholder="Cari driver / tujuan / mobil" oninput="renderKdab()">
+        <select id="kd-bayar" onchange="renderKdab()"><option value="">Semua pembayaran</option><option>Cash</option><option>Card</option><option>QRIS</option><option>Transfer</option></select>
+        <select id="kd-jenis" onchange="renderKdab()"><option value="">Car &amp; Bike</option><option>Car</option><option>Bike</option></select>
+      </div>
+      <div class="tablewrap"><table>
+        <thead id="kd-head"></thead>
+        <tbody id="kd-body"><tr><td class="muted">Belum dimuat</td></tr></tbody>
+      </table></div>
+      <div class="muted" style="margin-top:8px" id="kd-note"></div>
     </div>
     </div>
 
@@ -1564,6 +1597,8 @@ async function refreshAll() {
   const jobs = [loadList()];
   if (INCOME_LOADED || ['income', 'summary'].includes(CUR_VIEW)) jobs.push(loadIncome());
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
+  Object.keys(KD_CACHE).forEach(k => delete KD_CACHE[k]);
+  if (KD) jobs.push(loadKdab());
   if (CUR_VIEW === 'summary') jobs.push(loadSummary());
   if (CUR_VIEW === 'users') jobs.push(loadUsers());
   if (ALLOC_LOADED || CUR_VIEW === 'alloc') { UC = null; LIFE = null; jobs.push(loadAlloc().then(() => { if (AL_MODE === 'cost') return loadUnitCost(); if (AL_MODE === 'hist') return loadUnitHist(); if (AL_MODE === 'life') return loadUnitLife(); })); }
@@ -1798,6 +1833,7 @@ function setSub(group, name) {
   document.querySelectorAll(`.sub[data-g="${group}"]`).forEach(el => el.classList.toggle('hidden', el.dataset.s !== name));
   try { localStorage.setItem('tf-sub-' + group, name); } catch (e) {}
   if (group === 'income' && name === 'rental') renderRentChart();
+  if (group === 'income' && name === 'kdab') initKdab();
   redrawCharts();
 }
 
@@ -3258,6 +3294,187 @@ new MutationObserver(() => {
   LT_PENDING = true;
   requestAnimationFrame(() => { LT_PENDING = false; labelTables(); });
 }).observe(document.documentElement, { childList: true, subtree: true });
+
+// ---------- TAXI LOKAL KDAB ----------
+// Sumber: sheet KDAB 2026, tab REPORT ORDER (per trip) + tab "<BULAN> REVENUE" (setoran harian per metode & No POS).
+let KD = null, KD_MODE = 'driver';
+const KD_CACHE = {};
+const KD_PAY = { Cash: '#2a78d6', Card: '#9cc0ee', QRIS: '#eb6834', Transfer: '#f6c9b4' };
+
+function initKdab() {
+  const sel = $('kd-periode');
+  if (!sel.options.length) {
+    const opts = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (ym >= '2026-01') opts.push(ym); }
+    sel.innerHTML = opts.map(ym => `<option value="${ym}">${esc(fmtPeriode(ym))}</option>`).join('');
+  }
+  if (!KD) loadKdab();
+  else redrawCharts();
+}
+
+async function loadKdab(force) {
+  const ym = $('kd-periode').value;
+  if (!ym) return;
+  if (force) delete KD_CACHE[ym];
+  $('kd-info').textContent = 'Memuat data ' + fmtPeriode(ym) + ' dari sheet KDAB...';
+  $('kd-body').innerHTML = '<tr><td class="muted">Memuat...</td></tr>';
+  try {
+    KD = KD_CACHE[ym] || (KD_CACHE[ym] = await apiGet({ action: 'kdab', periode: ym }));
+    if (KD.periode !== $('kd-periode').value) return;
+    renderKdab();
+  } catch (e) {
+    $('kd-info').textContent = 'Gagal: ' + e.message;
+    $('kd-body').innerHTML = '';
+  }
+}
+
+function setKdMode(m) {
+  KD_MODE = m;
+  document.querySelectorAll('#kd-tabs button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  centerTab(document.querySelector('#kd-tabs button.active'));
+  renderKdab();
+}
+
+function kdTrips() {
+  const q = $('kd-cari').value.trim().toLowerCase(), fb = $('kd-bayar').value, fj = $('kd-jenis').value;
+  return KD.trips.filter(t => (!fb || t.bayar === fb) && (!fj || t.jenis === fj) && (!q || [t.driver, t.tujuan, t.mobil, t.admin].join(' ').toLowerCase().includes(q)));
+}
+
+function kdGroup(trips, key) {
+  const g = {};
+  trips.forEach(t => {
+    const k = t[key] || '-';
+    const o = g[k] = g[k] || { k, n: 0, rev: 0, pay: {}, days: new Set(), mobil: new Set(), car: 0, bike: 0 };
+    o.n++; o.rev += t.rev; o.pay[t.bayar] = (o.pay[t.bayar] || 0) + t.rev; o.days.add(t.tgl);
+    if (t.mobil) o.mobil.add(t.mobil);
+    if (t.jenis === 'Bike') o.bike++; else o.car++;
+  });
+  return Object.values(g).sort((a, b) => b.rev - a.rev || b.n - a.n);
+}
+
+function kdDaily() {
+  const ym = KD.periode, [y, m] = ym.split('-').map(Number), nd = new Date(y, m, 0).getDate();
+  const out = [];
+  for (let i = 1; i <= nd; i++) {
+    const tgl = ym + '-' + String(i).padStart(2, '0');
+    const tr = KD.trips.filter(t => t.tgl === tgl);
+    const pay = {};
+    tr.forEach(t => pay[t.bayar] = (pay[t.bayar] || 0) + t.rev);
+    const dep = KD.days.find(d => d.tgl === tgl) || null;
+    const rev = tr.reduce((a, t) => a + t.rev, 0);
+    if (!tr.length && !dep && tgl > today()) continue;
+    out.push({ tgl, n: tr.length, rev, pay, dep, selisih: dep ? dep.total - rev : null });
+  }
+  return out;
+}
+
+function renderKdab() {
+  if (!KD) return;
+  const all = KD.trips, rows = kdTrips();
+  const rev = rows.reduce((a, t) => a + t.rev, 0);
+  const kom = Math.round(rev * (KD.tax + KD.nsf));
+  const drivers = new Set(rows.map(t => t.driver).filter(Boolean)).size;
+  const dep = KD.days.reduce((a, d) => a + d.total, 0);
+  const allRev = all.reduce((a, t) => a + t.rev, 0);
+  const bike = rows.filter(t => t.jenis === 'Bike').length;
+  const filtered = rows.length !== all.length;
+  $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ' · tab revenue bulan ini tidak ditemukan'}${filtered ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
+  $('kd-stats').innerHTML = `
+    <div class="stat"><div class="l">Trip</div><div class="v">${rows.length.toLocaleString('id-ID')}</div><div class="muted">${rows.length - bike} car · ${bike} bike · ${drivers} driver</div></div>
+    <div class="stat"><div class="l">Revenue</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
+    <div class="stat"><div class="l">Komisi Nuanu ${Math.round((KD.tax + KD.nsf) * 100)}%</div><div class="v">${rp(kom)}</div><div class="muted">tax ${Math.round(KD.tax * 100)}% ${rp(Math.round(rev * KD.tax))} + NSF ${Math.round(KD.nsf * 100)}% ${rp(Math.round(rev * KD.nsf))}</div></div>
+    <div class="stat"><div class="l">Setoran (tab revenue)</div><div class="v">${KD.days.length ? rp(dep) : '-'}</div><div class="muted">${KD.days.length ? (dep === allRev ? 'cocok dengan REPORT ORDER' : `<span class="neg">selisih ${rp(dep - allRev)} vs REPORT ORDER</span>`) : 'belum ada'}</div></div>`;
+  const byPay = {};
+  rows.forEach(t => { const o = byPay[t.bayar] = byPay[t.bayar] || { n: 0, rev: 0 }; o.n++; o.rev += t.rev; });
+  $('kd-chips').innerHTML = Object.entries(byPay).sort((a, b) => b[1].rev - a[1].rev).map(([k, o]) => `<span class="rs-chip"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${KD_PAY[k] || '#c9c8c3'};margin-right:4px"></i>${esc(k)} <b>${rp(o.rev)}</b> · ${o.n} trip</span>`).join('');
+  // grafik revenue harian per metode bayar
+  const ym = KD.periode, [y, m] = ym.split('-').map(Number), nd = new Date(y, m, 0).getDate();
+  const labels = [], pays = ['Cash', 'Card', 'QRIS', 'Transfer'], data = {};
+  pays.forEach(p => data[p] = []);
+  for (let i = 1; i <= nd; i++) {
+    const tgl = ym + '-' + String(i).padStart(2, '0');
+    labels.push(String(i));
+    pays.forEach(p => data[p].push(rows.filter(t => t.tgl === tgl && t.bayar === p).reduce((a, t) => a + t.rev, 0)));
+  }
+  barChart('kd-chart', {
+    labels, legend: true,
+    series: pays.map(p => ({ label: p, color: KD_PAY[p], stack: 's', data: data[p] })),
+    tipTitle: i => fmtTgl(ym + '-' + String(i + 1).padStart(2, '0')),
+    tipFooter: i => { const tr = rows.filter(t => t.tgl === ym + '-' + String(i + 1).padStart(2, '0')); return tr.length + ' trip · <b>' + rp(tr.reduce((a, t) => a + t.rev, 0)) + '</b>'; },
+    empty: 'Belum ada trip di bulan ini'
+  });
+
+  $('kd-filter').classList.toggle('hidden', KD_MODE === 'harian');
+  const H = a => '<tr>' + a.map(x => x[0] === '>' ? `<th class="num">${x.slice(1)}</th>` : `<th>${x}</th>`).join('') + '</tr>';
+  const payTxt = p => pays.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
+  let body = '';
+  if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
+    const g = kdGroup(rows, KD_MODE === 'driver' ? 'driver' : 'tujuan');
+    $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Komisi 15%', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
+    body = g.map(o => `<tr><td><b>${esc(o.k)}</b></td><td class="num">${o.n}</td><td class="num">${rp(o.rev)}</td><td class="num">${rp(Math.round(o.rev * (KD.tax + KD.nsf)))}</td><td class="num">${rp(Math.round(o.rev / o.n))}</td>
+      <td>${KD_MODE === 'driver' ? `${o.days.size} hari${o.mobil.size ? '<div class="muted">' + esc([...o.mobil].join(', ')) + '</div>' : ''}` : `${o.car} car · ${o.bike} bike`}</td><td class="muted">${esc(payTxt(o.pay))}</td></tr>`).join('');
+    if (g.length) body += `<tr class="total"><td>Total (${g.length})</td><td class="num">${rows.length}</td><td class="num">${rp(rev)}</td><td class="num">${rp(kom)}</td><td class="num">${rp(rows.length ? Math.round(rev / rows.length) : 0)}</td><td></td><td></td></tr>`;
+  } else if (KD_MODE === 'harian') {
+    const d = kdDaily();
+    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue (report order)', '>Setoran (tab revenue)', '>Selisih', 'No POS', 'Per metode / catatan']);
+    body = d.map(x => `<tr><td>${esc(fmtTgl(x.tgl))}</td><td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${x.dep ? rp(x.dep.total) : '<span class="muted">-</span>'}</td>
+      <td class="num">${x.selisih == null ? '<span class="muted">-</span>' : x.selisih === 0 ? '<span class="pos">cocok</span>' : `<b class="neg">${x.selisih > 0 ? '+' : '−'}${rp(Math.abs(x.selisih))}</b>`}</td>
+      <td>${x.dep ? esc(x.dep.pos || '-') : '-'}</td>
+      <td class="muted">${esc(payTxt(x.pay))}${x.dep && x.selisih ? `<div>Setoran: ${esc(['Cash ' + rp(x.dep.cash), 'Card ' + rp(x.dep.card), 'QRIS ' + rp(x.dep.qris), 'Transfer ' + rp(x.dep.transfer)].filter(s => !/Rp\s?0$/.test(s)).join(' · '))}</div>` : ''}${x.dep && x.dep.remarks ? `<div>${esc(x.dep.remarks)}</div>` : ''}</td></tr>`).join('');
+    const tr = d.reduce((a, x) => a + x.rev, 0), td = d.reduce((a, x) => a + (x.dep ? x.dep.total : 0), 0), nb = d.filter(x => x.selisih).length;
+    body += `<tr class="total"><td>Total${nb ? ` · <span class="neg">${nb} hari selisih</span>` : ''}</td><td class="num">${d.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(td)}</td><td class="num">${td - tr ? rp(td - tr) : 'cocok'}</td><td></td><td></td></tr>`;
+  } else {
+    $('kd-head').innerHTML = H(['Tanggal', 'Jam', 'Driver', 'Tujuan', '>Revenue', 'Pembayaran', 'Jenis / mobil', 'Admin']);
+    const list = rows.slice().sort((a, b) => b.tgl.localeCompare(a.tgl) || String(b.jam).localeCompare(String(a.jam)));
+    const max = 400;
+    body = list.slice(0, max).map(t => `<tr><td>${esc(fmtTgl(t.tgl))}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td class="num">${rp(t.rev)}</td><td>${esc(t.bayar)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.admin)}</td></tr>`).join('');
+    if (list.length > max) body += `<tr><td colspan="8" class="muted">Menampilkan ${max} dari ${list.length} trip. Gunakan pencarian, atau Download Excel untuk semua trip.</td></tr>`;
+  }
+  $('kd-body').innerHTML = body || '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
+  $('kd-note').innerHTML = `Komisi Nuanu = tax ${Math.round(KD.tax * 100)}% + NSF ${Math.round(KD.nsf * 100)}% dari revenue trip; angka yang sama masuk ke income "Komisi KDAB 15%" saat Tarik Data. ` +
+    `Setoran harian dari tab revenue bulan berjalan dicocokkan dengan total REPORT ORDER per tanggal. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+}
+
+function exportKdab() {
+  if (!KD) return toast('Data KDAB belum dimuat');
+  const ym = KD.periode, all = KD.trips, rate = KD.tax + KD.nsf;
+  const rev = all.reduce((a, t) => a + t.rev, 0);
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const pays = ['Cash', 'Card', 'QRIS', 'Transfer'];
+  const S = [[{ v: 'KDAB Local Taxi - ' + monEn(ym), s: 'title' }], [{ v: 'Source: KDAB 2026 sheet (REPORT ORDER and daily revenue tab). Nuanu commission = tax ' + Math.round(KD.tax * 100) + '% + NSF ' + Math.round(KD.nsf * 100) + '% of trip revenue.', s: 'sub' }], [],
+    H(['Item', '>Value']),
+    ['Trips', { v: all.length, s: 'int' }], ['Car trips', { v: all.filter(t => t.jenis !== 'Bike').length, s: 'int' }], ['Bike trips', { v: all.filter(t => t.jenis === 'Bike').length, s: 'int' }],
+    ['Drivers', { v: new Set(all.map(t => t.driver).filter(Boolean)).size, s: 'int' }],
+    ['Revenue', rev], ...pays.map(p => ['  ' + p, all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0)]),
+    ['Tax ' + Math.round(KD.tax * 100) + '%', Math.round(rev * KD.tax)], ['NSF ' + Math.round(KD.nsf * 100) + '%', Math.round(rev * KD.nsf)],
+    [{ v: 'Nuanu commission', s: 'b' }, { v: Math.round(rev * rate), s: 'moneyb' }],
+    ['Daily deposit (revenue tab)', KD.days.reduce((a, d) => a + d.total, 0)]];
+  const drv = kdGroup(all, 'driver');
+  const D = [[{ v: 'By Driver - ' + monEn(ym), s: 'title' }], [], H(['Driver', '>Trips', '>Revenue', '>Commission', '>Avg / trip', '>Days', 'Cars', ...pays.map(p => '>' + p)])];
+  drv.forEach(o => D.push([o.k, { v: o.n, s: 'int' }, o.rev, Math.round(o.rev * rate), Math.round(o.rev / o.n), { v: o.days.size, s: 'int' }, [...o.mobil].join(', '), ...pays.map(p => o.pay[p] || 0)]));
+  D.push([{ v: 'Total', s: 'b' }, { v: all.length, s: 'int' }, { v: rev, s: 'moneyb' }, { v: Math.round(rev * rate), s: 'moneyb' }, '', '', '', ...pays.map(p => ({ v: all.filter(t => t.bayar === p).reduce((a, t) => a + t.rev, 0), s: 'moneyb' }))]);
+  const dst = kdGroup(all, 'tujuan');
+  const T = [[{ v: 'By Destination - ' + monEn(ym), s: 'title' }], [], H(['Destination', '>Trips', '>Revenue', '>Commission', '>Car', '>Bike'])];
+  dst.forEach(o => T.push([o.k, { v: o.n, s: 'int' }, o.rev, Math.round(o.rev * rate), { v: o.car, s: 'int' }, { v: o.bike, s: 'int' }]));
+  const daily = kdDaily();
+  const R = [[{ v: 'Daily Reconciliation - ' + monEn(ym), s: 'title' }], [], H(['Date', '>Trips', '>Revenue (orders)', '>Deposit (revenue tab)', '>Difference', 'POS no', '>Cash', '>Card/EDC', '>QRIS', '>Transfer', 'Remarks'])];
+  daily.forEach(x => R.push([{ v: x.tgl, s: 'date' }, { v: x.n, s: 'int' }, x.rev, x.dep ? x.dep.total : '', x.selisih == null ? '' : x.selisih, x.dep ? x.dep.pos : '',
+    x.dep ? x.dep.cash : '', x.dep ? x.dep.card : '', x.dep ? x.dep.qris : '', x.dep ? x.dep.transfer : '', x.dep ? x.dep.remarks : '']));
+  const L = [[{ v: 'Trips - ' + monEn(ym), s: 'title' }], [], H(['Date', 'Time', 'Driver', 'Destination', '>Revenue', 'Payment', 'Type', 'Car', 'Handled by'])];
+  all.slice().sort((a, b) => a.tgl.localeCompare(b.tgl) || String(a.jam).localeCompare(String(b.jam))).forEach(t => L.push([{ v: t.tgl, s: 'date' }, t.jam, t.driver, t.tujuan, t.rev, t.bayar, t.jenis, t.mobil, t.admin]));
+  const blob = buildXlsx([
+    { name: 'Summary', cols: [30, 18], rows: S },
+    { name: 'By driver', cols: [24, 8, 15, 14, 13, 7, 30, 14, 14, 14, 14], rows: D, freeze: 3, filter: `A3:K${D.length - 1}` },
+    { name: 'By destination', cols: [28, 8, 15, 14, 8, 8], rows: T, freeze: 3, filter: `A3:F${T.length}` },
+    { name: 'Daily reconciliation', cols: [12, 8, 16, 18, 13, 13, 13, 13, 13, 13, 40], rows: R, freeze: 3 },
+    { name: 'Trips', cols: [12, 8, 22, 26, 13, 11, 8, 16, 12], rows: L, freeze: 3, filter: `A3:I${L.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `KDAB_Local_Taxi_${ym}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 
 // ---------- MASA GUNA ----------
 // Nilai perolehan = harga + biaya impor per unit (sheet Aset_Batch). Nilai buku: garis lurus sampai 0 di akhir umur pakai.
