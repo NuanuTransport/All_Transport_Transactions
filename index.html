@@ -1103,8 +1103,9 @@ html,body{max-width:100%;overflow-x:hidden}
       </div>
       <div id="al-deptview-w" class="hidden">
         <div class="card-head" style="margin-bottom:8px">
-          <div class="muted">Unit per departemen dengan harga sewa per bulan (dari tagihan Rental EV terbaru). Ikuti filter di atas.</div>
-          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="openAlPdfPick()">Download PDF</button>
+          <div class="muted">Unit per departemen dengan harga sewa per bulan sesuai periode tarif. Ikuti filter di atas.</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><label class="muted" style="display:flex;align-items:center;gap:4px;margin:0;font-size:13px">Periode <input type="month" class="al-ym" onchange="setAlYm(this.value)" style="width:auto;margin:0"></label>
+          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="openAlPdfPick()">Download PDF</button></div>
         </div>
         <div id="al-deptview"></div>
       </div>
@@ -1173,8 +1174,9 @@ html,body{max-width:100%;overflow-x:hidden}
       </div>
       <div id="al-sewa" class="hidden">
         <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
-          <div class="muted" style="flex:1;min-width:240px">Harga sewa per unit per bulan, dikelompokkan per departemen. Isi <b>Harga</b> dan <b>Bayar</b> (Ya / Tidak) lalu klik Simpan. Unit yang belum diisi memakai aturan tarif lama (tampil samar di kolom harga). Harga di sini dipakai untuk tab Per departemen, PDF, dan Masa guna.</div>
+          <div class="muted" style="flex:1;min-width:240px">Harga sewa per unit per bulan, dikelompokkan per departemen. Isi <b>Harga</b> dan <b>Bayar</b> (Ya / Tidak) lalu klik Simpan. Harga berlaku mulai periode yang dipilih dan seterusnya, sampai diubah lagi. Unit yang belum diisi memakai aturan tarif (tampil samar di kolom harga). Harga di sini dipakai untuk tab Per departemen, PDF, dan Masa guna.</div>
           <div class="ctrl" style="display:flex;gap:6px;flex-wrap:wrap">
+            <label class="muted" style="display:flex;align-items:center;gap:4px;margin:0;font-size:13px">Periode <input type="month" class="al-ym" onchange="setAlYm(this.value)" style="width:auto;margin:0"></label>
             <select id="al-sewa-f" onchange="renderSewa()" style="width:auto;margin:0">
               <option value="">Semua unit</option><option value="kosong">Belum diisi</option><option value="ya">Bayar</option><option value="tidak">Tidak bayar</option><option value="pindah">Departemen berubah</option>
             </select>
@@ -1185,7 +1187,7 @@ html,body{max-width:100%;overflow-x:hidden}
         </div>
         <div class="stats" id="al-sewa-stats"></div>
         <div class="tablewrap"><table id="al-sewa-table">
-          <thead><tr><th>Kode</th><th>Jenis</th><th>Status</th><th>PIC</th><th style="min-width:150px">Harga / bulan</th><th>Bayar</th><th style="min-width:180px">Catatan</th></tr></thead>
+          <thead><tr><th>Kode</th><th>Jenis</th><th>Status</th><th>PIC</th><th style="min-width:150px">Harga / bulan</th><th>Bayar</th><th>Payment</th><th style="min-width:180px">Catatan</th></tr></thead>
           <tbody id="al-sewa-body"></tbody>
         </table></div>
       </div>
@@ -3568,6 +3570,8 @@ async function loadAlloc() {
 function setAlloc(d) {
   ALLOC = d || { units: [], sections: [] };
   ALLOC_LOADED = true;
+  if (!AL_YM) AL_YM = curYm();
+  document.querySelectorAll('.al-ym').forEach(x => x.value = AL_YM);
   if (d && d.url) $('al-sheet').href = d.url;
   const U = ALLOC.units;
   const keep = id => $(id).value;
@@ -3644,7 +3648,7 @@ function renderAlloc() {
       const cnt = {};
       g[k].forEach(u => { const t = alType(u.Type) === 'Lainnya' ? u.Type : alType(u.Type); cnt[t] = (cnt[t] || 0) + 1; });
       const pic = [...new Set(g[k].map(u => u.PIC).filter(Boolean))].join(', ');
-      const sewa = g[k].reduce((a, u) => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status); return a + (t ? t.harga : 0); }, 0);
+      const sewa = g[k].reduce((a, u) => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status, AL_YM); return a + (t ? t.harga : 0); }, 0);
       return `<div class="al-dept">
         <h3><span>${esc(k)} <span class="muted" style="font-weight:400">· ${g[k].length} unit</span></span><span style="display:flex;gap:8px;align-items:center"><span class="muted" style="font-weight:400;font-size:12px">${esc(pic)}</span><button class="btn sec sm" style="margin:0" onclick="alDeptPdf('${esc(String(k).replace(/'/g, "\\'"))}')">PDF</button></span></h3>
         <div class="rs-units">${Object.entries(cnt).map(([t, n]) => n + ' ' + esc(t)).join(' · ')}${sewa ? ` · <b>sewa ${rp(sewa)} / bulan</b>` : ''}</div>
@@ -3678,7 +3682,7 @@ function alRentIndex() {
 }
 // used: penghitung per departemen+jenis agar unit yang diberi tarif tidak melebihi qty yang ditagih di BOQ
 function alRentOf(u, R, used) {
-  const tf = rentTariff(u.Code, u.Type, u.Department, u.Status);
+  const tf = rentTariff(u.Code, u.Type, u.Department, u.Status, AL_YM);
   if (tf) return { harga: tf.harga, src: tf.src, note: tf.note };
   if (u.Department && (RENT_FREE_DEPT.test(u.Department) || RENT_OFF_STATUS.test(String(u.Status || '')))) return null;
   if (!R) return null;
@@ -3700,7 +3704,7 @@ function alRentOf(u, R, used) {
 
 // Pilih departemen yang dimasukkan ke PDF (mis. hanya yang bayar / hanya yang tidak bayar)
 let AP = null;
-const alUnitRent = u => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status); return t ? t.harga : 0; };
+const alUnitRent = u => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status, AL_YM); return t ? t.harga : 0; };
 function openAlPdfPick() {
   if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
   const g = {};
@@ -3771,7 +3775,7 @@ async function alDeptPdf(onlyDept, opt) {
     $('print-area').innerHTML = `<div class="rs-doc">
       <div class="rs-head">
         <div>${logoTag()}<h1>EV Allocation per Department${one ? ' - ' + esc(keys[0]) : ''}</h1><div class="p-sub">Transport Department &middot; vehicles used and monthly rental price</div></div>
-        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b><br>Rates: standard EV rental rates${R ? ' (other types: ' + esc(fmtPeriodeEn(R.ym)) + ' BOQ)' : ''}${filt && !onlyDept ? '<br>Filter: ' + esc(filt) : ''}${opt.depts && !opt.all ? '<br>Selected departments: ' + Object.keys(g).length : ''}${opt.hideFree ? '<br>Charged units only' : ''}</div>
+        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b><br>Rates: EV rental rates for <b>${esc(fmtPeriodeEn(AL_YM))}</b>${R ? ' (other types: ' + esc(fmtPeriodeEn(R.ym)) + ' BOQ)' : ''}${filt && !onlyDept ? '<br>Filter: ' + esc(filt) : ''}${opt.depts && !opt.all ? '<br>Selected departments: ' + Object.keys(g).length : ''}${opt.hideFree ? '<br>Charged units only' : ''}</div>
       </div>
       <div class="rs-kpi">
         ${one ? '' : `<div><div class="l">Departments</div><div class="v">${keys.length}</div></div>`}
@@ -4756,41 +4760,61 @@ let RS_MODE = 'dept';
 // Dipakai untuk harga sewa per unit di Alokasi EV dan Masa guna. Jenis lain (cargo, 8 seat, bus, dll.) memakai harga di BOQ.
 const RENT_TARIFF = { 'Buggy 6 seat': 8000000, 'Buggy 4 seat': 7500000, 'Buggy Cargo': 8000000, 'Buggy Box': 8000000, 'Tyranno': 1500000, 'VFly': 1000000, 'Cooty': 400000, 'Volta': 1500000, 'Kucher': 1000000 };
 // Departemen yang hanya membayar parking fee per unit per bulan (bukan sewa)
-const RENT_PARKING = [[/^\s*biom\b/i, 1500000, 'BIOM'], [/bali\s*baza/i, 1500000, 'Bali Baza']];
+const RENT_PARKING = [[/^\s*biom\b/i, 1500000, 'BIOM']];
+// Tarif berubah mulai November 2026. Sebelumnya: semua buggy 7.500.000, kecuali Luna & Oshom 8.000.000.
+const RENT_NEW_FROM = '2026-11';
+const RENT_OLD_BUGGY = 7500000;
+const RENT_OLD_BUGGY_DEPT = [[/^\s*luna\b/i, 8000000, 'Luna'], [/^\s*oshom\b/i, 8000000, 'Oshom']];
+// Bali Baza: 7.500.000 sebelum Nov 2026, 8.000.000 mulai Nov 2026
+const RENT_BALIBAZA = [/bali\s*baza/i, 7500000, 8000000];
+const curYm = () => today().slice(0, 7);
+let AL_YM = '';
 // Departemen dengan tarif tetap per unit per bulan (bukan tarif jenis kendaraan)
 const RENT_FLAT_DEPT = [[/^\s*qs\b|quantity\s*survey/i, 1500000, 'QS']];
 // Tarif khusus departemen + jenis kendaraan
 const RENT_DEPT_TYPE = [[/^\s*site\s*operations?\s*$/i, 'Buggy 8 seat', 7500000, 'Buggy 8 seat Site Operations']];
 const RENT_TARIFF_CODE = { 'EVM-001': 8500000 };
+// Unit yang tidak pernah dikenakan charge
+const RENT_FREE_CODE = { 'EZ8-002': 'EZ8-002 (Pacha Alpacha), tidak dikenakan charge' };
 // Unit di departemen ini dipakai internal Transport, tidak dikenai sewa
 const RENT_FREE_DEPT = /transport|internal|^vsp$|last\s*mile|mechanic|workshop|work\s*order/i;
 const RENT_OFF_STATUS = /in\s*-?active|sold|dispos|standby|available|idle|spare/i;
 // Hasil: { harga, src: 'tarif' | 'kode' | 'gratis', note } atau null bila tidak ada tarif
 // NRE membayar 1 buggy (unit buggy berstatus Rent, saat ini LV6-003) + VFly ML-015; buggy NRE lainnya gratis.
 // Tidak dikenai charge: NPG, Senior Management, buggy Mr. Sergey, unit Kurt (Site Operations Director), cooty teman Lev (lev friend) dan Sol Studio
-const RENT_NOCHARGE_DEPT = /^\s*npg\b|mr\.?\s*serg|site\s*operations?\s*director|lev\s*friend|sol\s*studio|^\s*s(enio)?r\.?\s*management/i;
+// Luna resident belum ditagih (menunggu ketentuan baru)
+const RENT_NOCHARGE_DEPT = /^\s*luna\s*resident|^\s*npg\b|mr\.?\s*serg|site\s*operations?\s*director|lev\s*friend|sol\s*studio|^\s*s(enio)?r\.?\s*management/i;
 const RENT_RENT_ONLY_DEPT = /^\s*nre\s*$/i;
-function rentTariff(code, type, dept, status) {
-  const man = sewaManual(code, dept);
+function rentTariff(code, type, dept, status, ym) {
+  ym = ym || curYm();
+  const man = sewaManual(code, dept, ym);
   if (man) return man;
-  return rentRule(code, type, dept, status);
+  return rentRule(code, type, dept, status, ym);
 }
-function rentRule(code, type, dept, status) {
+function rentRule(code, type, dept, status, ym) {
+  ym = ym || curYm();
   const d = String(dept || '').trim();
   if (!d || RENT_FREE_DEPT.test(d) || RENT_OFF_STATUS.test(String(status || ''))) return null;
   if (RENT_NOCHARGE_DEPT.test(d)) return { harga: 0, src: 'gratis', note: d + ', tidak dikenakan charge' };
+  if (RENT_FREE_CODE[ucKey(code)]) return { harga: 0, src: 'gratis', note: RENT_FREE_CODE[ucKey(code)] };
   // VFly milik Infrastructure tidak dikenai charge (Tyranno Infrastructure tetap ditagih)
   if (/infrastru/i.test(d) && rsType({ Uraian: type }) === 'VFly') return { harga: 0, src: 'gratis', note: 'VFly Infrastructure, tidak dikenakan charge' };
   if (RENT_RENT_ONLY_DEPT.test(d) && /buggy|club/i.test(String(type || '')) && !/rent/i.test(String(status || ''))) return { harga: 0, src: 'gratis', note: 'NRE hanya dikenakan 1 buggy' };
   const k = ucKey(code);
   if (/security/i.test(d) && (/patrol|security|jeep|\bjep\b/i.test(String(type || '')) || /^LV[SJ]-/.test(k))) return { harga: 0, src: 'gratis', note: 'Buggy patrol Security, tidak dikenakan charge' };
-  const dt = RENT_DEPT_TYPE.find(x => x[0].test(d) && rsType({ Uraian: type }) === x[1]);
-  if (dt) return { harga: dt[2], src: 'tarif', note: 'Tarif ' + dt[3] };
+  if (RENT_TARIFF_CODE[k] != null) return { harga: RENT_TARIFF_CODE[k], src: 'kode', note: 'Tarif khusus ' + k };
+  const old = ym < RENT_NEW_FROM;
+  if (RENT_BALIBAZA[0].test(d)) return { harga: old ? RENT_BALIBAZA[1] : RENT_BALIBAZA[2], src: 'tarif', note: 'Tarif Bali Baza' + (old ? ' (sebelum Nov 2026)' : '') };
   const fl = RENT_FLAT_DEPT.find(x => x[0].test(d));
   if (fl) return { harga: fl[1], src: 'tarif', note: 'Tarif ' + fl[2] };
   const pk = RENT_PARKING.find(x => x[0].test(d));
   if (pk) return { harga: pk[1], src: 'parkir', note: 'Parking fee ' + pk[2] + ' (ditagih tiap bulan)' };
-  if (RENT_TARIFF_CODE[k] != null) return { harga: RENT_TARIFF_CODE[k], src: 'kode', note: 'Tarif khusus ' + k };
+  if (old && /^Buggy/.test(rsType({ Uraian: type }))) {
+    const od = RENT_OLD_BUGGY_DEPT.find(x => x[0].test(d));
+    return od ? { harga: od[1], src: 'tarif', note: 'Tarif buggy ' + od[2] + ' (sebelum Nov 2026)' } : { harga: RENT_OLD_BUGGY, src: 'tarif', note: 'Tarif buggy sebelum Nov 2026' };
+  }
+  const dt = RENT_DEPT_TYPE.find(x => x[0].test(d) && rsType({ Uraian: type }) === x[1]);
+  if (dt) return { harga: dt[2], src: 'tarif', note: 'Tarif ' + dt[3] };
   const t = rsType({ Uraian: type });
   if (RENT_TARIFF[t] != null) return { harga: RENT_TARIFF[t], src: 'tarif', note: 'Tarif ' + t };
   return null;
@@ -4798,35 +4822,57 @@ function rentRule(code, type, dept, status) {
 
 
 // ---------- HARGA SEWA PER UNIT (diisi manual, sheet Harga_Sewa) ----------
-// Isian manual mengalahkan aturan tarif. Berlaku selama unit masih di departemen yang sama saat harga diisi.
+// Isian manual mengalahkan aturan tarif, berlaku mulai periode Mulai sampai ada isian periode berikutnya.
+// Berlaku selama unit masih di departemen yang sama saat harga diisi.
 let SEWA = {}, SEWA_DIRTY = {};
+const SEWA_PAY = ['Cost transfer', 'Cash payment'];
 function setSewa(list) {
   SEWA = {};
-  (list || []).forEach(e => { SEWA[ucKey(e.Kode)] = e; });
+  (list || []).forEach(e => { const k = ucKey(e.Kode); (SEWA[k] = SEWA[k] || []).push(e); });
+  Object.values(SEWA).forEach(a => a.sort((x, y) => String(x.Mulai || '').localeCompare(String(y.Mulai || ''))));
+}
+// Isian yang berlaku untuk kode pada periode ym (Mulai kosong = berlaku semua periode)
+function sewaAt(key, ym) {
+  const a = SEWA[key];
+  if (!a) return null;
+  let r = null;
+  a.forEach(e => { if (String(e.Mulai || '') <= ym) r = e; });
+  return r;
 }
 const sewaDeptOk = (e, dept) => !e.Departemen || !String(dept || '').trim() || alSameDept(e.Departemen, dept) || e.Departemen.trim().toLowerCase() === String(dept).trim().toLowerCase();
-function sewaManual(code, dept) {
-  const e = SEWA[ucKey(code)];
+function sewaManual(code, dept, ym) {
+  const e = sewaAt(ucKey(code), ym || curYm());
   if (!e || !sewaDeptOk(e, dept)) return null;
   const h = e.Harga === '' || e.Harga == null ? null : Number(e.Harga) || 0;
-  if (e.Bayar === 'Tidak') return { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)' };
-  if (h != null) return h > 0 ? { harga: h, src: 'manual', note: e.Catatan || 'Harga sewa diisi manual' } : { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)' };
+  const pay = e.Pembayaran ? ' · ' + e.Pembayaran : '';
+  if (e.Bayar === 'Tidak') return { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)', pay: e.Pembayaran || '' };
+  if (h != null) return h > 0 ? { harga: h, src: 'manual', note: (e.Catatan || 'Harga sewa diisi manual') + pay, pay: e.Pembayaran || '' } : { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)' };
   return null;
 }
 const canEditSewa = () => !AUTH_ON || (USER && USER.peran === 'Head');
-// Nilai yang tampil di editor: perubahan belum disimpan > tersimpan
+function setAlYm(v) {
+  if (!/^\d{4}-\d{2}$/.test(v || '')) v = curYm();
+  if (v !== AL_YM && Object.keys(SEWA_DIRTY).length && !confirm('Ada perubahan harga yang belum disimpan. Ganti periode dan buang perubahan itu?')) { document.querySelectorAll('.al-ym').forEach(x => x.value = AL_YM); return; }
+  if (v !== AL_YM) SEWA_DIRTY = {};
+  AL_YM = v;
+  document.querySelectorAll('.al-ym').forEach(x => x.value = v);
+  renderAlloc();
+}
+// Nilai yang tampil di editor untuk periode AL_YM: perubahan belum disimpan > tersimpan
 function sewaVal(u) {
-  const k = ucKey(u.Code);
-  const e = SEWA_DIRTY[k] || SEWA[k] || null;
-  return { e, harga: e && e.Harga !== '' && e.Harga != null ? Number(e.Harga) : '', bayar: e ? e.Bayar || '' : '', cat: e ? e.Catatan || '' : '', moved: !!(SEWA[k] && !sewaDeptOk(SEWA[k], u.Department)) };
+  const k = ucKey(u.Code), saved = sewaAt(k, AL_YM);
+  const moved = !!(saved && !sewaDeptOk(saved, u.Department));
+  const e = SEWA_DIRTY[k] || (moved ? null : saved);
+  return { e, saved, moved: moved && !SEWA_DIRTY[k], harga: e && e.Harga !== '' && e.Harga != null ? Number(e.Harga) : '', bayar: e ? e.Bayar || '' : '', pay: e ? e.Pembayaran || '' : '', cat: e ? e.Catatan || '' : '',
+    since: !SEWA_DIRTY[k] && saved && !moved && String(saved.Mulai || '') !== AL_YM ? (saved.Mulai || '*') : '' };
 }
 function sewaEff(u) {
   const v = sewaVal(u);
-  if (!v.moved && v.e) {
+  if (v.e) {
     if (v.bayar === 'Tidak') return { harga: 0, man: true };
     if (v.harga !== '') return { harga: v.harga, man: true };
   }
-  const r = rentRule(u.Code, u.Type, u.Department, u.Status);
+  const r = rentRule(u.Code, u.Type, u.Department, u.Status, AL_YM);
   return { harga: r ? r.harga : 0, man: false, rule: r };
 }
 function sewaRows() {
@@ -4841,56 +4887,69 @@ function sewaRows() {
   });
 }
 const sewaDeptName = u => String(u.Department || '').trim() || '(tanpa departemen)';
-function renderSewa() {
-  if (!ALLOC_LOADED) return;
-  const rows = sewaRows(), ed = canEditSewa();
+function sewaGroups(rows) {
   const g = {}, canon = {};
   rows.forEach(u => { const n = sewaDeptName(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
   const keys = Object.keys(g).sort((a, b) => (a[0] === '(') - (b[0] === '(') || a.localeCompare(b));
+  keys.forEach(k => g[k].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true })));
+  return { g, keys };
+}
+function renderSewa() {
+  if (!ALLOC_LOADED) return;
+  if (!AL_YM) AL_YM = curYm();
+  document.querySelectorAll('.al-ym').forEach(x => { if (x.value !== AL_YM) x.value = AL_YM; });
+  const rows = sewaRows(), ed = canEditSewa();
+  const { g, keys } = sewaGroups(rows);
   let all = 0, nYa = 0, nNo = 0, nKosong = 0;
   const html = keys.map(k => {
-    const us = g[k].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true }));
+    const us = g[k];
     const sub = us.reduce((a, u) => a + sewaEff(u).harga, 0);
     all += sub;
     const lines = us.map(u => {
-      const v = sewaVal(u), key = ucKey(u.Code), r = rentRule(u.Code, u.Type, u.Department, u.Status);
+      const v = sewaVal(u), key = ucKey(u.Code), r = rentRule(u.Code, u.Type, u.Department, u.Status, AL_YM);
       if (v.bayar === 'Ya') nYa++; else if (v.bayar === 'Tidak') nNo++; else if (v.harga === '') nKosong++;
       const ph = r ? (r.harga ? 'aturan: ' + r.harga.toLocaleString('id-ID') : 'aturan: gratis') : 'belum ada tarif';
-      const ka = esc(key).replace(/'/g, "\\'");
+      const ka = esc(key).replace(/'/g, "\\'"), dis = ed ? '' : 'disabled';
       return `<tr data-k="${esc(key)}" class="${SEWA_DIRTY[key] ? 'sewa-dirty' : ''}">
-        <td><span class="al-code">${esc(u.Code)}</span>${u.Sticker ? `<div class="al-sub">Stiker ${esc(u.Sticker)}</div>` : ''}${v.moved ? `<div class="al-sub neg">Harga diisi saat di ${esc(SEWA[key].Departemen)}</div>` : ''}</td>
+        <td><span class="al-code">${esc(u.Code)}</span>${u.Sticker ? `<div class="al-sub">Stiker ${esc(u.Sticker)}</div>` : ''}${v.moved ? `<div class="al-sub neg">Harga diisi saat di ${esc(v.saved.Departemen)}</div>` : ''}</td>
         <td>${esc(u.Type)}</td>
         <td>${alStatusTag(u.Status)}</td>
         <td>${esc(u.PIC) || '<span class="muted">-</span>'}</td>
-        <td><input type="text" inputmode="numeric" class="sewa-in" value="${v.harga === '' || v.moved ? '' : Number(v.harga).toLocaleString('id-ID')}" placeholder="${esc(ph)}" ${ed ? '' : 'disabled'} oninput="sewaEdit('${ka}', 'Harga', this)" style="margin:0;text-align:right"></td>
-        <td><select ${ed ? '' : 'disabled'} onchange="sewaEdit('${ka}', 'Bayar', this)" style="margin:0;width:auto">${['', 'Ya', 'Tidak'].map(o => `<option value="${o}" ${(v.moved ? '' : v.bayar) === o ? 'selected' : ''}>${o || '-'}</option>`).join('')}</select></td>
-        <td><input type="text" value="${esc(v.moved ? '' : v.cat)}" ${ed ? '' : 'disabled'} oninput="sewaEdit('${ka}', 'Catatan', this)" placeholder="${r && r.note && !v.cat ? esc(r.note) : ''}" style="margin:0"></td>
+        <td><input type="text" inputmode="numeric" class="sewa-in" value="${v.harga === '' ? '' : Number(v.harga).toLocaleString('id-ID')}" placeholder="${esc(ph)}" ${dis} oninput="sewaEdit('${ka}', 'Harga', this)" style="margin:0;text-align:right">${v.since ? `<div class="al-sub">berlaku ${v.since === '*' ? 'semua periode' : 'sejak ' + esc(fmtPeriode(v.since))}</div>` : ''}</td>
+        <td><select ${dis} data-f="Bayar" onchange="sewaEdit('${ka}', 'Bayar', this)" style="margin:0;width:auto">${['', 'Ya', 'Tidak'].map(o => `<option value="${o}" ${v.bayar === o ? 'selected' : ''}>${o || '-'}</option>`).join('')}</select></td>
+        <td><select ${dis} data-f="Pembayaran" onchange="sewaEdit('${ka}', 'Pembayaran', this)" style="margin:0;width:auto">${['', ...SEWA_PAY].map(o => `<option value="${o}" ${v.pay === o ? 'selected' : ''}>${o || '-'}</option>`).join('')}</select></td>
+        <td><input type="text" value="${esc(v.cat)}" ${dis} oninput="sewaEdit('${ka}', 'Catatan', this)" placeholder="${r && r.note && !v.cat ? esc(r.note) : ''}" style="margin:0"></td>
       </tr>`;
     }).join('');
-    return `<tr class="sewa-grp"><td colspan="7"><b>${esc(k)}</b> <span class="muted">· ${us.length} unit</span><span style="float:right" data-sub="${esc(k)}">${sub ? '<b>' + rp(sub) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'}</span></td></tr>` + lines;
+    return `<tr class="sewa-grp"><td colspan="8"><b>${esc(k)}</b> <span class="muted">· ${us.length} unit</span><span style="float:right" data-sub="${esc(k)}">${sub ? '<b>' + rp(sub) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'}</span></td></tr>` + lines;
   }).join('');
-  $('al-sewa-body').innerHTML = html ? html + `<tr class="total"><td colspan="4">${rows.length} unit · ${keys.length} departemen</td><td style="text-align:right">${rp(all)}</td><td colspan="2">per bulan</td></tr>` : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
-  $('al-sewa-stats').innerHTML = `<div class="stat"><div class="l">Total sewa / bulan</div><div class="v">${rp(all)}</div><div class="muted">termasuk unit yang ikut aturan lama</div></div>
+  $('al-sewa-body').innerHTML = html ? html + `<tr class="total"><td colspan="4">${rows.length} unit · ${keys.length} departemen · ${esc(fmtPeriode(AL_YM))}</td><td style="text-align:right">${rp(all)}</td><td colspan="3">per bulan</td></tr>` : '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
+  $('al-sewa-stats').innerHTML = `<div class="stat"><div class="l">Total sewa / bulan</div><div class="v">${rp(all)}</div><div class="muted">${esc(fmtPeriode(AL_YM))}, termasuk unit yang ikut aturan</div></div>
     <div class="stat"><div class="l">Bayar</div><div class="v">${nYa}</div><div class="muted">unit ditandai Ya</div></div>
     <div class="stat"><div class="l">Tidak bayar</div><div class="v">${nNo}</div><div class="muted">unit ditandai Tidak</div></div>
-    <div class="stat"><div class="l">Belum diisi</div><div class="v">${nKosong}</div><div class="muted">ikut aturan tarif lama</div></div>`;
+    <div class="stat"><div class="l">Belum diisi</div><div class="v">${nKosong}</div><div class="muted">ikut aturan tarif</div></div>`;
   sewaSaveBtn();
 }
 function sewaEdit(key, field, el) {
   const u = ALLOC.units.find(x => ucKey(x.Code) === key);
   if (!u) return;
-  const base = SEWA_DIRTY[key] || Object.assign({ Kode: u.Code, Harga: '', Bayar: '', Catatan: '' }, sewaVal(u).moved ? {} : SEWA[key] || {});
-  const o = Object.assign({}, base, { Kode: u.Code, Departemen: String(u.Department || '').trim(), Jenis: u.Type });
+  const v = sewaVal(u);
+  const base = SEWA_DIRTY[key] || Object.assign({ Harga: '', Bayar: '', Pembayaran: '', Catatan: '' }, v.e || {});
+  // perubahan selalu disimpan sebagai harga yang berlaku mulai periode yang dipilih
+  const o = Object.assign({}, base, { Kode: u.Code, Departemen: String(u.Department || '').trim(), Jenis: u.Type, Mulai: AL_YM });
+  const tr = el.closest('tr');
   if (field === 'Harga') {
     const digits = el.value.replace(/[^\d]/g, '');
     o.Harga = digits === '' ? '' : Number(digits);
     const pos = el.value.length - el.selectionStart;
     el.value = digits === '' ? '' : Number(digits).toLocaleString('id-ID');
     try { el.setSelectionRange(el.value.length - pos, el.value.length - pos); } catch (e) {}
-    if (digits !== '' && !o.Bayar) { o.Bayar = Number(digits) > 0 ? 'Ya' : 'Tidak'; const sel = el.closest('tr').querySelector('select'); if (sel) sel.value = o.Bayar; }
+    if (digits !== '' && !o.Bayar) { o.Bayar = Number(digits) > 0 ? 'Ya' : 'Tidak'; const sel = tr.querySelector('select[data-f="Bayar"]'); if (sel) sel.value = o.Bayar; }
   } else o[field] = el.value;
   SEWA_DIRTY[key] = o;
-  el.closest('tr').classList.add('sewa-dirty');
+  tr.classList.add('sewa-dirty');
+  const sn = tr.querySelector('td:nth-child(5) .al-sub');
+  if (sn) sn.remove();
   // perbarui subtotal & total tanpa render ulang (agar fokus input tidak hilang)
   sewaTotals();
   sewaSaveBtn();
@@ -4898,7 +4957,7 @@ function sewaEdit(key, field, el) {
 function sewaTotals() {
   const rows = sewaRows(), g = {};
   let all = 0;
-  rows.forEach(u => { const k = sewaDeptName(u), h = sewaEff(u).harga; g[k.toLowerCase()] = (g[k.toLowerCase()] || 0) + h; all += h; });
+  rows.forEach(u => { const k = sewaDeptName(u).toLowerCase(), h = sewaEff(u).harga; g[k] = (g[k] || 0) + h; all += h; });
   document.querySelectorAll('#al-sewa-body [data-sub]').forEach(el => { const v = g[el.dataset.sub.toLowerCase()] || 0; el.innerHTML = v ? '<b>' + rp(v) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'; });
   const t = document.querySelector('#al-sewa-body tr.total td:nth-child(2)');
   if (t) t.textContent = rp(all);
@@ -4919,7 +4978,7 @@ async function saveSewa() {
     const r = await apiPost('saveSewa', { items });
     setSewa(r.sewa || []);
     SEWA_DIRTY = {};
-    toast(items.length + ' harga sewa disimpan');
+    toast(items.length + ' harga sewa disimpan, berlaku mulai ' + fmtPeriode(AL_YM));
     renderAlloc();
   } catch (e) {
     toast('Gagal: ' + e.message);
@@ -4928,27 +4987,25 @@ async function saveSewa() {
 }
 function exportSewa() {
   if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
-  const rows = sewaRows(), g = {}, canon = {};
-  rows.forEach(u => { const n = sewaDeptName(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
-  const keys = Object.keys(g).sort((a, b) => (a[0] === '(') - (b[0] === '(') || a.localeCompare(b));
+  const { g, keys } = sewaGroups(sewaRows());
   const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
-  const R = [[{ v: 'EV Rental Rates by Department', s: 'title' }], [{ v: 'Monthly rental per unit. Blank = not set yet (standard rate applies).', s: 'sub' }], [],
-    H(['Department', 'Unit code', 'Vehicle type', 'Status', 'PIC', '>Rental / month', 'Pays', 'Note'])];
+  const R = [[{ v: 'EV Rental Rates by Department - ' + fmtPeriodeEn(AL_YM), s: 'title' }], [{ v: 'Monthly rental per unit. Price blank = standard rate applies (shown in Rate used).', s: 'sub' }], [],
+    H(['Department', 'Unit code', 'Vehicle type', 'Status', 'PIC', '>Rental / month', 'Pays', 'Payment', '>Rate used', 'Note'])];
   let all = 0;
   keys.forEach(k => {
     let sub = 0;
-    g[k].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true })).forEach(u => {
+    g[k].forEach(u => {
       const v = sewaVal(u), eff = sewaEff(u);
       sub += eff.harga;
-      R.push([k, u.Code, u.Type, u.Status || '', u.PIC || '', v.harga === '' || v.moved ? '' : v.harga, v.moved ? '' : (v.bayar === 'Ya' ? 'Yes' : v.bayar === 'Tidak' ? 'No' : ''), v.moved ? '' : v.cat]);
+      R.push([k, u.Code, u.Type, u.Status || '', u.PIC || '', v.harga === '' ? '' : v.harga, v.bayar === 'Ya' ? 'Yes' : v.bayar === 'Tidak' ? 'No' : '', v.pay, eff.harga, v.cat]);
     });
     all += sub;
-    R.push([{ v: 'Subtotal ' + k, s: 'b' }, '', '', '', '', { v: sub, s: 'moneyb' }, '', '']);
+    R.push([{ v: 'Subtotal ' + k, s: 'b' }, '', '', '', '', '', '', '', { v: sub, s: 'moneyb' }, '']);
   });
-  R.push([{ v: 'Total', s: 'b' }, '', '', '', '', { v: all, s: 'moneyb' }, '', '']);
-  const blob = buildXlsx([{ name: 'Rental rates', cols: [24, 13, 26, 11, 20, 16, 8, 36], rows: R, freeze: 4 }]);
+  R.push([{ v: 'Total', s: 'b' }, '', '', '', '', '', '', '', { v: all, s: 'moneyb' }, '']);
+  const blob = buildXlsx([{ name: 'Rental rates', cols: [24, 13, 26, 11, 20, 16, 8, 15, 16, 36], rows: R, freeze: 4 }]);
   const url = URL.createObjectURL(blob), x = document.createElement('a');
-  x.href = url; x.download = `EV_Rental_Rates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  x.href = url; x.download = `EV_Rental_Rates_${AL_YM}.xlsx`;
   document.body.appendChild(x); x.click(); x.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
