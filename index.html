@@ -846,7 +846,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <div class="card" id="ra-card">
       <h2>Penyesuaian Rental EV</h2>
       <div class="hint">Catat unit sewa yang rusak, dikembalikan, atau diganti. Tagihan rental dihitung ulang otomatis setelah disimpan.</div>
-      <details class="guide"><summary>Cara hitung</summary><div>Unit lama ditagih sampai sehari sebelum tanggal yang diisi (bulan itu prorata per hari), bulan berikutnya tidak ditagih. Unit pengganti ditagih terpisah mulai tanggal tersebut. Unit rusak yang tidak diganti dianggap selesai.</div></details>
+      <details class="guide" open><summary>Cara hitung</summary><div><b>Mulai November 2026:</b> tagihan sewa dihitung dari sheet Buggy Allocation + harga di Alokasi EV &gt; Harga sewa, flat per bulan. Unit yang dikembalikan / rusak sebelum akhir bulan tetap ditagih penuh bulan itu; bulan berikutnya tidak ditagih setelah unit dihapus dari departemen di sheet alokasi. Unit pengganti (Rusak - diganti) mulai ditagih bulan berikutnya.<br><b>Sampai Oktober 2026</b>: unit & jumlah dari BOQ, harga dirapikan sesuai aturan tarif (buggy 7.500.000, Luna & Oshom 8.000.000, EVM-001 8.500.000, unit gratis tidak ditagih). Penyesuaian juga flat: bulan kejadian tetap ditagih penuh, unit lama berhenti ditagih bulan berikutnya, unit pengganti mulai ditagih bulan berikutnya.</div></details>
       <div class="row4">
         <div><label>Tanggal rusak / dikembalikan</label><input type="date" id="ra-tgl"></div>
         <div><label>Departemen</label><input type="text" id="ra-dept" list="ra-dept-list" placeholder="Mis. IT, Landscape"></div>
