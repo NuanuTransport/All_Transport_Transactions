@@ -368,6 +368,22 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .rs-dh span{font-size:9.5px;color:#555}
   #print-area .rs-codes{color:#444;font-size:9px}
   #print-area .rs-foot{margin-top:12px;font-size:8.5px;color:#666}
+  #print-area .bq-page+.bq-page{break-before:page;page-break-before:always}
+  #print-area .bq-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;font-size:9.5px;line-height:1.5}
+  #print-area .bq-top .doc-logo{height:20px;width:auto;margin-bottom:4px}
+  #print-area .bq-top b{font-size:11px}
+  #print-area .bq-top .r{text-align:right}
+  #print-area .bq-title{text-align:center;margin:16px 0 12px}
+  #print-area .bq-title h1{font-size:17px;margin:0;color:#1e5246}
+  #print-area .bq-title div{font-size:11px;color:#333;margin-top:2px}
+  #print-area .bq-ppl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;font-size:9.5px}
+  #print-area .bq-ppl div{border:1px solid #d5dbd8;border-radius:6px;padding:6px 8px}
+  #print-area .bq-ppl .l{font-size:8.5px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+  #print-area .bq-ppl b{display:block;margin-top:2px;font-size:10px}
+  #print-area .bq-tbl td.c{text-align:center}
+  #print-area .bq-sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:26px;text-align:center;font-size:9.5px;break-inside:avoid;page-break-inside:avoid}
+  #print-area .bq-sign .sig-box{height:56px}
+  #print-area .bq-sign .nm{font-weight:700;border-top:1px solid #333;padding-top:3px;margin:0 20px}
   #print-area .sig-box{height:60px;display:flex;align-items:flex-end;justify-content:center;margin-top:6px}
   #print-area .sig-box svg{height:46px;width:auto;fill:#14213d}
   #print-area .sig-box svg.sig-tall{height:58px}
@@ -1753,6 +1769,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <span class="muted" style="font-size:13px">Format</span>
       <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="radio" name="ap-fmt" value="pdf" checked onchange="apInfo()" style="width:auto;margin:0"> PDF</label>
       <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="radio" name="ap-fmt" value="xlsx" onchange="apInfo()" style="width:auto;margin:0"> Excel</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="radio" name="ap-fmt" value="boq" onchange="apInfo()" style="width:auto;margin:0"> BOQ tagihan (PDF)</label>
       <span class="muted" style="font-size:13px" id="ap-ym"></span>
     </div>
     <div class="btns" style="justify-content:flex-start;margin-bottom:8px">
@@ -3765,7 +3782,7 @@ function apSelect(m) {
 const apFmt = () => (document.querySelector('input[name="ap-fmt"]:checked') || {}).value || 'pdf';
 function apInfo() {
   const sel = AP.list.filter(x => AP.sel.has(x.k));
-  if (!$('btn-ap').disabled) $('btn-ap').textContent = apFmt() === 'xlsx' ? 'Download Excel' : 'Download PDF';
+  if (!$('btn-ap').disabled) $('btn-ap').textContent = apFmt() === 'xlsx' ? 'Download Excel' : apFmt() === 'boq' ? 'Download BOQ' : 'Download PDF';
   $('ap-info').textContent = `${sel.length} dari ${AP.list.length} departemen dipilih · ${sel.reduce((a, x) => a + x.n, 0)} unit · ${rp(sel.reduce((a, x) => a + x.amt, 0))} / bulan`;
 }
 async function apDownload() {
@@ -3773,9 +3790,10 @@ async function apDownload() {
   const b = $('btn-ap'), fmt = apFmt(), hideFree = $('ap-hidefree').checked;
   const low = new Set([...AP.sel].map(k => k.toLowerCase()));
   const rows = apBase().filter(u => low.has(apName(u).toLowerCase()));
-  b.disabled = true; b.textContent = fmt === 'xlsx' ? 'Membuat Excel...' : 'Membuat PDF...';
+  b.disabled = true; b.textContent = fmt === 'xlsx' ? 'Membuat Excel...' : fmt === 'boq' ? 'Membuat BOQ...' : 'Membuat PDF...';
   try {
     if (fmt === 'xlsx') exportSewa({ rows, hideFree, all: AP.sel.size === AP.list.length });
+    else if (fmt === 'boq') await sewaBoqPdf(rows, b);
     else await alDeptPdf(null, { depts: new Set(rows.map(u => u.Department || '(tanpa departemen)')), hideFree, all: AP.sel.size === AP.list.length });
     closeAlPdfPick();
   } finally {
@@ -4871,6 +4889,92 @@ function rentRule(code, type, dept, status, ym) {
   return null;
 }
 
+
+// ---------- BOQ TAGIHAN SEWA PER DEPARTEMEN (dari tab Harga sewa) ----------
+// Satu halaman BOQ per departemen, format sama dengan sheet BOQ Rental EV. Unit dikelompokkan per jenis + harga.
+// Nama departemen disamakan dengan tagihan (RENT_ALLOC_ALIAS di Code.gs).
+const BOQ_DEPT_ALIAS = { 'LANDSCAPING': 'Landscape', 'NUANU EXPERIANCE': 'Nuanu Experience' };
+const boqDept = u => { const n = sewaDeptName(u); return BOQ_DEPT_ALIAS[n.toUpperCase()] || n; };
+const BOQ_SUP = 'Ni Putu Angie Friska Nanda';
+const boqCat = type => ({ 'Bus': 'EV Bus Rental', 'Buggy': 'EV Buggy Rental', 'EV Bike / Motor': 'EV Bike Rental', 'Cooty / Skuter': 'EV Scooter Rental' })[alCat(type)] || 'EV Rental';
+const boqRentRows = (dept, ym) => INCOME.filter(r => isRentRow(r) && periodeOf(r) === ym && String(r.Pelanggan || '').trim().toLowerCase() === dept.toLowerCase());
+// Requester terakhir di BOQ / tagihan departemen ini
+function boqRequester(dept) {
+  const rows = INCOME.filter(r => isRentRow(r) && String(r.Pelanggan || '').trim().toLowerCase() === dept.toLowerCase()).sort((a, b) => periodeOf(b).localeCompare(periodeOf(a)));
+  for (const r of rows) { try { const q = JSON.parse(r.Rincian || '{}').requester; if (q) return q; } catch (e) {} }
+  return '';
+}
+async function sewaBoqPdf(rows, btn) {
+  const ym = AL_YM || curYm();
+  const g = {}, canon = {};
+  rows.forEach(u => { const n = boqDept(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
+  const [yy, mm] = ym.split('-').map(Number);
+  const tgl = new Date(yy, mm, 0).getDate() + ' ' + fmtPeriodeEn(ym);
+  const per = fmtPeriodeEn(ym);
+  const pages = [], skipped = [];
+  let grand = 0;
+  Object.keys(g).sort((a, b) => a.localeCompare(b)).forEach(dept => {
+    const lines = {}, order = [];
+    g[dept].forEach(u => {
+      const eff = sewaEff(u);
+      if (!(eff.harga > 0)) return;
+      const v = sewaVal(u), pay = (v.e && v.pay) || '';
+      const type = avTypeName(u), key = boqCat(u.Type) + '|' + type + '|' + eff.harga + '|' + pay;
+      if (!lines[key]) { lines[key] = { cat: boqCat(u.Type), type, harga: eff.harga, pay, codes: [] }; order.push(key); }
+      lines[key].codes.push(String(u.Code).trim());
+    });
+    // unit yang sudah dikembalikan tapi tetap ditagih penuh bulan ini (dari tagihan Income)
+    const have = new Set(g[dept].map(u => ucKey(u.Code)));
+    boqRentRows(dept, ym).forEach(r => {
+      let d = {};
+      try { d = JSON.parse(r.Rincian || '{}'); } catch (e) {}
+      (d.items || []).forEach(it => {
+        const m = String(it.Uraian || '').match(/^\[([^\]]+)\]\s*(.*?)(\s*\((Cost transfer|Cash payment)\))?\s*-\s*returned/i);
+        if (!m || have.has(ucKey(m[1])) || !(Number(it.Total) > 0)) return;
+        const key = 'ret|' + m[1];
+        lines[key] = { cat: boqCat(m[2]), type: avTypeName({ Type: m[2] }), harga: Number(it.Harga) || Number(it.Total), pay: m[4] || '', codes: [m[1]], ret: true };
+        order.push(key);
+      });
+    });
+    const items = order.map(k => lines[k]).sort((a, b) => a.cat.localeCompare(b.cat) || b.harga - a.harga);
+    const total = items.reduce((a, x) => a + x.harga * x.codes.length, 0);
+    if (!total) { skipped.push(dept); return; }
+    grand += total;
+    const req = boqRequester(dept);
+    pages.push(`<div class="bq-page">
+      <div class="bq-top">
+        <div>${logoTag()}<br><b>Transport Department</b><br>Jl. Galiran, Desa Beraban, Kediri, Tabanan<br>(+62)81138217258<br>transport.admin@nuanu.com</div>
+        <div class="r">Tabanan, ${esc(tgl)}<br>Work Station: Parking 3<br>Category: Electric Vehicle Rental<br>Period: <b>${esc(per)}</b></div>
+      </div>
+      <div class="bq-title"><h1>Bill of Quantities</h1><div>Electric Vehicle Rental &middot; ${esc(dept)}</div></div>
+      <div class="bq-ppl">
+        <div><span class="l">Transport Supervisor</span><b>${esc(BOQ_SUP)}</b></div>
+        <div><span class="l">Head of Transport Department</span><b>${esc(INV_HEAD_NAME)}</b></div>
+        <div><span class="l">Requester</span><b>${esc(req || dept)}</b>${req ? esc(dept) : ''}</div>
+      </div>
+      <table class="rs-tbl bq-tbl"><thead><tr><th style="width:5%">No.</th><th style="width:16%">Category</th><th>Description</th><th class="n" style="width:6%">Qty</th><th style="width:7%">Unit</th><th class="n" style="width:14%">Price</th><th class="n" style="width:15%">Total</th></tr></thead><tbody>
+      ${items.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.cat)}</td><td>Period ${esc(per)}, ${esc(x.type)}${x.ret ? ' (returned, billed full month)' : ''}, monthly rent<div class="rs-codes">Code: ${esc(x.codes.join(', '))}${x.pay ? ' &middot; ' + esc(x.pay) : ''}</div></td><td class="n">${x.codes.length}</td><td>Unit</td><td class="n">${rp(x.harga)}</td><td class="n">${rp(x.harga * x.codes.length)}</td></tr>`).join('')}
+      <tr class="st"><td colspan="6" style="text-align:right">Grand Total</td><td class="n">${rp(total)}</td></tr>
+      </tbody></table>
+      <div class="rs-foot">Notes: flat monthly rental. Units returned before the end of the month are billed for the full month.</div>
+      <div class="bq-sign">
+        <div>Service Provider<div class="sig-box">${EXT_SUP_SVG}</div><div class="nm">${esc(BOQ_SUP)}</div>Supervisor Transport</div>
+        <div>Requester<div class="sig-box"></div><div class="nm">${req ? esc(req) : '&nbsp;'}</div>${esc(dept)}</div>
+      </div>
+    </div>`);
+  });
+  if (!pages.length) return toast('Tidak ada unit yang dikenai biaya di departemen yang dipilih');
+  $('print-area').innerHTML = pages.join('');
+  setPageSize('A4 portrait');
+  const pdf = await makePrintPdf((i, n) => { if (btn) btn.textContent = `Membuat BOQ ${i}/${n}...`; });
+  const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+  const a = document.createElement('a');
+  const one = pages.length === 1 ? Object.keys(g).find(d => !skipped.includes(d)) : '';
+  a.href = url; a.download = `BOQ EV Rental ${one ? safeName(one, 60) + ' ' : ''}${ym}.pdf`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(`BOQ dibuat: ${pages.length} departemen, total ${rp(grand)}` + (skipped.length ? ` (${skipped.length} departemen tanpa biaya dilewati)` : ''));
+}
 
 // ---------- UNIT AVAILABLE (belum dialokasikan) ----------
 const AV_STATUS = /available|stand\s*-?by|idle|spare/i;
