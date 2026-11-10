@@ -587,7 +587,7 @@ html,body{max-width:100%;overflow-x:hidden}
 
     <div class="card">
       <h2>Download Nota CA per Periode</h2>
-      <div class="hint">Semua nota pemakaian CA dalam satu bulan digabung jadi satu PDF (halaman daftar, lalu satu nota per halaman).</div>
+      <div class="hint">Semua nota pemakaian CA dalam satu bulan digabung jadi satu PDF (halaman daftar, lalu satu nota per halaman). Pilih Internal atau External untuk nota clearing terpisah; pemakaian dikelompokkan menurut divisinya (Guest Mobility = External, walau dibayar dari CA Internal).</div>
       <div class="row3">
         <div><label>Periode</label><select id="z-periode"></select></div>
         <div><label>Grup</label><select id="z-grup"></select></div>
@@ -2294,7 +2294,8 @@ async function init() {
   try {
     MASTER = await apiGet({ action: 'master' });
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
-    fillSelect($('z-grup'), MASTER.grup || [], 'Semua grup');
+    // Nota dipisah per grup berdasarkan DIVISI pemakaian (mis. Guest Mobility dari CA Internal masuk ke External)
+    $('z-grup').innerHTML = '<option value="">Internal + External (semua)</option>' + (MASTER.grup || []).map(g => `<option value="${esc(g)}">${esc(g)} saja</option>`).join('');
     fillSelect($('n-grup'), MASTER.grup || [], 'Pilih grup');
     fillSelect($('u-kategori'), MASTER.kategori || [], 'Pilih kategori');
     fillSelect($('u-unit'), MASTER.unit || [], '- Tidak terkait unit -');
@@ -7187,7 +7188,9 @@ async function downloadNota() {
   btn.disabled = true; btn.textContent = 'Memuat daftar nota...';
   $('z-info').textContent = '';
   try {
-    const all = (await apiGet({ action: 'notaPeriode', periode: p })).filter(r => !g || r.Grup === g);
+    // Grup nota = grup dari divisi pemakaian; bila divisi tidak terdaftar, ikut grup CA-nya
+    const grupOf = r => Object.keys(MASTER.divisiMap || {}).find(k => (MASTER.divisiMap[k] || []).includes(r.Divisi)) || r.Grup;
+    const all = (await apiGet({ action: 'notaPeriode', periode: p })).map(r => Object.assign(r, { CA_Grup: r.Grup, Grup: grupOf(r) })).filter(r => !g || r.Grup === g);
     const withFile = all.filter(r => r.Nota_URL);
     const tanpa = all.length - withFile.length;
     const label = `${fmtPeriode(p)}${g ? ' grup ' + g : ''}`;
@@ -7249,7 +7252,7 @@ async function downloadNota() {
       const amt = rpPdf(r.Nominal);
       const aw = bold.widthOfTextAtSize(amt, 12);
       pg.drawText(amt, { x: W - M - aw, y: top - 12, size: 12, font: bold });
-      pg.drawText(fitText(bold, 11, `#${String(i + 1).padStart(3, '0')}  ${fmtTgl(r.Tanggal)}  ${r.CA_ID}  ${r.Grup}`, W - 2 * M - aw - 12), { x: M, y: top - 12, size: 11, font: bold });
+      pg.drawText(fitText(bold, 11, `#${String(i + 1).padStart(3, '0')}  ${fmtTgl(r.Tanggal)}  ${r.CA_ID}  ${r.Grup}${r.CA_Grup && r.CA_Grup !== r.Grup ? ' (paid from ' + r.CA_Grup + ' CA)' : ''}`, W - 2 * M - aw - 12), { x: M, y: top - 12, size: 11, font: bold });
       pg.drawText(fitText(font, 9.5, [r.Divisi, r.Kategori, r.Unit].filter(Boolean).join('  |  '), W - 2 * M), { x: M, y: top - 28, size: 9.5, font });
       pg.drawText(fitText(font, 9.5, r.Keterangan + (extra ? '  ' + extra : ''), W - 2 * M), { x: M, y: top - 42, size: 9.5, font, color: grey });
       pg.drawLine({ start: { x: M, y: top - 50 }, end: { x: W - M, y: top - 50 }, thickness: 0.7, color: line });
