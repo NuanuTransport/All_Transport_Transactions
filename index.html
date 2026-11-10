@@ -494,6 +494,7 @@ html,body{max-width:100%;overflow-x:hidden}
   table.mcard>tbody>tr>td .btns{justify-content:flex-start;flex-wrap:wrap}
   table.mcard>tbody>tr.total td:first-child{border:0!important;font-size:14px}
 }
+  #al-av-body td{vertical-align:top}
   #al-sewa-table tr.sewa-grp td{background:#f3f6fa;font-size:13px}
   #al-sewa-table tr.sewa-dirty td{background:#fffbea}
   #al-sewa-table input,#al-sewa-table select{padding:6px 8px;font-size:13px}
@@ -1083,6 +1084,7 @@ html,body{max-width:100%;overflow-x:hidden}
         <button class="active" data-m="list" onclick="setAlMode('list')">Daftar unit</button>
         <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
         <button data-m="sewa" onclick="setAlMode('sewa')">Harga sewa</button>
+        <button data-m="avail" onclick="setAlMode('avail')">Unit available</button>
         <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
@@ -1105,7 +1107,7 @@ html,body{max-width:100%;overflow-x:hidden}
         <div class="card-head" style="margin-bottom:8px">
           <div class="muted">Unit per departemen dengan harga sewa per bulan sesuai periode tarif. Ikuti filter di atas.</div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><label class="muted" style="display:flex;align-items:center;gap:4px;margin:0;font-size:13px">Periode <input type="month" class="al-ym" onchange="setAlYm(this.value)" style="width:auto;margin:0"></label>
-          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="openAlPdfPick()">Download PDF</button></div>
+          <button class="btn sec" style="margin:0" id="btn-al-pdf" onclick="openAlPdfPick('dept')">Download</button></div>
         </div>
         <div id="al-deptview"></div>
       </div>
@@ -1172,6 +1174,17 @@ html,body{max-width:100%;overflow-x:hidden}
         </div>
         <div class="muted" style="margin-top:8px" id="al-life-note"></div>
       </div>
+      <div id="al-avail" class="hidden">
+        <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div class="muted" style="flex:1;min-width:240px">Unit yang belum dialokasikan ke departemen mana pun (kolom Departemen kosong di sheet, atau status Available / Standby / Spare), per jenis dan kode. Klik kode untuk membuka atau mengalokasikan unit.</div>
+          <div class="ctrl" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn sec" style="margin:0" onclick="exportAvail()">Download Excel</button>
+            <button class="btn sec" style="margin:0" id="btn-av-pdf" onclick="availPdf()">Download PDF</button>
+          </div>
+        </div>
+        <div class="stats" id="al-av-stats"></div>
+        <div id="al-av-body"></div>
+      </div>
       <div id="al-sewa" class="hidden">
         <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
           <div class="muted" style="flex:1;min-width:240px">Harga sewa per unit per bulan, dikelompokkan per departemen. Isi <b>Harga</b> dan <b>Bayar</b> (Ya / Tidak) lalu klik Simpan. Harga berlaku mulai periode yang dipilih dan seterusnya, sampai diubah lagi. Unit yang belum diisi memakai aturan tarif (tampil samar di kolom harga). Harga di sini dipakai untuk tab Per departemen, PDF, dan Masa guna.</div>
@@ -1181,7 +1194,7 @@ html,body{max-width:100%;overflow-x:hidden}
               <option value="">Semua unit</option><option value="kosong">Belum diisi</option><option value="ya">Bayar</option><option value="tidak">Tidak bayar</option><option value="pindah">Departemen berubah</option>
             </select>
             <label class="muted" style="display:flex;align-items:center;gap:4px;margin:0;font-size:13px"><input type="checkbox" id="al-sewa-nodept" onchange="renderSewa()" style="width:auto;margin:0"> unit tanpa departemen</label>
-            <button class="btn sec" style="margin:0" onclick="exportSewa()">Download Excel</button>
+            <button class="btn sec" style="margin:0" id="btn-sewa-dl" onclick="openAlPdfPick('sewa')">Download</button>
             <button class="btn" style="margin:0" id="btn-sewa-save" onclick="saveSewa()" disabled>Simpan</button>
           </div>
         </div>
@@ -1735,7 +1748,13 @@ html,body{max-width:100%;overflow-x:hidden}
 <!-- MODAL PILIH DEPARTEMEN UNTUK PDF ALOKASI -->
 <div class="modal hidden" id="ap-modal" onclick="if (event.target === this) closeAlPdfPick()">
   <div class="modal-box" style="max-width:560px">
-    <div class="modal-head"><b>Download PDF per departemen</b><button class="btn sec sm" onclick="closeAlPdfPick()">Tutup</button></div>
+    <div class="modal-head"><b id="ap-title">Download per departemen</b><button class="btn sec sm" onclick="closeAlPdfPick()">Tutup</button></div>
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <span class="muted" style="font-size:13px">Format</span>
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="radio" name="ap-fmt" value="pdf" checked onchange="apInfo()" style="width:auto;margin:0"> PDF</label>
+      <label style="display:flex;align-items:center;gap:6px;margin:0"><input type="radio" name="ap-fmt" value="xlsx" onchange="apInfo()" style="width:auto;margin:0"> Excel</label>
+      <span class="muted" style="font-size:13px" id="ap-ym"></span>
+    </div>
     <div class="btns" style="justify-content:flex-start;margin-bottom:8px">
       <button class="btn sec sm" style="margin:0" onclick="apSelect('all')">Semua</button>
       <button class="btn sec sm" style="margin:0" onclick="apSelect('paid')">Hanya yang bayar</button>
@@ -1745,8 +1764,8 @@ html,body{max-width:100%;overflow-x:hidden}
     <input type="text" id="ap-cari" placeholder="Cari departemen" oninput="apRender()" style="margin-bottom:6px">
     <div class="jp-list" id="ap-list"></div>
     <div class="muted" id="ap-info" style="margin-top:6px"></div>
-    <label class="jp-row" style="border:0;padding:8px 0 0"><input type="checkbox" id="ap-hidefree" onchange="apInfo()"> <span class="jp-main">Rincian unit: tampilkan hanya unit yang dikenai biaya<div class="muted">Unit tanpa biaya (internal, gratis, tidak aktif) tidak dicantumkan</div></span></label>
-    <div class="btns" style="margin-top:12px"><button class="btn" style="margin:0" id="btn-ap" onclick="apDownload()">Download PDF</button></div>
+    <label class="jp-row" style="border:0;padding:8px 0 0"><input type="checkbox" id="ap-hidefree" onchange="apInfo()"> <span class="jp-main">Tampilkan hanya unit yang dikenai biaya<div class="muted">Unit tanpa biaya (internal, gratis, tidak aktif) tidak dicantumkan</div></span></label>
+    <div class="btns" style="margin-top:12px"><button class="btn" style="margin:0" id="btn-ap" onclick="apDownload()">Download</button></div>
   </div>
 </div>
 
@@ -3608,6 +3627,8 @@ function setAlMode(m) {
   $('al-hist').classList.toggle('hidden', m !== 'hist');
   $('al-life').classList.toggle('hidden', m !== 'life');
   $('al-sewa').classList.toggle('hidden', m !== 'sewa');
+  $('al-avail').classList.toggle('hidden', m !== 'avail');
+  ['al-dept', 'al-status'].forEach(id => $(id).classList.toggle('hidden', m === 'avail'));
   $('al-filters').classList.toggle('hidden', m === 'boq');
   if (m === 'cost' && !UC) loadUnitCost();
   if (m === 'hist') loadUnitHist();
@@ -3661,6 +3682,7 @@ function renderAlloc() {
   if (AL_MODE === 'hist') renderUnitHist();
   if (AL_MODE === 'life') renderUnitLife();
   if (AL_MODE === 'sewa') renderSewa();
+  if (AL_MODE === 'avail') renderAvail();
 }
 
 // ---------- PDF UNIT PER DEPARTEMEN + HARGA SEWA ----------
@@ -3683,7 +3705,7 @@ function alRentIndex() {
 // used: penghitung per departemen+jenis agar unit yang diberi tarif tidak melebihi qty yang ditagih di BOQ
 function alRentOf(u, R, used) {
   const tf = rentTariff(u.Code, u.Type, u.Department, u.Status, AL_YM);
-  if (tf) return { harga: tf.harga, src: tf.src, note: tf.note };
+  if (tf) return { harga: tf.harga, src: tf.src, note: tf.note, pay: tf.pay || '' };
   if (u.Department && (RENT_FREE_DEPT.test(u.Department) || RENT_OFF_STATUS.test(String(u.Status || '')))) return null;
   if (!R) return null;
   const c = R.byCode[ucKey(u.Code)];
@@ -3705,13 +3727,25 @@ function alRentOf(u, R, used) {
 // Pilih departemen yang dimasukkan ke PDF (mis. hanya yang bayar / hanya yang tidak bayar)
 let AP = null;
 const alUnitRent = u => { const t = rentTariff(u.Code, u.Type, u.Department, u.Status, AL_YM); return t ? t.harga : 0; };
-function openAlPdfPick() {
+// src 'dept' = tab Per departemen (semua unit sesuai filter), 'sewa' = tab Harga sewa (ikut filter tab itu)
+const apBase = () => AP && AP.src === 'sewa' ? sewaRows() : alFiltered();
+const apName = u => AP && AP.src === 'sewa' ? sewaDeptName(u) : (u.Department || '(tanpa departemen)');
+function openAlPdfPick(src) {
   if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
-  const g = {};
-  alFiltered().forEach(u => { const k = u.Department || '(tanpa departemen)'; const o = g[k] = g[k] || { k, n: 0, amt: 0 }; o.n++; o.amt += alUnitRent(u); });
-  AP = { list: Object.values(g).sort((a, b) => a.k.localeCompare(b.k)), sel: new Set() };
+  AP = { src: src || 'dept', list: [], sel: new Set() };
+  const g = {}, canon = {};
+  apBase().forEach(u => {
+    const n = apName(u), lk = n.toLowerCase();
+    canon[lk] = canon[lk] || n;
+    const o = g[lk] = g[lk] || { k: canon[lk], n: 0, amt: 0 };
+    o.n++; o.amt += AP.src === 'sewa' ? sewaEff(u).harga : alUnitRent(u);
+  });
+  AP.list = Object.values(g).sort((a, b) => a.k.localeCompare(b.k));
   AP.list.forEach(x => AP.sel.add(x.k));
   $('ap-cari').value = '';
+  const fmt = AP.src === 'sewa' ? 'xlsx' : 'pdf';
+  document.querySelectorAll('input[name="ap-fmt"]').forEach(r => r.checked = r.value === fmt);
+  $('ap-ym').textContent = 'Periode tarif: ' + fmtPeriode(AL_YM || curYm());
   apRender();
   $('ap-modal').classList.remove('hidden');
 }
@@ -3728,19 +3762,24 @@ function apSelect(m) {
   AP.list.forEach(x => { if (m === 'all' || (m === 'paid' && x.amt > 0) || (m === 'free' && !x.amt)) AP.sel.add(x.k); });
   apRender();
 }
+const apFmt = () => (document.querySelector('input[name="ap-fmt"]:checked') || {}).value || 'pdf';
 function apInfo() {
   const sel = AP.list.filter(x => AP.sel.has(x.k));
+  if (!$('btn-ap').disabled) $('btn-ap').textContent = apFmt() === 'xlsx' ? 'Download Excel' : 'Download PDF';
   $('ap-info').textContent = `${sel.length} dari ${AP.list.length} departemen dipilih · ${sel.reduce((a, x) => a + x.n, 0)} unit · ${rp(sel.reduce((a, x) => a + x.amt, 0))} / bulan`;
 }
 async function apDownload() {
   if (!AP.sel.size) return toast('Pilih minimal satu departemen');
-  const b = $('btn-ap');
-  b.disabled = true; b.textContent = 'Membuat PDF...';
+  const b = $('btn-ap'), fmt = apFmt(), hideFree = $('ap-hidefree').checked;
+  const low = new Set([...AP.sel].map(k => k.toLowerCase()));
+  const rows = apBase().filter(u => low.has(apName(u).toLowerCase()));
+  b.disabled = true; b.textContent = fmt === 'xlsx' ? 'Membuat Excel...' : 'Membuat PDF...';
   try {
-    await alDeptPdf(null, { depts: new Set(AP.sel), hideFree: $('ap-hidefree').checked, all: AP.sel.size === AP.list.length });
+    if (fmt === 'xlsx') exportSewa({ rows, hideFree, all: AP.sel.size === AP.list.length });
+    else await alDeptPdf(null, { depts: new Set(rows.map(u => u.Department || '(tanpa departemen)')), hideFree, all: AP.sel.size === AP.list.length });
     closeAlPdfPick();
   } finally {
-    b.disabled = false; b.textContent = 'Download PDF';
+    b.disabled = false; apInfo();
   }
 }
 
@@ -3793,11 +3832,11 @@ async function alDeptPdf(onlyDept, opt) {
       </tbody></table>`}
       ${keys.map(k => { const sub = g[k].reduce((a, u) => a + (u.rent ? u.rent.harga : 0), 0); const pic = [...new Set(g[k].map(u => u.PIC).filter(Boolean))].join(', ');
         return `<div class="rs-dh"><b>${esc(k)}</b><span>${g[k].length} unit${g[k].length === 1 ? '' : 's'} &middot; ${rp(sub)} / month${pic ? ' &middot; PIC ' + esc(pic) : ''}</span></div>
-        <table class="rs-tbl"><thead><tr><th style="width:5%">No</th><th>Unit code</th><th>Vehicle type</th><th>Status</th><th>Condition</th><th>PIC</th><th class="n">Price / month</th></tr></thead><tbody>
-          ${g[k].slice().sort((a, c) => String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true })).map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.Code)}</b>${u.Sticker ? `<div class="rs-codes">Sticker ${esc(u.Sticker)}</div>` : ''}</td><td>${esc(u.Type || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(condEn(u.Condition))}</td><td>${esc(u.PIC || '-')}</td><td class="n">${!u.rent ? '-' : u.rent.src === 'gratis' ? 'No charge' : rp(u.rent.harga) + (u.rent.src === 'parkir' ? '<div class="rs-codes">parking fee</div>' : '') + (u.rent.src === 'rate' || u.rent.src === 'code' ? '*' : '')}</td></tr>`).join('')}
-          <tr class="st"><td colspan="6">Subtotal ${esc(k)} (${g[k].length} units)</td><td class="n">${rp(sub)}</td></tr>
+        <table class="rs-tbl"><thead><tr><th style="width:5%">No</th><th>Unit code</th><th>Vehicle type</th><th>Status</th><th>Condition</th><th>PIC</th><th>Payment</th><th class="n">Price / month</th></tr></thead><tbody>
+          ${g[k].slice().sort((a, c) => String(a.Code).localeCompare(String(c.Code), undefined, { numeric: true })).map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.Code)}</b>${u.Sticker ? `<div class="rs-codes">Sticker ${esc(u.Sticker)}</div>` : ''}</td><td>${esc(u.Type || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(condEn(u.Condition))}</td><td>${esc(u.PIC || '-')}</td><td>${esc((u.rent && u.rent.harga > 0 && u.rent.pay) || '-')}</td><td class="n">${!u.rent ? '-' : u.rent.src === 'gratis' ? 'No charge' : rp(u.rent.harga) + (u.rent.src === 'parkir' ? '<div class="rs-codes">parking fee</div>' : '') + (u.rent.src === 'rate' || u.rent.src === 'code' ? '*' : '')}</td></tr>`).join('')}
+          <tr class="st"><td colspan="7">Subtotal ${esc(k)} (${g[k].length} units)</td><td class="n">${rp(sub)}</td></tr>
         </tbody></table>`; }).join('')}
-      <div class="rs-foot">Monthly rental rates: Buggy 6 seater Rp 8.000.000, EVM-001 Rp 8.500.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Buggy Box Rp 8.000.000, Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM and Bali Baza: parking fee only, Rp 1.500.000 per unit per month. QS: Rp 1.500.000. Site Operations Buggy 8 seater: Rp 7.500.000. NRE: 1 buggy + VFly charged. No charge: NPG, Senior Management, Infrastructure VFly, Mr. Sergey, Site Operations Director (Kurt), Lev's friend and Sol Studio cooty, Security patrol buggy. * = special unit rate or price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).</div>
+      <div class="rs-foot">${esc(rentFootEn(AL_YM))}</div>
     </div>`;
     setPageSize('A4 portrait');
     const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
@@ -4768,6 +4807,15 @@ const RENT_OLD_BUGGY_DEPT = [[/^\s*luna\b/i, 8000000, 'Luna'], [/^\s*oshom\b/i, 
 // Bali Baza: 7.500.000 sebelum Nov 2026, 8.000.000 mulai Nov 2026
 const RENT_BALIBAZA = [/bali\s*baza/i, 7500000, 8000000];
 const curYm = () => today().slice(0, 7);
+function rentFootEn(ym) {
+  const old = (ym || curYm()) < RENT_NEW_FROM;
+  return 'Monthly rental rates for ' + fmtPeriodeEn(ym || curYm()) + ': ' + (old
+    ? 'all buggies Rp 7.500.000 (Luna and Oshom Rp 8.000.000), EVM-001 Rp 8.500.000, Bali Baza Rp 7.500.000'
+    : 'Buggy 6 seater Rp 8.000.000, Buggy 4 seater Rp 7.500.000, Buggy Cargo Rp 8.000.000, Buggy Box Rp 8.000.000, EVM-001 Rp 8.500.000, Bali Baza Rp 8.000.000, Site Operations Buggy 8 seater Rp 7.500.000') +
+    '; Tyranno Rp 1.500.000, Volta Rp 1.500.000, Kucher Rp 1.000.000, VFly Rp 1.000.000, Cooty Rp 400.000. BIOM: parking fee Rp 1.500.000 per unit. QS: Rp 1.500.000. NRE: 1 buggy + VFly charged. ' +
+    'No charge: NPG, Senior Management, Infrastructure VFly, Mr. Sergey, Site Operations Director (Kurt), Lev\'s friend and Sol Studio cooty, Luna resident, EZ8-002 (Pacha Alpacha), Security patrol buggy. ' +
+    'Prices set per unit in the app override the standard rates. * = price from the latest EV rental BOQ (other vehicle types). "-" = not charged (Transport internal use, inactive or no rate).';
+}
 let AL_YM = '';
 // Departemen dengan tarif tetap per unit per bulan (bukan tarif jenis kendaraan)
 const RENT_FLAT_DEPT = [[/^\s*qs\b|quantity\s*survey/i, 1500000, 'QS']];
@@ -4789,7 +4837,10 @@ function rentTariff(code, type, dept, status, ym) {
   ym = ym || curYm();
   const man = sewaManual(code, dept, ym);
   if (man) return man;
-  return rentRule(code, type, dept, status, ym);
+  const r = rentRule(code, type, dept, status, ym);
+  // Bayar Ya tanpa harga: pakai harga aturan, tapi cara pembayaran tetap dari isian
+  const e = sewaAt(ucKey(code), ym);
+  return r && e && e.Pembayaran && sewaDeptOk(e, dept) ? Object.assign({}, r, { pay: e.Pembayaran }) : r;
 }
 function rentRule(code, type, dept, status, ym) {
   ym = ym || curYm();
@@ -4820,6 +4871,98 @@ function rentRule(code, type, dept, status, ym) {
   return null;
 }
 
+
+// ---------- UNIT AVAILABLE (belum dialokasikan) ----------
+const AV_STATUS = /available|stand\s*-?by|idle|spare/i;
+const AV_OUT = /in\s*-?active|sold|dispos/i;
+const alIsAvail = u => !String(u.Department || '').trim() || AV_STATUS.test(String(u.Status || ''));
+const avTypeName = u => { const t = alType(u.Type); return /^(Lainnya|Buggy \(lainnya\)|EV bike \(lainnya\))$/.test(t) ? (String(u.Type || '').trim() || 'Lainnya') : t; };
+// 3 kelompok: siap pakai, perlu perbaikan, tidak aktif
+function availGroups() {
+  const fc = $('al-cat').value, fk = $('al-cond').value, q = $('al-cari').value.trim().toLowerCase();
+  const rows = ALLOC.units.map((u, i) => Object.assign({ _i: i }, u)).filter(u => alIsAvail(u) &&
+    (!fc || alCat(u.Type) === fc) && (!fk || alCond(u.Condition) === fk) &&
+    (!q || [u.Code, u.Type, u.PIC, u.Sticker, u.Note, u.Detail].join(' ').toLowerCase().includes(q)));
+  const sec = [
+    { k: 'ready', t: 'Siap pakai', en: 'Ready to use', rows: rows.filter(u => !AV_OUT.test(String(u.Status || '')) && alCond(u.Condition) === 'Good') },
+    { k: 'fix', t: 'Perlu perbaikan', en: 'Under maintenance / damaged', rows: rows.filter(u => !AV_OUT.test(String(u.Status || '')) && alCond(u.Condition) !== 'Good') },
+    { k: 'out', t: 'Tidak aktif', en: 'Inactive', rows: rows.filter(u => AV_OUT.test(String(u.Status || ''))) }
+  ];
+  sec.forEach(s => {
+    const g = {};
+    s.rows.forEach(u => { const t = avTypeName(u); (g[t] = g[t] || []).push(u); });
+    s.types = Object.keys(g).sort((a, b) => g[b].length - g[a].length || a.localeCompare(b)).map(t => ({ t, units: g[t].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true })) }));
+  });
+  return { rows, sec };
+}
+function renderAvail() {
+  const { rows, sec } = availGroups();
+  const byCat = arr => ['Bus', 'Buggy', 'EV Bike / Motor', 'Cooty / Skuter', 'Lainnya'].map(c => [c, arr.filter(u => alCat(u.Type) === c).length]).filter(x => x[1]).map(x => x[1] + ' ' + x[0].toLowerCase()).join(' · ') || '-';
+  $('al-av-stats').innerHTML = `<div class="stat"><div class="l">Total available</div><div class="v">${rows.length}</div><div class="muted">${esc(byCat(rows))}</div></div>` +
+    sec.map(s => `<div class="stat"><div class="l">${s.t}</div><div class="v ${s.k === 'fix' && s.rows.length ? 'neg' : ''}">${s.rows.length}</div><div class="muted">${esc(byCat(s.rows))}</div></div>`).join('');
+  $('al-av-body').innerHTML = sec.filter(s => s.rows.length).map(s => `<div class="al-dept">
+      <h3><span>${s.t} <span class="muted" style="font-weight:400">· ${s.rows.length} unit</span></span></h3>
+      <div class="tablewrap"><table class="items"><thead><tr><th style="width:24%">Jenis</th><th style="width:70px;text-align:right">Jumlah</th><th>Kode unit</th></tr></thead><tbody>
+      ${s.types.map(x => `<tr><td><b>${esc(x.t)}</b></td><td style="text-align:right">${x.units.length}</td><td>${x.units.map(u => `<span class="al-unit" onclick="openAlloc(${u._i})" title="${esc([u.Type, alCond(u.Condition), u.Status, u.Note].filter(Boolean).join(' · '))}">${esc(u.Code)}${s.k === 'fix' ? ' ' + alCondTag(u.Condition) : ''}</span>`).join('')}</td></tr>`).join('')}
+      </tbody></table></div></div>`).join('') || '<div class="muted">Tidak ada unit available</div>';
+}
+function exportAvail() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const { rows, sec } = availGroups();
+  if (!rows.length) return toast('Tidak ada unit available');
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const R = [[{ v: 'Available EV Units - ' + fmtTgl(today()), s: 'title' }], [{ v: 'Units not allocated to any department (department blank, or status Available / Standby / Spare).', s: 'sub' }], [],
+    H(['Group', 'Vehicle type', '>Qty', 'Unit codes'])];
+  sec.forEach(s => s.types.forEach(x => R.push([s.en, x.t, { v: x.units.length, s: 'int' }, x.units.map(u => u.Code).join(', ')])));
+  R.push([{ v: 'Total', s: 'b' }, '', { v: rows.length, s: 'int' }, '']);
+  const D = [[{ v: 'Available EV Units - detail', s: 'title' }], [], H(['Group', 'Unit code', 'Vehicle type', 'Condition', 'Status', 'Sticker', 'Note'])];
+  sec.forEach(s => s.types.forEach(x => x.units.forEach(u => D.push([s.en, u.Code, u.Type, alCond(u.Condition), u.Status || '', u.Sticker || '', [u.Note, u.Detail].filter(Boolean).join(' · ')]))));
+  const blob = buildXlsx([
+    { name: 'Summary', cols: [26, 26, 8, 90], rows: R, freeze: 4 },
+    { name: 'Units', cols: [26, 13, 26, 14, 12, 10, 40], rows: D, freeze: 3, filter: `A3:G${D.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `Available_EV_${today()}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+async function availPdf() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const { rows, sec } = availGroups();
+  if (!rows.length) return toast('Tidak ada unit available');
+  const b = $('btn-av-pdf');
+  b.disabled = true; b.textContent = 'Membuat PDF...';
+  try {
+    const condEn = c => ({ Good: 'Good', Maintenance: 'Maintenance', Broken: 'Damaged' })[alCond(c)] || (c || '-');
+    $('print-area').innerHTML = `<div class="rs-doc">
+      <div class="rs-head">
+        <div>${logoTag()}<h1>Available EV Units</h1><div class="p-sub">Transport Department &middot; units not allocated to any department</div></div>
+        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b></div>
+      </div>
+      <div class="rs-kpi">
+        <div><div class="l">Total available</div><div class="v">${rows.length}</div></div>
+        ${sec.map(s => `<div><div class="l">${s.en}</div><div class="v">${s.rows.length}</div></div>`).join('')}
+      </div>
+      ${sec.filter(s => s.rows.length).map(s => `<div class="rs-dh"><b>${s.en}</b><span>${s.rows.length} unit${s.rows.length === 1 ? '' : 's'}</span></div>
+        <table class="rs-tbl"><thead><tr><th style="width:24%">Vehicle type</th><th class="n" style="width:8%">Qty</th><th>Unit codes</th></tr></thead><tbody>
+        ${s.types.map(x => `<tr><td><b>${esc(x.t)}</b></td><td class="n">${x.units.length}</td><td>${x.units.map(u => esc(u.Code) + (s.k === 'fix' ? ' <span class="rs-codes" style="display:inline">(' + esc(condEn(u.Condition)) + ')</span>' : '')).join(', ')}</td></tr>`).join('')}
+        <tr class="st"><td>Subtotal</td><td class="n">${s.rows.length}</td><td></td></tr>
+        </tbody></table>`).join('')}
+      <div class="rs-foot">Available = department column blank in the Buggy Allocation sheet, or status Available / Standby / Spare. Ready to use = condition Good.</div>
+    </div>`;
+    setPageSize('A4 portrait');
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `Available EV ${today()}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Download PDF';
+  }
+}
 
 // ---------- HARGA SEWA PER UNIT (diisi manual, sheet Harga_Sewa) ----------
 // Isian manual mengalahkan aturan tarif, berlaku mulai periode Mulai sampai ada isian periode berikutnya.
@@ -4985,9 +5128,13 @@ async function saveSewa() {
     sewaSaveBtn();
   }
 }
-function exportSewa() {
+function exportSewa(opt) {
+  opt = opt || {};
   if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
-  const { g, keys } = sewaGroups(sewaRows());
+  let rows = opt.rows || sewaRows();
+  if (opt.hideFree) rows = rows.filter(u => sewaEff(u).harga > 0);
+  if (!rows.length) return toast('Tidak ada unit untuk di-download');
+  const { g, keys } = sewaGroups(rows);
   const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
   const R = [[{ v: 'EV Rental Rates by Department - ' + fmtPeriodeEn(AL_YM), s: 'title' }], [{ v: 'Monthly rental per unit. Price blank = standard rate applies (shown in Rate used).', s: 'sub' }], [],
     H(['Department', 'Unit code', 'Vehicle type', 'Status', 'PIC', '>Rental / month', 'Pays', 'Payment', '>Rate used', 'Note'])];
@@ -5005,7 +5152,8 @@ function exportSewa() {
   R.push([{ v: 'Total', s: 'b' }, '', '', '', '', '', '', '', { v: all, s: 'moneyb' }, '']);
   const blob = buildXlsx([{ name: 'Rental rates', cols: [24, 13, 26, 11, 20, 16, 8, 15, 16, 36], rows: R, freeze: 4 }]);
   const url = URL.createObjectURL(blob), x = document.createElement('a');
-  x.href = url; x.download = `EV_Rental_Rates_${AL_YM}.xlsx`;
+  x.href = url; x.download = `EV_Rental_Rates_${keys.length === 1 ? safeName(keys[0], 60).replace(/\s+/g, '_') + '_' : ''}${AL_YM}.xlsx`;
+  toast(`Excel dibuat: ${keys.length} departemen, ${rows.length} unit, sewa ${rp(all)} / bulan`);
   document.body.appendChild(x); x.click(); x.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
