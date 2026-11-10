@@ -494,6 +494,10 @@ html,body{max-width:100%;overflow-x:hidden}
   table.mcard>tbody>tr>td .btns{justify-content:flex-start;flex-wrap:wrap}
   table.mcard>tbody>tr.total td:first-child{border:0!important;font-size:14px}
 }
+  #al-sewa-table tr.sewa-grp td{background:#f3f6fa;font-size:13px}
+  #al-sewa-table tr.sewa-dirty td{background:#fffbea}
+  #al-sewa-table input,#al-sewa-table select{padding:6px 8px;font-size:13px}
+  @media(max-width:760px){#al-sewa-table tr.sewa-grp{background:#eef2f7}#al-sewa-table tr.sewa-grp td span[style*=float]{float:none!important;display:block}}
 </style>
 <style id="page-size"></style>
 </head>
@@ -1078,6 +1082,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <div class="rs-tabs" id="al-tabs">
         <button class="active" data-m="list" onclick="setAlMode('list')">Daftar unit</button>
         <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
+        <button data-m="sewa" onclick="setAlMode('sewa')">Harga sewa</button>
         <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
@@ -1165,6 +1170,24 @@ html,body{max-width:100%;overflow-x:hidden}
           </table></div>
         </div>
         <div class="muted" style="margin-top:8px" id="al-life-note"></div>
+      </div>
+      <div id="al-sewa" class="hidden">
+        <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div class="muted" style="flex:1;min-width:240px">Harga sewa per unit per bulan, dikelompokkan per departemen. Isi <b>Harga</b> dan <b>Bayar</b> (Ya / Tidak) lalu klik Simpan. Unit yang belum diisi memakai aturan tarif lama (tampil samar di kolom harga). Harga di sini dipakai untuk tab Per departemen, PDF, dan Masa guna.</div>
+          <div class="ctrl" style="display:flex;gap:6px;flex-wrap:wrap">
+            <select id="al-sewa-f" onchange="renderSewa()" style="width:auto;margin:0">
+              <option value="">Semua unit</option><option value="kosong">Belum diisi</option><option value="ya">Bayar</option><option value="tidak">Tidak bayar</option><option value="pindah">Departemen berubah</option>
+            </select>
+            <label class="muted" style="display:flex;align-items:center;gap:4px;margin:0;font-size:13px"><input type="checkbox" id="al-sewa-nodept" onchange="renderSewa()" style="width:auto;margin:0"> unit tanpa departemen</label>
+            <button class="btn sec" style="margin:0" onclick="exportSewa()">Download Excel</button>
+            <button class="btn" style="margin:0" id="btn-sewa-save" onclick="saveSewa()" disabled>Simpan</button>
+          </div>
+        </div>
+        <div class="stats" id="al-sewa-stats"></div>
+        <div class="tablewrap"><table id="al-sewa-table">
+          <thead><tr><th>Kode</th><th>Jenis</th><th>Status</th><th>PIC</th><th style="min-width:150px">Harga / bulan</th><th>Bayar</th><th style="min-width:180px">Catatan</th></tr></thead>
+          <tbody id="al-sewa-body"></tbody>
+        </table></div>
       </div>
       <div id="al-hist" class="hidden">
         <div class="tablewrap"><table>
@@ -2293,6 +2316,7 @@ async function init() {
   applyUser();
   try {
     MASTER = await apiGet({ action: 'master' });
+    setSewa(MASTER.sewa || []);
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
     // Nota dipisah per grup berdasarkan DIVISI pemakaian (mis. Guest Mobility dari CA Internal masuk ke External)
     $('z-grup').innerHTML = '<option value="">Internal + External (semua)</option>' + (MASTER.grup || []).map(g => `<option value="${esc(g)}">${esc(g)} saja</option>`).join('');
@@ -3579,6 +3603,7 @@ function setAlMode(m) {
   $('al-cost').classList.toggle('hidden', m !== 'cost');
   $('al-hist').classList.toggle('hidden', m !== 'hist');
   $('al-life').classList.toggle('hidden', m !== 'life');
+  $('al-sewa').classList.toggle('hidden', m !== 'sewa');
   $('al-filters').classList.toggle('hidden', m === 'boq');
   if (m === 'cost' && !UC) loadUnitCost();
   if (m === 'hist') loadUnitHist();
@@ -3631,6 +3656,7 @@ function renderAlloc() {
   if (AL_MODE === 'cost') renderUnitCost();
   if (AL_MODE === 'hist') renderUnitHist();
   if (AL_MODE === 'life') renderUnitLife();
+  if (AL_MODE === 'sewa') renderSewa();
 }
 
 // ---------- PDF UNIT PER DEPARTEMEN + HARGA SEWA ----------
@@ -4492,7 +4518,7 @@ function lifeRentIndex() {
 
 function lifeRentOf(u) {
   const tf = rentTariff(u.code, u.type, u.dept, u.status);
-  if (tf) return tf.harga > 0 ? { bln: tf.harga, src: tf.note, dept: u.dept, n: 1 } : null;
+  if (tf) return tf.harga > 0 ? { bln: tf.harga, src: tf.src === 'manual' ? 'Tarif harga sewa (manual)' : tf.note, dept: u.dept, n: 1 } : null;
   if (u.dept && (RENT_FREE_DEPT.test(u.dept) || RENT_OFF_STATUS.test(String(u.status || '')))) return null;
   const R = LIFE && LIFE.rent;
   if (!R || !R.months.length) return null;
@@ -4745,6 +4771,11 @@ const RENT_OFF_STATUS = /in\s*-?active|sold|dispos|standby|available|idle|spare/
 const RENT_NOCHARGE_DEPT = /^\s*npg\b|mr\.?\s*serg|site\s*operations?\s*director|lev\s*friend|sol\s*studio|^\s*s(enio)?r\.?\s*management/i;
 const RENT_RENT_ONLY_DEPT = /^\s*nre\s*$/i;
 function rentTariff(code, type, dept, status) {
+  const man = sewaManual(code, dept);
+  if (man) return man;
+  return rentRule(code, type, dept, status);
+}
+function rentRule(code, type, dept, status) {
   const d = String(dept || '').trim();
   if (!d || RENT_FREE_DEPT.test(d) || RENT_OFF_STATUS.test(String(status || ''))) return null;
   if (RENT_NOCHARGE_DEPT.test(d)) return { harga: 0, src: 'gratis', note: d + ', tidak dikenakan charge' };
@@ -4763,6 +4794,163 @@ function rentTariff(code, type, dept, status) {
   const t = rsType({ Uraian: type });
   if (RENT_TARIFF[t] != null) return { harga: RENT_TARIFF[t], src: 'tarif', note: 'Tarif ' + t };
   return null;
+}
+
+
+// ---------- HARGA SEWA PER UNIT (diisi manual, sheet Harga_Sewa) ----------
+// Isian manual mengalahkan aturan tarif. Berlaku selama unit masih di departemen yang sama saat harga diisi.
+let SEWA = {}, SEWA_DIRTY = {};
+function setSewa(list) {
+  SEWA = {};
+  (list || []).forEach(e => { SEWA[ucKey(e.Kode)] = e; });
+}
+const sewaDeptOk = (e, dept) => !e.Departemen || !String(dept || '').trim() || alSameDept(e.Departemen, dept) || e.Departemen.trim().toLowerCase() === String(dept).trim().toLowerCase();
+function sewaManual(code, dept) {
+  const e = SEWA[ucKey(code)];
+  if (!e || !sewaDeptOk(e, dept)) return null;
+  const h = e.Harga === '' || e.Harga == null ? null : Number(e.Harga) || 0;
+  if (e.Bayar === 'Tidak') return { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)' };
+  if (h != null) return h > 0 ? { harga: h, src: 'manual', note: e.Catatan || 'Harga sewa diisi manual' } : { harga: 0, src: 'gratis', note: e.Catatan || 'Tidak bayar (diatur di Harga sewa)' };
+  return null;
+}
+const canEditSewa = () => !AUTH_ON || (USER && USER.peran === 'Head');
+// Nilai yang tampil di editor: perubahan belum disimpan > tersimpan
+function sewaVal(u) {
+  const k = ucKey(u.Code);
+  const e = SEWA_DIRTY[k] || SEWA[k] || null;
+  return { e, harga: e && e.Harga !== '' && e.Harga != null ? Number(e.Harga) : '', bayar: e ? e.Bayar || '' : '', cat: e ? e.Catatan || '' : '', moved: !!(SEWA[k] && !sewaDeptOk(SEWA[k], u.Department)) };
+}
+function sewaEff(u) {
+  const v = sewaVal(u);
+  if (!v.moved && v.e) {
+    if (v.bayar === 'Tidak') return { harga: 0, man: true };
+    if (v.harga !== '') return { harga: v.harga, man: true };
+  }
+  const r = rentRule(u.Code, u.Type, u.Department, u.Status);
+  return { harga: r ? r.harga : 0, man: false, rule: r };
+}
+function sewaRows() {
+  const f = $('al-sewa-f').value, nd = $('al-sewa-nodept').checked;
+  return alFiltered().filter(u => (nd || String(u.Department || '').trim())).filter(u => {
+    const v = sewaVal(u);
+    if (f === 'kosong') return v.harga === '' && !v.bayar;
+    if (f === 'ya') return v.bayar === 'Ya' || (v.harga !== '' && v.harga > 0 && v.bayar !== 'Tidak');
+    if (f === 'tidak') return v.bayar === 'Tidak' || (v.harga === 0 && v.bayar !== 'Ya');
+    if (f === 'pindah') return v.moved;
+    return true;
+  });
+}
+const sewaDeptName = u => String(u.Department || '').trim() || '(tanpa departemen)';
+function renderSewa() {
+  if (!ALLOC_LOADED) return;
+  const rows = sewaRows(), ed = canEditSewa();
+  const g = {}, canon = {};
+  rows.forEach(u => { const n = sewaDeptName(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
+  const keys = Object.keys(g).sort((a, b) => (a[0] === '(') - (b[0] === '(') || a.localeCompare(b));
+  let all = 0, nYa = 0, nNo = 0, nKosong = 0;
+  const html = keys.map(k => {
+    const us = g[k].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true }));
+    const sub = us.reduce((a, u) => a + sewaEff(u).harga, 0);
+    all += sub;
+    const lines = us.map(u => {
+      const v = sewaVal(u), key = ucKey(u.Code), r = rentRule(u.Code, u.Type, u.Department, u.Status);
+      if (v.bayar === 'Ya') nYa++; else if (v.bayar === 'Tidak') nNo++; else if (v.harga === '') nKosong++;
+      const ph = r ? (r.harga ? 'aturan: ' + r.harga.toLocaleString('id-ID') : 'aturan: gratis') : 'belum ada tarif';
+      const ka = esc(key).replace(/'/g, "\\'");
+      return `<tr data-k="${esc(key)}" class="${SEWA_DIRTY[key] ? 'sewa-dirty' : ''}">
+        <td><span class="al-code">${esc(u.Code)}</span>${u.Sticker ? `<div class="al-sub">Stiker ${esc(u.Sticker)}</div>` : ''}${v.moved ? `<div class="al-sub neg">Harga diisi saat di ${esc(SEWA[key].Departemen)}</div>` : ''}</td>
+        <td>${esc(u.Type)}</td>
+        <td>${alStatusTag(u.Status)}</td>
+        <td>${esc(u.PIC) || '<span class="muted">-</span>'}</td>
+        <td><input type="text" inputmode="numeric" class="sewa-in" value="${v.harga === '' || v.moved ? '' : Number(v.harga).toLocaleString('id-ID')}" placeholder="${esc(ph)}" ${ed ? '' : 'disabled'} oninput="sewaEdit('${ka}', 'Harga', this)" style="margin:0;text-align:right"></td>
+        <td><select ${ed ? '' : 'disabled'} onchange="sewaEdit('${ka}', 'Bayar', this)" style="margin:0;width:auto">${['', 'Ya', 'Tidak'].map(o => `<option value="${o}" ${(v.moved ? '' : v.bayar) === o ? 'selected' : ''}>${o || '-'}</option>`).join('')}</select></td>
+        <td><input type="text" value="${esc(v.moved ? '' : v.cat)}" ${ed ? '' : 'disabled'} oninput="sewaEdit('${ka}', 'Catatan', this)" placeholder="${r && r.note && !v.cat ? esc(r.note) : ''}" style="margin:0"></td>
+      </tr>`;
+    }).join('');
+    return `<tr class="sewa-grp"><td colspan="7"><b>${esc(k)}</b> <span class="muted">· ${us.length} unit</span><span style="float:right" data-sub="${esc(k)}">${sub ? '<b>' + rp(sub) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'}</span></td></tr>` + lines;
+  }).join('');
+  $('al-sewa-body').innerHTML = html ? html + `<tr class="total"><td colspan="4">${rows.length} unit · ${keys.length} departemen</td><td style="text-align:right">${rp(all)}</td><td colspan="2">per bulan</td></tr>` : '<tr><td colspan="7" class="muted">Tidak ada data</td></tr>';
+  $('al-sewa-stats').innerHTML = `<div class="stat"><div class="l">Total sewa / bulan</div><div class="v">${rp(all)}</div><div class="muted">termasuk unit yang ikut aturan lama</div></div>
+    <div class="stat"><div class="l">Bayar</div><div class="v">${nYa}</div><div class="muted">unit ditandai Ya</div></div>
+    <div class="stat"><div class="l">Tidak bayar</div><div class="v">${nNo}</div><div class="muted">unit ditandai Tidak</div></div>
+    <div class="stat"><div class="l">Belum diisi</div><div class="v">${nKosong}</div><div class="muted">ikut aturan tarif lama</div></div>`;
+  sewaSaveBtn();
+}
+function sewaEdit(key, field, el) {
+  const u = ALLOC.units.find(x => ucKey(x.Code) === key);
+  if (!u) return;
+  const base = SEWA_DIRTY[key] || Object.assign({ Kode: u.Code, Harga: '', Bayar: '', Catatan: '' }, sewaVal(u).moved ? {} : SEWA[key] || {});
+  const o = Object.assign({}, base, { Kode: u.Code, Departemen: String(u.Department || '').trim(), Jenis: u.Type });
+  if (field === 'Harga') {
+    const digits = el.value.replace(/[^\d]/g, '');
+    o.Harga = digits === '' ? '' : Number(digits);
+    const pos = el.value.length - el.selectionStart;
+    el.value = digits === '' ? '' : Number(digits).toLocaleString('id-ID');
+    try { el.setSelectionRange(el.value.length - pos, el.value.length - pos); } catch (e) {}
+    if (digits !== '' && !o.Bayar) { o.Bayar = Number(digits) > 0 ? 'Ya' : 'Tidak'; const sel = el.closest('tr').querySelector('select'); if (sel) sel.value = o.Bayar; }
+  } else o[field] = el.value;
+  SEWA_DIRTY[key] = o;
+  el.closest('tr').classList.add('sewa-dirty');
+  // perbarui subtotal & total tanpa render ulang (agar fokus input tidak hilang)
+  sewaTotals();
+  sewaSaveBtn();
+}
+function sewaTotals() {
+  const rows = sewaRows(), g = {};
+  let all = 0;
+  rows.forEach(u => { const k = sewaDeptName(u), h = sewaEff(u).harga; g[k.toLowerCase()] = (g[k.toLowerCase()] || 0) + h; all += h; });
+  document.querySelectorAll('#al-sewa-body [data-sub]').forEach(el => { const v = g[el.dataset.sub.toLowerCase()] || 0; el.innerHTML = v ? '<b>' + rp(v) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'; });
+  const t = document.querySelector('#al-sewa-body tr.total td:nth-child(2)');
+  if (t) t.textContent = rp(all);
+  const s = document.querySelector('#al-sewa-stats .stat .v');
+  if (s) s.textContent = rp(all);
+}
+function sewaSaveBtn() {
+  const n = Object.keys(SEWA_DIRTY).length, b = $('btn-sewa-save');
+  b.disabled = !n || !canEditSewa();
+  b.textContent = n ? `Simpan (${n})` : 'Simpan';
+}
+async function saveSewa() {
+  const items = Object.values(SEWA_DIRTY);
+  if (!items.length) return;
+  const b = $('btn-sewa-save');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const r = await apiPost('saveSewa', { items });
+    setSewa(r.sewa || []);
+    SEWA_DIRTY = {};
+    toast(items.length + ' harga sewa disimpan');
+    renderAlloc();
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+    sewaSaveBtn();
+  }
+}
+function exportSewa() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const rows = sewaRows(), g = {}, canon = {};
+  rows.forEach(u => { const n = sewaDeptName(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
+  const keys = Object.keys(g).sort((a, b) => (a[0] === '(') - (b[0] === '(') || a.localeCompare(b));
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const R = [[{ v: 'EV Rental Rates by Department', s: 'title' }], [{ v: 'Monthly rental per unit. Blank = not set yet (standard rate applies).', s: 'sub' }], [],
+    H(['Department', 'Unit code', 'Vehicle type', 'Status', 'PIC', '>Rental / month', 'Pays', 'Note'])];
+  let all = 0;
+  keys.forEach(k => {
+    let sub = 0;
+    g[k].sort((a, b) => String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true })).forEach(u => {
+      const v = sewaVal(u), eff = sewaEff(u);
+      sub += eff.harga;
+      R.push([k, u.Code, u.Type, u.Status || '', u.PIC || '', v.harga === '' || v.moved ? '' : v.harga, v.moved ? '' : (v.bayar === 'Ya' ? 'Yes' : v.bayar === 'Tidak' ? 'No' : ''), v.moved ? '' : v.cat]);
+    });
+    all += sub;
+    R.push([{ v: 'Subtotal ' + k, s: 'b' }, '', '', '', '', { v: sub, s: 'moneyb' }, '', '']);
+  });
+  R.push([{ v: 'Total', s: 'b' }, '', '', '', '', { v: all, s: 'moneyb' }, '', '']);
+  const blob = buildXlsx([{ name: 'Rental rates', cols: [24, 13, 26, 11, 20, 16, 8, 36], rows: R, freeze: 4 }]);
+  const url = URL.createObjectURL(blob), x = document.createElement('a');
+  x.href = url; x.download = `EV_Rental_Rates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  document.body.appendChild(x); x.click(); x.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 const RS_TYPES = [
