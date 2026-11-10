@@ -142,6 +142,8 @@ body.open nav [data-v="users"]{display:none!important}
 .res-over{color:#b45309;font-weight:600}
 body.viewer [onclick*="openAlloc(-1)"],body.viewer #btn-al,body:not(.head) #btn-al-del{display:none!important}
 body.viewer [onclick*="openBatch("],body.viewer #btn-ab,body:not(.head) #btn-ab-del{display:none!important}
+/* Service Admin: hanya menu Alokasi EV untuk proses BOQ */
+body:not(.head) #btn-sewa-save,body.svc nav button:not([data-v="alloc"]),body.svc #al-tabs [data-m="cost"],body.svc #al-tabs [data-m="life"],body.svc [onclick*="openBatch("],body.svc #btn-ab{display:none!important}
 .al-ev{font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)}
 .al-ev:last-child{border-bottom:0}
 .al-ev .src{display:inline-block;min-width:26px;font-size:10px;font-weight:700;border-radius:4px;padding:0 4px;margin-right:4px;text-align:center;background:#eef3f1;color:#1e5246}
@@ -1300,7 +1302,7 @@ html,body{max-width:100%;overflow-x:hidden}
       <h2 style="margin-top:18px" id="us-form-title">Tambah Pengguna</h2>
       <div class="row4" style="grid-template-columns:1.4fr 1fr 1fr 1fr">
         <div><label>Nama</label><input type="text" id="us-nama" placeholder="Mis. Anggi" autocomplete="off"></div>
-        <div><label>Peran</label><select id="us-peran"><option>Admin</option><option>Viewer</option><option>Head</option></select></div>
+        <div><label>Peran</label><select id="us-peran"><option>Admin</option><option>Service Admin</option><option>Viewer</option><option>Head</option></select></div>
         <div><label>PIN (6 angka)</label><input type="password" id="us-pin" inputmode="numeric" maxlength="6" placeholder="Kosongkan = PIN lama" autocomplete="new-password"></div>
         <div><label>Status</label><select id="us-aktif"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
       </div>
@@ -1968,7 +1970,7 @@ async function refreshAll() {
   if (b.disabled) return;
   b.disabled = true; b.classList.add('busy');
   Object.keys(INV_CACHE).forEach(k => delete INV_CACHE[k]);
-  const jobs = [loadList()];
+  const jobs = isSvc() ? [] : [loadList()];
   if (INCOME_LOADED || ['income', 'summary'].includes(CUR_VIEW)) jobs.push(loadIncome());
   if (PR_LOADED || CUR_VIEW === 'pr') jobs.push(loadPR());
   Object.keys(KD_CACHE).forEach(k => delete KD_CACHE[k]);
@@ -1996,11 +1998,13 @@ function saveToken(t) {
   try { t ? localStorage.setItem('tf-token', t) : localStorage.removeItem('tf-token'); } catch (e) {}
 }
 
+const isSvc = () => !!(AUTH_ON && USER && USER.peran === 'Service Admin');
 function applyUser() {
   const b = document.body;
   b.classList.toggle('open', !AUTH_ON);
   b.classList.toggle('head', !AUTH_ON || (USER && USER.peran === 'Head'));
   b.classList.toggle('viewer', !!(USER && USER.peran === 'Viewer'));
+  b.classList.toggle('svc', isSvc());
   $('login-banner').classList.toggle('hidden', AUTH_ON);
   $('user-chip').classList.toggle('hidden', !USER);
   if (USER) { $('uc-nama').textContent = USER.nama; $('uc-peran').textContent = USER.peran; }
@@ -2187,6 +2191,7 @@ function centerTab(b) {
 }
 
 function show(view) {
+  if (isSvc() && view !== 'alloc') view = 'alloc';
   ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc', 'kdab'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
@@ -2371,8 +2376,8 @@ async function init() {
     $('b-sampai').addEventListener('change', renderBulkInfo);
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     restoreSubs();
-    show('summary');
-    loadList();
+    if (isSvc()) { show('alloc'); setAlMode('sewa'); }
+    else { show('summary'); loadList(); }
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -4854,15 +4859,12 @@ const BOQ_DEPT_ALIAS = { 'LANDSCAPING': 'Landscape', 'NUANU EXPERIANCE': 'Nuanu 
 const boqDept = u => { const n = sewaDeptName(u); return BOQ_DEPT_ALIAS[n.toUpperCase()] || n; };
 const BOQ_SUP = 'Ni Putu Angie Friska Nanda';
 const boqCat = type => ({ 'Bus': 'EV Bus Rental', 'Buggy': 'EV Buggy Rental', 'EV Bike / Motor': 'EV Bike Rental', 'Cooty / Skuter': 'EV Scooter Rental' })[alCat(type)] || 'EV Rental';
-const boqRentRows = (dept, ym) => INCOME.filter(r => isRentRow(r) && periodeOf(r) === ym && String(r.Pelanggan || '').trim().toLowerCase() === dept.toLowerCase());
-// Requester terakhir di BOQ / tagihan departemen ini
-function boqRequester(dept) {
-  const rows = INCOME.filter(r => isRentRow(r) && String(r.Pelanggan || '').trim().toLowerCase() === dept.toLowerCase()).sort((a, b) => periodeOf(b).localeCompare(periodeOf(a)));
-  for (const r of rows) { try { const q = JSON.parse(r.Rincian || '{}').requester; if (q) return q; } catch (e) {} }
-  return '';
-}
+// Requester terakhir & unit dikembalikan per departemen (dari tagihan Income, lewat backend boqInfo)
+let BOQ_INFO = { requester: {}, returned: {} };
+const boqRequester = dept => BOQ_INFO.requester[dept.toLowerCase()] || '';
 async function sewaBoqPdf(rows, btn) {
   const ym = AL_YM || curYm();
+  try { BOQ_INFO = await apiGet({ action: 'boqInfo', periode: ym }); } catch (e) { BOQ_INFO = { requester: {}, returned: {} }; }
   const g = {}, canon = {};
   rows.forEach(u => { const n = boqDept(u), lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
   const [yy, mm] = ym.split('-').map(Number);
@@ -4882,9 +4884,7 @@ async function sewaBoqPdf(rows, btn) {
     });
     // unit yang sudah dikembalikan tapi tetap ditagih penuh bulan ini (dari tagihan Income)
     const have = new Set(g[dept].map(u => ucKey(u.Code)));
-    boqRentRows(dept, ym).forEach(r => {
-      let d = {};
-      try { d = JSON.parse(r.Rincian || '{}'); } catch (e) {}
+    [{ items: BOQ_INFO.returned[dept.toLowerCase()] || [] }].forEach(d => {
       (d.items || []).forEach(it => {
         const m = String(it.Uraian || '').match(/^\[([^\]]+)\]\s*(.*?)(\s*\((Cost transfer|Cash payment)\))?\s*-\s*returned/i);
         if (!m || have.has(ucKey(m[1])) || !(Number(it.Total) > 0)) return;
