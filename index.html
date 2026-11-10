@@ -370,7 +370,12 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .rs-dh span{font-size:9.5px;color:#555}
   #print-area .rs-codes{color:#444;font-size:9px}
   #print-area .rs-foot{margin-top:12px;font-size:8.5px;color:#666}
+  #print-area .bq-page{overflow:hidden;padding-top:8px;box-sizing:border-box}
   #print-area .bq-page+.bq-page{break-before:page;page-break-before:always}
+  #print-area .bq-page.tight .rs-tbl td{font-size:8.5px;padding:2.5px 5px}
+  #print-area .bq-page.tight .bq-title{margin:10px 0 8px}
+  #print-area .bq-page.tight .bq-sign{margin-top:16px}
+  #print-area .bq-logo{display:block;margin-bottom:6px}
   #print-area .bq-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;font-size:9.5px;line-height:1.5}
   #print-area .bq-top .doc-logo{height:20px;width:auto;margin-bottom:4px}
   #print-area .bq-top b{font-size:11px}
@@ -4862,6 +4867,10 @@ const boqCat = type => ({ 'Bus': 'EV Bus Rental', 'Buggy': 'EV Buggy Rental', 'E
 // Requester terakhir & unit dikembalikan per departemen (dari tagihan Income, lewat backend boqInfo)
 let BOQ_INFO = { requester: {}, returned: {} };
 const boqRequester = dept => BOQ_INFO.requester[dept.toLowerCase()] || '';
+// Logo sebagai gambar dengan ukuran tetap (digambar langsung ke PDF, tidak terpotong di browser mana pun)
+const BQ_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO_SVG.replace('<svg ', '<svg width="476" height="88" fill="#1e5246" '));
+// Tinggi area isi satu halaman A4 portrait (margin 12 mm), dikurangi sedikit agar satu departemen pasti satu halaman
+const bqH = () => Math.floor((297 - 24) * PX_MM) - 4;
 async function sewaBoqPdf(rows, btn) {
   const ym = AL_YM || curYm();
   try { BOQ_INFO = await apiGet({ action: 'boqInfo', periode: ym }); } catch (e) { BOQ_INFO = { requester: {}, returned: {} }; }
@@ -4898,9 +4907,10 @@ async function sewaBoqPdf(rows, btn) {
     if (!total) { skipped.push(dept); return; }
     grand += total;
     const req = boqRequester(dept);
-    pages.push(`<div class="bq-page">
+    const codesLen = items.reduce((a, x) => a + Math.ceil(x.codes.join(', ').length / 70), 0);
+    pages.push(`<div class="bq-page${items.length + codesLen > 16 ? ' tight' : ''}" style="height:${bqH()}px">
       <div class="bq-top">
-        <div>${logoTag()}<br><b>Transport Department</b><br>Jl. Galiran, Desa Beraban, Kediri, Tabanan<br>(+62)81138217258<br>transport.admin@nuanu.com</div>
+        <div><img class="bq-logo" src="${BQ_LOGO}" width="119" height="22" alt="nuanu"><b>Transport Department</b><br>Jl. Galiran, Desa Beraban, Kediri, Tabanan<br>(+62)81138217258<br>transport.admin@nuanu.com</div>
         <div class="r">Tabanan, ${esc(tgl)}<br>Work Station: Parking 3<br>Category: Electric Vehicle Rental<br>Period: <b>${esc(per)}</b></div>
       </div>
       <div class="bq-title"><h1>Bill of Quantities</h1><div>Electric Vehicle Rental &middot; ${esc(dept)}</div></div>
