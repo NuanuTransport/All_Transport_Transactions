@@ -1101,7 +1101,6 @@ html,body{max-width:100%;overflow-x:hidden}
         <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
         <button data-m="sewa" onclick="setAlMode('sewa')">Harga sewa</button>
         <button data-m="avail" onclick="setAlMode('avail')">Unit available</button>
-        <button data-m="boq" onclick="setAlMode('boq')">Cocokkan dengan BOQ</button>
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
         <button data-m="life" onclick="setAlMode('life')">Masa guna</button>
@@ -1224,13 +1223,6 @@ html,body{max-width:100%;overflow-x:hidden}
         <div class="tablewrap"><table>
           <thead><tr><th>Tanggal efektif</th><th>Kode</th><th>Perubahan</th><th>Dari</th><th>Ke</th><th>Catatan</th><th>Oleh / dicatat</th></tr></thead>
           <tbody id="al-hist-body"></tbody>
-        </table></div>
-      </div>
-      <div id="al-boq" class="hidden">
-        <div class="muted" id="al-boq-info" style="margin-bottom:8px"></div>
-        <div class="tablewrap"><table>
-          <thead><tr><th>Departemen</th><th>Jenis</th><th class="num">Alokasi</th><th class="num">Ditagih (BOQ)</th><th>Hasil</th><th>Unit dialokasikan</th></tr></thead>
-          <tbody id="al-boq-body"></tbody>
         </table></div>
       </div>
     </div>
@@ -3639,14 +3631,12 @@ function setAlMode(m) {
   centerTab(document.querySelector('#al-tabs button.active'));
   $('al-list').classList.toggle('hidden', m !== 'list');
   $('al-deptview-w').classList.toggle('hidden', m !== 'dept');
-  $('al-boq').classList.toggle('hidden', m !== 'boq');
   $('al-cost').classList.toggle('hidden', m !== 'cost');
   $('al-hist').classList.toggle('hidden', m !== 'hist');
   $('al-life').classList.toggle('hidden', m !== 'life');
   $('al-sewa').classList.toggle('hidden', m !== 'sewa');
   $('al-avail').classList.toggle('hidden', m !== 'avail');
   ['al-dept', 'al-status'].forEach(id => $(id).classList.toggle('hidden', m === 'avail'));
-  $('al-filters').classList.toggle('hidden', m === 'boq');
   if (m === 'cost' && !UC) loadUnitCost();
   if (m === 'hist') loadUnitHist();
   if (m === 'life' && !LIFE) loadUnitLife();
@@ -3694,7 +3684,6 @@ function renderAlloc() {
       </div>`;
     }).join('') : '<div class="muted">Tidak ada data</div>';
   }
-  if (AL_MODE === 'boq') renderAllocBoq();
   if (AL_MODE === 'cost') renderUnitCost();
   if (AL_MODE === 'hist') renderUnitHist();
   if (AL_MODE === 'life') renderUnitLife();
@@ -3985,38 +3974,6 @@ function renderUnitHist() {
 }
 
 
-// Bandingkan unit yang dialokasikan ke departemen dengan unit yang ditagih di BOQ (bulan rental terakhir)
-function renderAllocBoq() {
-  if (!INCOME_LOADED) { $('al-boq-info').textContent = 'Memuat data tagihan...'; loadIncome().then(renderAllocBoq); return; }
-  const months = [...new Set(INCOME.filter(isRentRow).map(periodeOf))].sort();
-  const ym = months.includes(thisMonth()) ? thisMonth() : months[months.length - 1];
-  if (!ym) { $('al-boq-info').textContent = 'Belum ada tagihan rental. Klik Tarik Data di menu Income.'; $('al-boq-body').innerHTML = ''; return; }
-  const billed = rsData(ym);
-  const units = ALLOC.units.filter(u => !AL_INTERNAL.test(String(u.Department).trim()) && !/inactive/i.test(u.Status));
-  // Kelompok departemen gabungan dari kedua sumber
-  const groups = [];
-  const find = name => groups.find(g => alSameDept(g.name, name));
-  units.forEach(u => { let g = find(u.Department); if (!g) { g = { name: u.Department, alloc: {}, codes: {}, bill: null }; groups.push(g); } const t = alType(u.Type); g.alloc[t] = (g.alloc[t] || 0) + 1; (g.codes[t] = g.codes[t] || []).push(u.Code); });
-  billed.forEach(b => { let g = find(b.dept); if (!g) { g = { name: b.dept, alloc: {}, codes: {}, bill: null }; groups.push(g); } g.bill = b; g.billName = b.dept; });
-  let ok = 0, under = 0, over = 0;
-  const out = [];
-  groups.sort((a, b) => a.name.localeCompare(b.name)).forEach(g => {
-    const bu = g.bill ? g.bill.units : {};
-    const types = [...new Set([...Object.keys(g.alloc), ...Object.keys(bu)])];
-    types.forEach((t, i) => {
-      const a = g.alloc[t] || 0, b = bu[t] || 0;
-      let res;
-      if (!g.bill) { res = '<span class="res-under">Tidak ada di BOQ</span>'; under++; }
-      else if (a === b) { res = '<span class="res-ok">Sesuai</span>'; ok++; }
-      else if (a > b) { res = `<span class="res-under">${a - b} unit belum ditagih</span>`; under++; }
-      else { res = `<span class="res-over">Ditagih ${b - a} lebih dari alokasi</span>`; over++; }
-      out.push(`<tr><td>${i === 0 ? `<b>${esc(g.name)}</b>${g.billName && alNorm(g.billName) !== alNorm(g.name) ? `<div class="al-sub">BOQ: ${esc(g.billName)}</div>` : ''}` : ''}</td><td>${esc(t)}</td><td class="num">${a}</td><td class="num">${g.bill ? b : '-'}</td><td>${res}</td><td>${(g.codes[t] || []).map(c => `<span class="rs-code">${esc(c)}</span>`).join('')}</td></tr>`);
-    });
-  });
-  $('al-boq-info').innerHTML = `Dibandingkan dengan tagihan rental <b>${esc(fmtPeriode(ym))}</b> (BOQ). Unit internal Transport dan berstatus Inactive tidak dihitung. ` +
-    `<span class="res-ok">${ok} sesuai</span> · <span class="res-under">${under} kurang / tidak ditagih</span> · <span class="res-over">${over} lebih ditagih</span>`;
-  $('al-boq-body').innerHTML = out.join('') || '<tr><td colspan="6" class="muted">Tidak ada data</td></tr>';
-}
 
 function openAlloc(i) {
   AL_EDIT = i >= 0 ? ALLOC.units[i] : null;
