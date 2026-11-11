@@ -4210,13 +4210,15 @@ function renderKdab() {
   const bike = rows.filter(t => t.jenis === 'Bike').length;
   const days = kdDaily();
   const signed = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Status === 'Ditandatangani').length;
-  const made = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Maker).length;
+  const madeDays = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Maker), made = madeDays.length;
+  const netMade = madeDays.reduce((a, d) => a + d.net, 0), netOpen = days.reduce((a, d) => a + d.net, 0) - netMade;
   $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ''}${rows.length !== all.length ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
   $('kd-stats').innerHTML = `
     <div class="stat"><div class="l">Trip</div><div class="v">${rows.length.toLocaleString('id-ID')}</div><div class="muted">${rows.length - bike} car · ${bike} bike · ${drivers} driver</div></div>
     <div class="stat"><div class="l">Revenue (termasuk pajak)</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
     <div class="stat"><div class="l">Net revenue koperasi</div><div class="v">${rp(Math.round(net))}</div><div class="muted">bagian Nuanu ${rp(Math.round(rev - net))} (pajak 10% + bagi hasil 5%)</div></div>
-    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani · <span class="${made < days.length ? 'neg' : 'pos'}">di-maker ${made} / ${days.length}</span>${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
+    <div class="stat"><div class="l">Transfer ke PT Mandiri Perkasa</div><div class="v ${made < days.length ? 'neg' : 'pos'}">${made} / ${days.length} hari</div><div class="muted">sudah di-maker ${rp(Math.round(netMade))}${netOpen > 0.5 ? ` · <span class="neg">belum ${rp(Math.round(netOpen))}</span>` : ''}</div></div>
+    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
   const byPay = {};
   rows.forEach(t => { const o = byPay[t.bayar] = byPay[t.bayar] || { n: 0, rev: 0 }; o.n++; o.rev += t.rev; });
   $('kd-chips').innerHTML = Object.entries(byPay).sort((a, b) => b[1].rev - a[1].rev).map(([k, o]) => `<span class="rs-chip"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${KD_PAY[k] || '#c9c8c3'};margin-right:4px"></i>${esc(k)} <b>${rp(o.rev)}</b> · ${o.n} trip</span>`).join('');
@@ -4241,7 +4243,7 @@ function renderKdab() {
   const payTxt = p => KD_PAYS.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
   let body = '';
   if (KD_MODE === 'harian') {
-    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', 'Maker', '']);
+    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', 'Maker Mandiri', '']);
     const canMk = !AUTH_ON || (USER && USER.peran !== 'Viewer');
     body = days.map(x => {
       const r = kdRep(x.tgl, x.tgl), open = KD_OPEN.has(x.tgl);
@@ -4251,7 +4253,7 @@ function renderKdab() {
         <td>${setor}</td>
         <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
         <td onclick="event.stopPropagation()">${r && r.Maker ? '<span class="kd-st s3">Sudah</span>' : '<span class="kd-st s0">Belum</span>'}
-          <input type="date" class="kd-maker" value="${esc((r && r.Maker) || '')}" title="Tanggal di-maker (kosongkan jika belum)" ${canMk ? '' : 'disabled'} onchange="kdMaker('${x.tgl}', this)"></td>
+          <input type="date" class="kd-maker" value="${esc((r && r.Maker) || '')}" title="Tanggal transfer net revenue dibuat (maker) di Bank Mandiri ke rekening PT Mandiri Perkasa. Kosongkan jika belum." ${canMk ? '' : 'disabled'} onchange="kdMaker('${x.tgl}', this)"></td>
         <td><div class="btns" style="flex-wrap:nowrap">
           <button class="btn sec sm" onclick="event.stopPropagation(); kdPrint('${x.tgl}','${x.tgl}')">Cetak</button>
           <button class="btn sec sm" onclick="event.stopPropagation(); kdSend('${x.tgl}','${x.tgl}')">Kirim</button>
@@ -4279,17 +4281,17 @@ function renderKdab() {
   }
   $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
   $('kd-note').innerHTML = 'Net revenue = revenue ÷ 1,1 (pajak 10% sudah termasuk tarif) × 95% (bagi hasil Nuanu 5%), sama dengan laporan Koperasi Kencana. Klik tanggal untuk melihat trip hari itu. ' +
-    `Alur laporan: Cetak / kirim email ke COO → upload scan yang sudah ditandatangani di tombol TTD. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+    `Alur laporan: Cetak / kirim email ke COO → upload scan yang sudah ditandatangani di tombol TTD → transfer net revenue lewat Bank Mandiri ke rekening PT Mandiri Perkasa, isi tanggal maker-nya di kolom Maker Mandiri. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
 }
 
-// Tanggal laporan harian di-maker (kosong = belum)
+// Tanggal transfer net revenue harian dibuat (maker) di Bank Mandiri ke rekening PT Mandiri Perkasa (kosong = belum)
 async function kdMaker(tgl, el) {
   const v = el.value || '';
   el.disabled = true;
   try {
     const res = await apiPost('saveKdabReport', { Dari: tgl, Sampai: tgl, Maker: v });
     kdSetReports(tgl, res.reports);
-    toast(v ? `Laporan ${fmtTgl(tgl)} di-maker ${fmtTgl(v)}` : `Tanggal maker ${fmtTgl(tgl)} dihapus`);
+    toast(v ? `Transfer ${fmtTgl(tgl)} ke PT Mandiri Perkasa di-maker ${fmtTgl(v)}` : `Tanggal maker ${fmtTgl(tgl)} dihapus`);
   } catch (e) {
     toast('Gagal: ' + e.message);
     el.disabled = false;
