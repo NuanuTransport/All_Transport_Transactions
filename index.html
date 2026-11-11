@@ -523,6 +523,7 @@ html,body{max-width:100%;overflow-x:hidden}
   #al-sewa-table tr.sewa-dirty td{background:#fffbea}
   #al-sewa-table input,#al-sewa-table select{padding:6px 8px;font-size:13px}
   @media(max-width:760px){#al-sewa-table tr.sewa-grp{background:#eef2f7}#al-sewa-table tr.sewa-grp td span[style*=float]{float:none!important;display:block}}
+  .kd-maker{width:auto;margin:4px 0 0;padding:3px 6px;font-size:12px;display:block;max-width:140px}
 </style>
 <style id="page-size"></style>
 </head>
@@ -2358,7 +2359,7 @@ async function init() {
   applyUser();
   try {
     MASTER = await apiGet({ action: 'master' });
-    setSewa(MASTER.sewa || []);
+    setSewa((MASTER && MASTER.sewa) || []);
     fillSelect($('f-grup'), MASTER.grup || [], 'Semua grup');
     // Nota dipisah per grup berdasarkan DIVISI pemakaian (mis. Guest Mobility dari CA Internal masuk ke External)
     $('z-grup').innerHTML = '<option value="">Internal + External (semua)</option>' + (MASTER.grup || []).map(g => `<option value="${esc(g)}">${esc(g)} saja</option>`).join('');
@@ -4114,7 +4115,7 @@ const kdShare = rev => rev - kdNet(rev);
 const kdId = (a, b) => 'KD-' + a.replace(/-/g, '') + (b !== a ? '-' + b.replace(/-/g, '') : '');
 const kdRep = (a, b) => ((KD && KD.reports) || []).find(r => r.Report_ID === kdId(a, b));
 const KD_ST = ['Belum dibuat', 'Dibuat', 'Dikirim ke COO', 'Ditandatangani'];
-const kdStTag = r => { const s = r ? r.Status : 'Belum dibuat', i = Math.max(0, KD_ST.indexOf(s)); return `<span class="kd-st s${i}">${esc(s)}</span>`; };
+const kdStTag = r => { const s = (r && r.Status) || 'Belum dibuat', i = Math.max(0, KD_ST.indexOf(s)); return `<span class="kd-st s${i}">${esc(s)}</span>`; };
 const rp2 = n => (Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const idTgl = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }); };
 const mdy = iso => { const [y, m, d] = iso.split('-').map(Number); return m + '/' + d + '/' + y; };
@@ -4209,12 +4210,13 @@ function renderKdab() {
   const bike = rows.filter(t => t.jenis === 'Bike').length;
   const days = kdDaily();
   const signed = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Status === 'Ditandatangani').length;
+  const made = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Maker).length;
   $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ''}${rows.length !== all.length ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
   $('kd-stats').innerHTML = `
     <div class="stat"><div class="l">Trip</div><div class="v">${rows.length.toLocaleString('id-ID')}</div><div class="muted">${rows.length - bike} car · ${bike} bike · ${drivers} driver</div></div>
     <div class="stat"><div class="l">Revenue (termasuk pajak)</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
     <div class="stat"><div class="l">Net revenue koperasi</div><div class="v">${rp(Math.round(net))}</div><div class="muted">bagian Nuanu ${rp(Math.round(rev - net))} (pajak 10% + bagi hasil 5%)</div></div>
-    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
+    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani · <span class="${made < days.length ? 'neg' : 'pos'}">di-maker ${made} / ${days.length}</span>${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
   const byPay = {};
   rows.forEach(t => { const o = byPay[t.bayar] = byPay[t.bayar] || { n: 0, rev: 0 }; o.n++; o.rev += t.rev; });
   $('kd-chips').innerHTML = Object.entries(byPay).sort((a, b) => b[1].rev - a[1].rev).map(([k, o]) => `<span class="rs-chip"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${KD_PAY[k] || '#c9c8c3'};margin-right:4px"></i>${esc(k)} <b>${rp(o.rev)}</b> · ${o.n} trip</span>`).join('');
@@ -4239,7 +4241,8 @@ function renderKdab() {
   const payTxt = p => KD_PAYS.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
   let body = '';
   if (KD_MODE === 'harian') {
-    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', '']);
+    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', 'Maker', '']);
+    const canMk = !AUTH_ON || (USER && USER.peran !== 'Viewer');
     body = days.map(x => {
       const r = kdRep(x.tgl, x.tgl), open = KD_OPEN.has(x.tgl);
       const setor = !x.dep ? '<span class="muted">-</span>' : x.selisih === 0 ? `<span class="pos">cocok</span> <span class="muted">${esc(x.dep.pos || '')}</span>` : `<b class="neg">selisih ${x.selisih > 0 ? '+' : '−'}${rp(Math.abs(x.selisih))}</b> <span class="muted">${esc(x.dep.pos || '')}</span>`;
@@ -4247,18 +4250,20 @@ function renderKdab() {
         <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp(Math.round(x.net))}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
         <td>${setor}</td>
         <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
+        <td onclick="event.stopPropagation()">${r && r.Maker ? '<span class="kd-st s3">Sudah</span>' : '<span class="kd-st s0">Belum</span>'}
+          <input type="date" class="kd-maker" value="${esc((r && r.Maker) || '')}" title="Tanggal di-maker (kosongkan jika belum)" ${canMk ? '' : 'disabled'} onchange="kdMaker('${x.tgl}', this)"></td>
         <td><div class="btns" style="flex-wrap:nowrap">
           <button class="btn sec sm" onclick="event.stopPropagation(); kdPrint('${x.tgl}','${x.tgl}')">Cetak</button>
           <button class="btn sec sm" onclick="event.stopPropagation(); kdSend('${x.tgl}','${x.tgl}')">Kirim</button>
           <button class="btn sec sm" onclick="event.stopPropagation(); kdStatus('${x.tgl}','${x.tgl}')">TTD</button>
         </div></td></tr>`;
-      if (open) h += `<tr class="kd-open"><td colspan="8"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
+      if (open) h += `<tr class="kd-open"><td colspan="9"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
         x.trips.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.bayar)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp(Math.round(kdNet(t.rev)))}</td></tr>`).join('') +
         `</tbody></table><div class="muted">${esc(payTxt(x.pay))}${x.dep && x.dep.remarks ? ' · ' + esc(x.dep.remarks) : ''}</div></td></tr>`;
       return h;
     }).join('');
     const tr = days.reduce((a, x) => a + x.rev, 0);
-    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(Math.round(kdNet(tr)))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td></td></tr>`;
+    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(Math.round(kdNet(tr)))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td>${days.filter(x => (kdRep(x.tgl, x.tgl) || {}).Maker).length} / ${days.length}</td><td></td></tr>`;
   } else if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
     const g = kdGroup(rows, KD_MODE === 'driver' ? 'driver' : 'tujuan');
     $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Net revenue', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
@@ -4275,6 +4280,20 @@ function renderKdab() {
   $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
   $('kd-note').innerHTML = 'Net revenue = revenue ÷ 1,1 (pajak 10% sudah termasuk tarif) × 95% (bagi hasil Nuanu 5%), sama dengan laporan Koperasi Kencana. Klik tanggal untuk melihat trip hari itu. ' +
     `Alur laporan: Cetak / kirim email ke COO → upload scan yang sudah ditandatangani di tombol TTD. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+}
+
+// Tanggal laporan harian di-maker (kosong = belum)
+async function kdMaker(tgl, el) {
+  const v = el.value || '';
+  el.disabled = true;
+  try {
+    const res = await apiPost('saveKdabReport', { Dari: tgl, Sampai: tgl, Maker: v });
+    kdSetReports(tgl, res.reports);
+    toast(v ? `Laporan ${fmtTgl(tgl)} di-maker ${fmtTgl(v)}` : `Tanggal maker ${fmtTgl(tgl)} dihapus`);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+    el.disabled = false;
+  }
 }
 
 function kdToggle(tgl) {
