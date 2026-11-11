@@ -4770,7 +4770,7 @@ async function renderNotifSet() {
     ['Dibuka sebagai aplikasi', isStandalone() ? ok(true, 'Ya') : ok(false, isIOS() ? 'Tidak, masih di Safari' : 'Tidak, di tab browser')],
     ['Izin notifikasi', perm === 'granted' ? ok(true, 'Diizinkan') : perm === 'denied' ? ok(false, 'Diblokir') : perm === 'default' ? ok(false, 'Belum diaktifkan') : ok(false, 'Tidak didukung di sini')],
     ['Service worker (sw.js)', ok(sw === 'aktif', sw)],
-    ['Angka di ikon', !isStandalone() ? ok(false, 'Hanya di judul tab (pasang aplikasi dulu)') : 'setAppBadge' in navigator ? ok(perm === 'granted', perm === 'granted' ? 'Aktif' : 'Perlu izin notifikasi') : ok(false, 'Tidak didukung di perangkat ini')],
+    ['Angka di ikon', !isStandalone() ? ok(false, 'Hanya di judul tab (pasang aplikasi dulu)') : !('setAppBadge' in navigator) ? ok(false, 'Tidak didukung di perangkat ini') : perm !== 'granted' ? ok(false, 'Perlu izin notifikasi') : BADGE_ERR ? ok(false, 'Gagal: ' + esc(BADGE_ERR)) : ok(true, BADGE_N ? 'Angka ' + BADGE_N + ' terkirim' : 'Aktif (tidak ada pengingat)')],
     ['Nada dering', ok(RING_CTX && RING_CTX.state === 'running', RING_CTX && RING_CTX.state === 'running' ? 'Siap' : 'Aktif setelah sentuh layar')],
     ['Pengingat terbuka sekarang', `<b>${pending}</b> (KDAB ${BADGE_PARTS.kd || 0}, agreement ${BADGE_PARTS.agr || 0})`]
   ];
@@ -4800,7 +4800,7 @@ async function testNotif() {
     if (reg) await reg.showNotification('Tes notifikasi', opt);
     else new Notification('Tes notifikasi', opt);
     setAppBadge(n || 1);
-    setTimeout(() => setAppBadge(n), 8000);
+    if (!n) setTimeout(() => setAppBadge(0), 15000);
     setTimeout(playRing, 100);
     toast('Notifikasi tes dikirim');
   } catch (e) { toast('Gagal: ' + e.message); }
@@ -4974,8 +4974,28 @@ const FAVICON_BASE = 'icon-192.png';
 const BADGE_PARTS = {};
 function setBadgePart(k, n) { BADGE_PARTS[k] = n || 0; setAppBadge(Object.values(BADGE_PARTS).reduce((a, x) => a + x, 0)); }
 let PRINT_ON = false, BADGE_TITLE = 'Transport Finance';
+let BADGE_N = 0, BADGE_ERR = '', BADGE_OK = '';
+function badgeApply() {
+  const n = BADGE_N;
+  // dari halaman
+  try {
+    if (navigator.setAppBadge) {
+      const pr = n > 0 ? navigator.setAppBadge(n) : navigator.clearAppBadge();
+      Promise.resolve(pr).then(() => { BADGE_ERR = ''; BADGE_OK = n > 0 ? 'Angka ' + n + ' sudah dikirim ke ikon' : 'Ikon dikosongkan'; }).catch(e => { BADGE_ERR = (e && (e.name + ': ' + e.message)) || String(e); });
+    } else BADGE_ERR = 'setAppBadge tidak tersedia';
+  } catch (e) { BADGE_ERR = e.message; }
+  // juga lewat service worker (sebagian versi iOS hanya menampilkan angka dari service worker)
+  try {
+    const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if (sw) sw.postMessage({ type: 'badge', n });
+    else if (SW_REG && SW_REG.active) SW_REG.active.postMessage({ type: 'badge', n });
+  } catch (e) {}
+}
+// pasang ulang angka saat aplikasi ditutup / dipindah ke latar belakang
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') badgeApply(); });
 function setAppBadge(n) {
-  try { if (navigator.setAppBadge) { if (n > 0) navigator.setAppBadge(n).catch(() => {}); else navigator.clearAppBadge().catch(() => {}); } } catch (e) {}
+  BADGE_N = n > 0 ? n : 0;
+  badgeApply();
   BADGE_TITLE = (n > 0 ? `(${n}) ` : '') + 'Transport Finance';
   if (!PRINT_ON) document.title = BADGE_TITLE;   // saat dialog cetak, judul = nama file PDF, jangan ditimpa
   const link = $('app-favicon');
