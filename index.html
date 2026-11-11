@@ -265,7 +265,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .doc-logo{height:22px;width:auto;display:block;margin-bottom:8px;fill:#1e5246}
 
   /* Lampiran: 4 foto per halaman (2 x 2) */
-  #print-area .lampiran{break-before:page;page-break-before:always}
+  #print-area .lampiran{break-before:page;page-break-before:always;padding-top:16px}
   #print-area .lampiran h2{font-size:13px;margin:0 0 3mm;height:7mm;line-height:7mm}
   #print-area .lamp-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:122mm 122mm;gap:4mm}
   #print-area .lamp-item{border:1px solid #999;padding:2mm;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
@@ -297,7 +297,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .inv-table tr.inv-cancel td{color:#777;font-style:italic}
   #print-area .inv-table tr.inv-sub td{font-weight:600;background:#fafafa}
   #print-area .mj{font-size:11px}
-  #print-area .mj-page{break-before:page;page-break-before:always}
+  #print-area .mj-page{break-before:page;page-break-before:always;padding-top:16px}
   #print-area .mj-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e5246;padding-bottom:6px;margin-bottom:10px}
   #print-area .mj-head .doc-logo{height:20px;margin:0 0 6px}
   #print-area .mj-title{font-size:14px;font-weight:700}
@@ -317,7 +317,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .mj-tbl tr.mj-total td{font-weight:700;border-top:1.5px solid #000;border-bottom:1px solid #ddd}
   #print-area .mj-sign{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:22px;text-align:center;break-inside:avoid;page-break-inside:avoid}
   #print-area .mj-line{border-top:1px solid #000;padding-top:3px;font-weight:600}
-  #print-area .mj-photo-page{break-before:page;page-break-before:always}
+  #print-area .mj-photo-page{break-before:page;page-break-before:always;padding-top:16px}
   #print-area .mj-photos{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
   #print-area .mj-photos img{width:100%;height:78mm;object-fit:contain;background:#f4f5f4;border-radius:4px;break-inside:avoid;page-break-inside:avoid}
   #print-area .jc-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;border-bottom:2px solid #000;padding-bottom:8px}
@@ -371,7 +371,7 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .rs-dh span{font-size:9.5px;color:#555}
   #print-area .rs-codes{color:#444;font-size:9px}
   #print-area .rs-foot{margin-top:12px;font-size:8.5px;color:#666}
-  #print-area .bq-page{overflow:hidden;padding-top:8px;box-sizing:border-box}
+  #print-area .bq-page{overflow:hidden;padding-top:16px;box-sizing:border-box}
   #print-area .bq-page+.bq-page{break-before:page;page-break-before:always}
   #print-area .bq-page.tight .rs-tbl td{font-size:8.5px;padding:2.5px 5px}
   #print-area .bq-page.tight .bq-title{margin:10px 0 8px}
@@ -6391,7 +6391,9 @@ function mechPage(r, dept, withPhotos) {
       <tr><td>Department</td><td>${esc(dept)}</td></tr>
       <tr><td>Vehicle</td><td>${esc(r.Kendaraan || '-')}</td></tr>
       <tr><td>Requested by</td><td>${esc(r.Requester || dept)}</td></tr>
-      <tr><td>Mechanics</td><td>${esc(titleName(r.Mekanik) || '-')}</td></tr>
+      <tr><td>WO / SO number</td><td>${okSO(r.SO) ? esc(String(r.SO).toUpperCase()) : esc(r.SO || '-')}</td></tr>
+      <tr><td>Type</td><td>${esc(r.Tipe || 'Activity / repair')}</td></tr>
+      <tr><td>Mechanics</td><td>${esc(titleName(String(r.Mekanik || '').replace(/\s*,\s*/g, ', ')) || '-')}</td></tr>
       <tr><td>Status</td><td>Completed</td></tr>
     </table>
     <div class="mj-h">Job description</div>
@@ -6400,8 +6402,8 @@ function mechPage(r, dept, withPhotos) {
     ${notes ? `<div class="mj-h">Notes / findings</div><div class="mj-text">${nl2br(notes)}</div>` : ''}
     <div class="mj-h">Spare parts used</div>
     ${parts.length ? `<table class="mj-tbl">
-      <tr><th>Part</th><th>Condition</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Total</th></tr>
-      ${parts.map(x => `<tr><td>${esc(x.name)}${x.id && x.id !== x.name ? ' <span class="mj-sub">(' + esc(x.id) + ')</span>' : ''}</td><td>${esc(x.cond || '')}</td><td class="num">${esc(x.qty)}</td><td class="num">${x.price ? rp(x.price) : '-'}</td><td class="num">${x.total ? rp(x.total) : '-'}</td></tr>`).join('')}
+      <tr><th>Part</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Total</th></tr>
+      ${parts.map(x => `<tr><td>${esc(x.name)}${x.cond ? ' <span class="mj-sub">(' + esc(x.cond) + ')</span>' : ''}</td><td class="num">${esc(x.qty)}</td><td class="num">${x.price ? rp(x.price) : '-'}</td><td class="num">${x.total ? rp(x.total) : '-'}</td></tr>`).join('')}
     </table>` : '<div class="mj-text mj-muted">None</div>'}
     <div class="mj-h">Service fee</div>
     <table class="mj-tbl">
