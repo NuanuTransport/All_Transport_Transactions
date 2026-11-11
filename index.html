@@ -103,6 +103,8 @@ table.items input{padding:6px 8px;font-size:13px}
 .hdr-time{font-size:11px;color:#c9ddd6}
 .hdr-btn{background:#fff;color:#1e5246;border:0;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .hdr-btn:hover{background:#eef3f1}
+#btn-bell{margin-right:6px}
+@media(max-width:700px){#btn-bell .lbl{display:none}#btn-bell{padding:8px 10px}}
 .hdr-btn:disabled{opacity:.7;cursor:default}
 .hdr-btn .ic{display:inline-block;font-size:15px;line-height:1}
 .hdr-btn.busy .ic{animation:spin .8s linear infinite}
@@ -565,6 +567,7 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
   <div class="hdr-actions">
     <span class="hdr-time" id="hdr-time"></span>
+    <button class="hdr-btn" id="btn-bell" onclick="openNotifSet()" title="Pengaturan notifikasi"><span class="ic">&#x1F514;</span><span class="lbl">Notifikasi</span></button>
     <button class="hdr-btn" id="btn-refresh" onclick="refreshAll()" title="Muat ulang data dari sheet"><span class="ic">&#x21bb;</span> Refresh</button>
     <div class="user-chip hidden" id="user-chip">
       <span><b id="uc-nama">-</b> &middot; <span id="uc-peran">-</span></span>
@@ -1570,6 +1573,17 @@ html,body{max-width:100%;overflow-x:hidden}
 </div>
 
 <!-- MODAL BATCH PEMBELIAN (MASA GUNA) -->
+<div class="modal hidden" id="notif-modal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-head"><b>Notifikasi di perangkat ini</b><button class="btn sec sm" onclick="$('notif-modal').classList.add('hidden')">Tutup</button></div>
+    <div id="notif-status"></div>
+    <div class="btns" style="margin-top:12px;flex-wrap:wrap">
+      <button class="btn" id="btn-notif-on" onclick="enableNotif().then(renderNotifSet)">Aktifkan notifikasi</button>
+      <button class="btn sec" onclick="testNotif()">Tes notifikasi</button>
+    </div>
+    <div class="muted" id="notif-help" style="margin-top:10px"></div>
+  </div>
+</div>
 <div class="modal hidden" id="agr-modal" onclick="if (event.target === this) closeAgr()">
   <div class="modal-box" style="max-width:760px">
     <div class="modal-head"><b id="agr-title">Agreement baru</b><button class="btn sec sm" onclick="closeAgr()">Tutup</button></div>
@@ -4719,6 +4733,53 @@ async function agrPdf(id) {
   printAs(`${r.Jenis} ${r.No ? r.No.replace(/\//g, '-') + ' ' : ''}${r.Pihak}`);
 }
 
+// ---------- PENGATURAN & TES NOTIFIKASI (per perangkat) ----------
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+async function renderNotifSet() {
+  const has = 'Notification' in window, perm = has ? Notification.permission : 'tidak didukung';
+  let sw = 'tidak aktif';
+  try { const r = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration()); if (r) sw = r.active ? 'aktif' : 'sedang dipasang'; } catch (e) {}
+  const ok = (b, t) => `<span class="kd-st ${b ? 's3' : 's1'}">${t}</span>`;
+  const pending = Object.values(BADGE_PARTS).reduce((a, x) => a + x, 0);
+  const rows = [
+    ['Dibuka sebagai aplikasi', isStandalone() ? ok(true, 'Ya') : ok(false, isIOS() ? 'Tidak, masih di Safari' : 'Tidak, di tab browser')],
+    ['Izin notifikasi', perm === 'granted' ? ok(true, 'Diizinkan') : perm === 'denied' ? ok(false, 'Diblokir') : perm === 'default' ? ok(false, 'Belum diaktifkan') : ok(false, 'Tidak didukung di sini')],
+    ['Service worker (sw.js)', ok(sw === 'aktif', sw)],
+    ['Angka di ikon', 'setAppBadge' in navigator ? ok(perm === 'granted', perm === 'granted' ? 'Aktif' : 'Perlu izin notifikasi') : ok(false, 'Tidak didukung di perangkat ini')],
+    ['Nada dering', ok(RING_CTX && RING_CTX.state === 'running', RING_CTX && RING_CTX.state === 'running' ? 'Siap' : 'Aktif setelah sentuh layar')],
+    ['Pengingat terbuka sekarang', `<b>${pending}</b> (KDAB ${BADGE_PARTS.kd || 0}, agreement ${BADGE_PARTS.agr || 0})`]
+  ];
+  $('notif-status').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' + rows.map(r => `<tr><td style="padding:7px 0;border-bottom:1px solid #eef1f4">${r[0]}</td><td style="padding:7px 0;border-bottom:1px solid #eef1f4;text-align:right">${r[1]}</td></tr>`).join('') + '</table>';
+  $('btn-notif-on').classList.toggle('hidden', perm !== 'default');
+  let help = '';
+  if (isIOS() && !isStandalone()) help = 'Di iPhone, notifikasi hanya bisa untuk aplikasi yang dipasang di Home Screen. Di Safari: tombol Share → Add to Home Screen, lalu buka dari ikon tersebut dan aktifkan notifikasi di sini.';
+  else if (!has) help = 'Browser ini tidak mendukung notifikasi. Di iPhone perlu iOS 16.4 atau lebih baru dan dibuka dari ikon Home Screen.';
+  else if (perm === 'denied') help = isIOS() ? 'Notifikasi diblokir. Buka Settings → Notifications → Transport Finance → nyalakan Allow Notifications, Sounds dan Badges, lalu buka ulang aplikasi.' : 'Notifikasi diblokir. Klik ikon gembok di sebelah alamat web → Notifications → Allow, lalu muat ulang halaman.';
+  else if (sw !== 'aktif') help = 'File sw.js belum terbaca. Pastikan sw.js ada di folder yang sama dengan index.html di GitHub Pages, lalu buka ulang aplikasi.';
+  else if (perm === 'granted') help = 'Semua siap. Pop-up dan nada muncul saat ada pengingat selama aplikasi terbuka; angka di ikon tetap terlihat setelah aplikasi ditutup.' + (isIOS() ? ' Di iPhone, aplikasi berhenti saat ditutup, jadi pengingat baru dicek ketika aplikasi dibuka lagi.' : '');
+  $('notif-help').textContent = help;
+}
+async function openNotifSet() { ringUnlock(); $('notif-modal').classList.remove('hidden'); await renderNotifSet(); }
+async function testNotif() {
+  ringUnlock();
+  if (!('Notification' in window)) return toast('Notifikasi tidak didukung di sini');
+  if (Notification.permission === 'default') await enableNotif();
+  if (Notification.permission !== 'granted') { renderNotifSet(); return toast('Izin notifikasi belum diberikan'); }
+  const n = Object.values(BADGE_PARTS).reduce((a, x) => a + x, 0);
+  const opt = { body: `Notifikasi Transport Finance berfungsi. Pengingat terbuka: ${n}.`, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'tes', data: { type: 'open-agr', url: './#agr' } };
+  try {
+    const reg = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+    if (reg) await reg.showNotification('Tes notifikasi', opt);
+    else new Notification('Tes notifikasi', opt);
+    setAppBadge(n || 1);
+    setTimeout(() => setAppBadge(n), 8000);
+    setTimeout(playRing, 100);
+    toast('Notifikasi tes dikirim');
+  } catch (e) { toast('Gagal: ' + e.message); }
+  renderNotifSet();
+}
+
 // ---------- PENGINGAT AGREEMENT ----------
 // Agreement yang berakhir dalam 30 hari atau sudah berakhir (≤ 14 hari lalu) dan belum diperpanjang:
 // banner di atas halaman, angka di menu Agreement & ikon aplikasi, serta pop-up notifikasi
@@ -4749,7 +4810,7 @@ async function checkAgrNotif(force) {
   const ended = AGR_REMIND.filter(x => x.left < 0);
   $('agr-remind-txt').innerHTML = `<b>${ended.length === AGR_REMIND.length ? 'Agreement sudah berakhir.' : 'Agreement akan berakhir.'}</b> ` +
     AGR_REMIND.map(x => `${esc(x.r.Pihak)}${x.r.No ? ' (' + esc(x.r.No) + ')' : ''} ${esc(when(x))}`).join('; ') + '. Perpanjang dengan adendum atau tandai dihentikan.';
-  box.querySelectorAll('.btn-notif').forEach(b => b.classList.toggle('hidden', !('Notification' in window) || Notification.permission !== 'default'));
+  box.querySelectorAll('.btn-notif').forEach(b => { const on = 'Notification' in window && Notification.permission === 'granted'; b.classList.toggle('hidden', on); b.textContent = 'Aktifkan notifikasi'; b.onclick = ('Notification' in window && Notification.permission === 'default') ? enableNotif : openNotifSet; });
   if (!(box.dataset.closed === now)) box.classList.remove('hidden');
   agrNotify();
 }
@@ -4830,7 +4891,7 @@ async function checkKdMaker(force) {
   if (todayDue.length) parts.push(`<b>Hari ini jadwal maker KDAB.</b> Transfer ke PT Mandiri Perkasa untuk laporan ${esc(range(todayDue))} (${todayDue.length} hari, ${sum(todayDue)}) belum di-maker.`);
   if (late.length) parts.push(`${todayDue.length ? '' : '<b>Pengingat maker KDAB.</b> '}${late.length} laporan sudah lewat jadwal maker (${sum(late)}): ${esc(late.map(o => kdHari(o.tgl)).join(', '))}.`);
   $('kd-remind-txt').innerHTML = parts.join(' ');
-  $('btn-notif').classList.toggle('hidden', !('Notification' in window) || Notification.permission !== 'default');
+  { const b = $('btn-notif'), on = 'Notification' in window && Notification.permission === 'granted'; b.classList.toggle('hidden', on); b.onclick = ('Notification' in window && Notification.permission === 'default') ? enableNotif : openNotifSet; }
   box.classList.remove('hidden');
   kdNotify(todayDue, late, sum);
 }
@@ -4922,7 +4983,7 @@ async function kdNotify(todayDue, late, sum) {
   } catch (e) {}
 }
 async function enableNotif() {
-  if (!('Notification' in window)) return toast('Browser ini belum mendukung notifikasi');
+  if (!('Notification' in window)) { openNotifSet(); return; }
   const p = await Notification.requestPermission();
   document.querySelectorAll('#btn-notif,.btn-notif').forEach(b => b.classList.add('hidden'));
   if (p === 'granted') { ringUnlock(); setTimeout(playRing, 150); toast('Notifikasi aktif'); checkKdMaker(); checkAgrNotif(); }
