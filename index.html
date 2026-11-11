@@ -116,6 +116,9 @@ table.items input{padding:6px 8px;font-size:13px}
 .auth-err{color:var(--bad);font-size:13px;min-height:18px;margin-top:8px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
+.kd-remind{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
+.kd-remind .btns{display:flex;gap:6px;flex-wrap:wrap}
+.nav-badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:16px;font-weight:700;vertical-align:1px}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
 body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
@@ -561,6 +564,10 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="login-banner hidden" id="login-banner">
     <span><b>Login belum aktif.</b> Siapa pun yang punya link aplikasi ini bisa melihat dan mengubah data keuangan.</span>
     <button class="btn" style="margin:0" onclick="openSetup()">Aktifkan Login</button>
+  </div>
+  <div class="login-banner kd-remind hidden" id="kd-remind">
+    <span id="kd-remind-txt"></span>
+    <span class="btns"><button class="btn" style="margin:0" onclick="kdRemindOpen()">Buka KDAB</button><button class="btn sec" style="margin:0" onclick="$('kd-remind').classList.add('hidden')">Nanti</button></span>
   </div>
 
   <!-- DAFTAR CA -->
@@ -2385,7 +2392,7 @@ async function init() {
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     restoreSubs();
     if (isSvc()) { show('alloc'); setAlMode('sewa'); }
-    else { show('summary'); loadList(); }
+    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); }
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -4135,6 +4142,63 @@ function initKdab() {
   if (!KD) loadKdab(); else redrawCharts();
 }
 
+// ---------- PENGINGAT MAKER KDAB ----------
+// Transfer net revenue ke PT Mandiri Perkasa (maker Bank Mandiri):
+// Jumat untuk laporan Senin - Kamis minggu itu, Senin untuk laporan Jumat - Minggu sebelumnya.
+// Pengingat tetap muncul sampai tanggal maker diisi. Hanya untuk laporan mulai KD_MAKER_FROM.
+const KD_MAKER_FROM = '2026-11-01';
+const isoOf = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function kdDueDate(tgl) {
+  const [y, m, dd] = tgl.split('-').map(Number), d = new Date(y, m - 1, dd), w = d.getDay();
+  d.setDate(d.getDate() + (w >= 1 && w <= 4 ? 5 - w : w === 5 ? 3 : w === 6 ? 2 : 1));
+  return isoOf(d);
+}
+const kdHari = tgl => { const d = new Date(tgl + 'T00:00'); return ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d.getDay()] + ' ' + d.getDate() + ' ' + d.toLocaleDateString('id-ID', { month: 'short' }); };
+let KD_REMIND = null;
+async function checkKdMaker() {
+  if (isSvc()) return;
+  const now = today(), start = new Date(now + 'T00:00');
+  start.setDate(start.getDate() - 40);
+  const yms = [];
+  for (let d = new Date(start); isoOf(d) <= now; d.setDate(d.getDate() + 1)) { const ym = isoOf(d).slice(0, 7); if (ym >= KD_MAKER_FROM.slice(0, 7) && !yms.includes(ym)) yms.push(ym); }
+  const open = [];
+  for (const ym of yms) {
+    let d;
+    try { d = await kdFetch(ym); } catch (e) { continue; }
+    const byDay = {};
+    d.trips.forEach(t => { (byDay[t.tgl] = byDay[t.tgl] || []).push(t); });
+    Object.keys(byDay).forEach(tgl => {
+      if (tgl < KD_MAKER_FROM || tgl >= now) return;
+      const rep = (d.reports || []).find(r => r.Report_ID === kdId(tgl, tgl));
+      if (rep && rep.Maker) return;
+      const due = kdDueDate(tgl);
+      if (due > now) return;
+      open.push({ tgl, due, net: kdNet(byDay[tgl].reduce((a, t) => a + t.rev, 0)) });
+    });
+  }
+  open.sort((a, b) => a.tgl.localeCompare(b.tgl));
+  KD_REMIND = open;
+  const btn = document.querySelector('nav button[data-v="kdab"]');
+  if (btn) { btn.querySelectorAll('.nav-badge').forEach(x => x.remove()); if (open.length) btn.insertAdjacentHTML('beforeend', `<span class="nav-badge">${open.length}</span>`); }
+  const box = $('kd-remind');
+  if (!open.length) { box.classList.add('hidden'); return; }
+  const sum = a => rp(Math.round(a.reduce((x, o) => x + o.net, 0)));
+  const range = a => a.length === 1 ? kdHari(a[0].tgl) : kdHari(a[0].tgl) + ' – ' + kdHari(a[a.length - 1].tgl);
+  const todayDue = open.filter(o => o.due === now), late = open.filter(o => o.due < now);
+  const parts = [];
+  if (todayDue.length) parts.push(`<b>Hari ini jadwal maker KDAB.</b> Transfer ke PT Mandiri Perkasa untuk laporan ${esc(range(todayDue))} (${todayDue.length} hari, ${sum(todayDue)}) belum di-maker.`);
+  if (late.length) parts.push(`${todayDue.length ? '' : '<b>Pengingat maker KDAB.</b> '}${late.length} laporan sudah lewat jadwal maker (${sum(late)}): ${esc(late.map(o => kdHari(o.tgl)).join(', '))}.`);
+  $('kd-remind-txt').innerHTML = parts.join(' ');
+  box.classList.remove('hidden');
+}
+function kdRemindOpen() {
+  $('kd-remind').classList.add('hidden');
+  const first = (KD_REMIND || [])[0];
+  show('kdab');
+  if (first && $('kd-periode').value !== first.tgl.slice(0, 7) && [...$('kd-periode').options].some(o => o.value === first.tgl.slice(0, 7))) { $('kd-periode').value = first.tgl.slice(0, 7); loadKdab(); }
+  setKdMode('harian');
+}
+
 async function kdFetch(ym, force) {
   if (force) delete KD_CACHE[ym];
   return KD_CACHE[ym] || (KD_CACHE[ym] = await apiGet({ action: 'kdab', periode: ym }));
@@ -4252,7 +4316,7 @@ function renderKdab() {
         <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp(Math.round(x.net))}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
         <td>${setor}</td>
         <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
-        <td onclick="event.stopPropagation()">${r && r.Maker ? '<span class="kd-st s3">Sudah</span>' : '<span class="kd-st s0">Belum</span>'}
+        <td onclick="event.stopPropagation()">${r && r.Maker ? '<span class="kd-st s3">Sudah</span>' : '<span class="kd-st s0">Belum</span>' + (x.tgl >= KD_MAKER_FROM ? `<div class="al-sub"${kdDueDate(x.tgl) <= today() ? ' style="color:#dc2626;font-weight:600"' : ''}>jadwal ${esc(kdHari(kdDueDate(x.tgl)))}</div>` : '')}
           <input type="date" class="kd-maker" value="${esc((r && r.Maker) || '')}" title="Tanggal transfer net revenue dibuat (maker) di Bank Mandiri ke rekening PT Mandiri Perkasa. Kosongkan jika belum." ${canMk ? '' : 'disabled'} onchange="kdMaker('${x.tgl}', this)"></td>
         <td><div class="btns" style="flex-wrap:nowrap">
           <button class="btn sec sm" onclick="event.stopPropagation(); kdPrint('${x.tgl}','${x.tgl}')">Cetak</button>
@@ -4291,6 +4355,7 @@ async function kdMaker(tgl, el) {
   try {
     const res = await apiPost('saveKdabReport', { Dari: tgl, Sampai: tgl, Maker: v });
     kdSetReports(tgl, res.reports);
+    checkKdMaker();
     toast(v ? `Transfer ${fmtTgl(tgl)} ke PT Mandiri Perkasa di-maker ${fmtTgl(v)}` : `Tanggal maker ${fmtTgl(tgl)} dihapus`);
   } catch (e) {
     toast('Gagal: ' + e.message);
