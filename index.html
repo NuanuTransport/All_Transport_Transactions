@@ -1580,6 +1580,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <div class="btns" style="margin-top:12px;flex-wrap:wrap">
       <button class="btn" id="btn-notif-on" onclick="enableNotif().then(renderNotifSet)">Aktifkan notifikasi</button>
       <button class="btn sec" onclick="testNotif()">Tes notifikasi</button>
+      <button class="btn sec hidden" id="btn-sw-re" onclick="swRegister().then(() => setTimeout(renderNotifSet, 1500)); toast('Mendaftarkan sw.js...')">Daftarkan ulang</button>
     </div>
     <div class="muted" id="notif-help" style="margin-top:10px"></div>
   </div>
@@ -4738,8 +4739,19 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.p
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function renderNotifSet() {
   const has = 'Notification' in window, perm = has ? Notification.permission : 'tidak didukung';
-  let sw = 'tidak aktif';
+  let sw = 'tidak aktif', swInfo = '';
   try { const r = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration()); if (r) sw = r.active ? 'aktif' : 'sedang dipasang'; } catch (e) {}
+  if (sw !== 'aktif') {
+    // cek apakah file sw.js benar-benar ada di alamat yang sama dengan index.html
+    const url = new URL('sw.js', location.href).href;
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      const txt = res.ok ? await res.text() : '';
+      swInfo = !res.ok ? `File sw.js tidak ditemukan di ${url} (kode ${res.status}). Upload sw.js ke folder yang sama dengan index.html, nama harus persis "sw.js" huruf kecil.`
+        : !/notificationclick/.test(txt) ? `File di ${url} ada, tapi isinya bukan sw.js Transport Finance. Upload ulang sw.js yang saya kirim.`
+        : `File sw.js ada di ${url}, tapi belum terdaftar${SW_ERR ? ': ' + SW_ERR : ''}. Tekan "Daftarkan ulang".`;
+    } catch (e) { swInfo = `Tidak bisa memeriksa ${url}: ${e.message}${SW_ERR ? ' · ' + SW_ERR : ''}`; }
+  }
   const ok = (b, t) => `<span class="kd-st ${b ? 's3' : 's1'}">${t}</span>`;
   const pending = Object.values(BADGE_PARTS).reduce((a, x) => a + x, 0);
   const rows = [
@@ -4752,11 +4764,12 @@ async function renderNotifSet() {
   ];
   $('notif-status').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' + rows.map(r => `<tr><td style="padding:7px 0;border-bottom:1px solid #eef1f4">${r[0]}</td><td style="padding:7px 0;border-bottom:1px solid #eef1f4;text-align:right">${r[1]}</td></tr>`).join('') + '</table>';
   $('btn-notif-on').classList.toggle('hidden', perm !== 'default');
+  $('btn-sw-re').classList.toggle('hidden', sw === 'aktif');
   let help = '';
   if (isIOS() && !isStandalone()) help = 'Di iPhone, notifikasi hanya bisa untuk aplikasi yang dipasang di Home Screen. Di Safari: tombol Share → Add to Home Screen, lalu buka dari ikon tersebut dan aktifkan notifikasi di sini.';
   else if (!has) help = 'Browser ini tidak mendukung notifikasi. Di iPhone perlu iOS 16.4 atau lebih baru dan dibuka dari ikon Home Screen.';
   else if (perm === 'denied') help = isIOS() ? 'Notifikasi diblokir. Buka Settings → Notifications → Transport Finance → nyalakan Allow Notifications, Sounds dan Badges, lalu buka ulang aplikasi.' : 'Notifikasi diblokir. Klik ikon gembok di sebelah alamat web → Notifications → Allow, lalu muat ulang halaman.';
-  else if (sw !== 'aktif') help = 'File sw.js belum terbaca. Pastikan sw.js ada di folder yang sama dengan index.html di GitHub Pages, lalu buka ulang aplikasi.';
+  else if (sw !== 'aktif') help = swInfo || 'File sw.js belum terbaca. Pastikan sw.js ada di folder yang sama dengan index.html di GitHub Pages, lalu buka ulang aplikasi.';
   else if (perm === 'granted') help = 'Semua siap. Pop-up dan nada muncul saat ada pengingat selama aplikasi terbuka; angka di ikon tetap terlihat setelah aplikasi ditutup.' + (isIOS() ? ' Di iPhone, aplikasi berhenti saat ditutup, jadi pengingat baru dicek ketika aplikasi dibuka lagi.' : '');
   $('notif-help').textContent = help;
 }
@@ -4899,9 +4912,14 @@ async function checkKdMaker(force) {
 // ---------- ANGKA DI IKON APLIKASI & NOTIFIKASI ----------
 // Angka di ikon: aplikasi yang sudah diinstal (Chrome / Edge di Windows & Mac, iPhone dari "Add to Home Screen"
 // setelah notifikasi diizinkan). Di tab browser: angka di judul tab dan di ikon tab.
-let SW_REG = null;
+let SW_REG = null, SW_ERR = '';
+function swRegister() {
+  if (!('serviceWorker' in navigator)) { SW_ERR = 'Browser ini tidak mendukung service worker'; return Promise.resolve(null); }
+  if (location.protocol !== 'https:') { SW_ERR = 'Aplikasi tidak dibuka lewat alamat https (GitHub Pages)'; return Promise.resolve(null); }
+  return navigator.serviceWorker.register('sw.js').then(r => { SW_REG = r; SW_ERR = ''; return r; }).catch(e => { SW_ERR = e.message || String(e); return null; });
+}
+swRegister();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').then(r => { SW_REG = r; }).catch(() => {});
   navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open-kdab') kdRemindOpen(); if (e.data && e.data.type === 'open-agr') agrRemindOpen(); });
 }
 if (location.hash === '#kdab') setTimeout(() => { if (!isSvc()) kdRemindOpen(); }, 2500);
