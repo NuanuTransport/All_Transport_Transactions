@@ -127,7 +127,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .kd-remind .btns{display:flex;gap:6px;flex-wrap:wrap}
 .nav-badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:16px;font-weight:700;vertical-align:1px}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
-body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
+body.viewer #btn-agr-new,body.viewer #btn-agr-save,body.viewer #btn-agr-doc,body:not(.head) #btn-agr-del,body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
 body.viewer [onclick*="createCA("],body.viewer [onclick*="doClearing("],body.viewer [onclick*="payBulk("],body.viewer [onclick*="saveAutoSync("],
 body.viewer [onclick*="savePO("],body.viewer [onclick*="cancelPR("],body.viewer [onclick*="sendInvoice("],body.viewer [onclick*="sendUnpaidReport("],
 body.viewer [onclick*="syncIncome("],body.viewer [onclick*="show('new')"],body.viewer #topup-form,body.viewer #usage-form,body.viewer #clear-form,
@@ -177,6 +177,8 @@ body:not(.head) #btn-sewa-save,body.svc nav button:not([data-v="alloc"]),body.sv
 @media(max-width:640px){.jp-mode{grid-template-columns:1fr}}
 .kd-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:13px}
 .kd-range input[type=date]{width:auto}
+td.nw{white-space:nowrap}
+.btn.danger{background:#dc2626;color:#fff}.btn.danger:hover{background:#b91c1c}
 .kd-st{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap}
 .kd-st.s0{background:#eef1f4;color:#6b7280}.kd-st.s1{background:#fff4e5;color:#b45309}.kd-st.s2{background:#e8f0fe;color:#1d4ed8}.kd-st.s3{background:#e7f6ec;color:#15803d}
 tr.kd-open>td{background:#fafbfc}
@@ -359,6 +361,20 @@ details.tbl>summary{cursor:pointer;font-size:12px;color:var(--pri);font-weight:6
   #print-area .kd-sign .sp svg{height:56px;width:auto;fill:#14213d}
   #print-area .kd-sign .nm{margin-top:4px}
   #print-area .kd-sign .jb{margin-top:6px}
+  #print-area .ag-doc{font-family:'Times New Roman',Times,serif;font-size:10.5px;color:#000;line-height:1.45}
+  #print-area .ag-title{text-align:center;font-weight:700;font-size:12.5px;margin-bottom:12px}
+  #print-area .ag-title .ag-no{font-weight:400;font-size:11px;margin-top:4px}
+  #print-area .ag-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+  #print-area .ag-tbl td{width:50%;vertical-align:top;padding:3px 9px 5px;text-align:justify;break-inside:avoid;page-break-inside:avoid}
+  #print-area .ag-tbl td:first-child{border-right:1px solid #bbb}
+  #print-area .ag-h{text-align:center;font-weight:700;margin-top:8px}
+  #print-area .ag-li{display:flex;gap:5px}#print-area .ag-li>span{flex:0 0 14px}#print-area .ag-li ol{margin:3px 0;padding-left:16px}
+  #print-area .ag-place{margin-top:14px}
+  #print-area .ag-sign{width:100%;margin-top:18px;border-collapse:collapse;break-inside:avoid;page-break-inside:avoid;text-align:center}
+  #print-area .ag-sign td{width:50%;vertical-align:top;padding:0 14px;border:none!important}
+  #print-area .ag-sign .sp{height:70px;display:flex;align-items:center;justify-content:center}
+  #print-area .ag-sign .mtr{border:1px dashed #999;color:#999;font-size:8.5px;padding:10px 8px}
+  #print-area .ag-sign .nm{font-weight:700;text-decoration:underline}
   #print-area .rs-doc{font-size:10.5px;color:#111}
   #print-area .rs-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1e5246;padding-bottom:8px;margin-bottom:12px}
   #print-area .rs-head .doc-logo{height:20px;margin:0 0 6px}
@@ -564,6 +580,7 @@ html,body{max-width:100%;overflow-x:hidden}
   <button data-v="pr" onclick="show('pr')">Purchase</button>
   <button data-v="list" onclick="show('list')">Cash Advance</button>
   <button data-v="alloc" onclick="show('alloc')">Alokasi EV</button>
+  <button data-v="agr" onclick="show('agr')">Agreement</button>
   <button data-v="users" onclick="show('users')">Pengguna</button>
 </nav>
 
@@ -1308,6 +1325,29 @@ html,body{max-width:100%;overflow-x:hidden}
     </div>
   </section>
 
+  <!-- AGREEMENT -->
+  <section id="view-agr" class="hidden">
+    <div class="card-head" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div><h2 style="margin:0">Agreement</h2><div class="muted">Perjanjian sewa buggy / EV dengan pihak luar, adendum, dan surat kesepakatan fasilitas EV</div></div>
+      <div class="ctrl" style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sec" style="margin:0" onclick="loadAgr(true)">Muat ulang</button>
+        <button class="btn" style="margin:0" id="btn-agr-new" onclick="openAgr()">+ Agreement baru</button>
+      </div>
+    </div>
+    <div class="stats" id="agr-stats"></div>
+    <div class="card">
+      <div class="filters">
+        <input type="text" id="agr-cari" placeholder="Cari nomor / pihak / unit" oninput="renderAgr()">
+        <select id="agr-f" onchange="renderAgr()"><option value="">Semua</option><option value="aktif">Aktif</option><option value="segera">Akan berakhir (≤ 30 hari)</option><option value="berakhir">Berakhir</option><option value="lain">Draft / diganti / dihentikan</option></select>
+      </div>
+      <div class="tablewrap"><table id="agr-table">
+        <thead><tr><th>Nomor / judul</th><th>Pihak kedua</th><th>Unit</th><th>Periode</th><th class="num">Nilai / bulan</th><th>Status</th><th></th></tr></thead>
+        <tbody id="agr-body"><tr><td colspan="7" class="muted">Belum dimuat</td></tr></tbody>
+      </table></div>
+      <div class="muted" style="margin-top:8px">Nilai per bulan sesuai perjanjian (lihat kolom pajak, sebagian belum termasuk PPN 11%). Status dihitung dari tanggal mulai dan selesai.</div>
+    </div>
+  </section>
+
   <section id="view-users" class="hidden">
     <div class="page-head">
       <div><h2>Pengguna &amp; Riwayat</h2><div class="muted">Akun login, hak akses, dan catatan semua perubahan data</div></div>
@@ -1525,6 +1565,77 @@ html,body{max-width:100%;overflow-x:hidden}
 </div>
 
 <!-- MODAL BATCH PEMBELIAN (MASA GUNA) -->
+<div class="modal hidden" id="agr-modal" onclick="if (event.target === this) closeAgr()">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head"><b id="agr-title">Agreement baru</b><button class="btn sec sm" onclick="closeAgr()">Tutup</button></div>
+    <div class="row">
+      <div><label>Jenis</label><select id="ag-Jenis" onchange="agrJenis()"><option>Perjanjian</option><option>Adendum</option><option>Surat Kesepakatan</option></select></div>
+      <div><label>Template dokumen</label><select id="ag-Template" onchange="agrTpl()">
+        <option value="self">Sewa, dioperasikan sendiri oleh penyewa</option>
+        <option value="managed">Sewa dengan layanan Nuanu (pickup &amp; drop off)</option>
+        <option value="facility">Surat kesepakatan fasilitas EV (perorangan)</option>
+        <option value="addendum">Adendum perpanjangan</option>
+        <option value="">Arsip saja (tanpa buat dokumen)</option>
+      </select></div>
+    </div>
+    <div class="row">
+      <div><label>Nomor</label><input type="text" id="ag-No" autocomplete="off" placeholder="Mis. 024/WFV/XI/2026"></div>
+      <div><label>Tanggal perjanjian</label><input type="date" id="ag-Tanggal" onchange="agrNoSuggest()"></div>
+    </div>
+    <label>Judul</label><input type="text" id="ag-Judul" autocomplete="off" placeholder="Otomatis dari template jika dikosongkan">
+    <div class="row">
+      <div><label>Pihak kedua (nama perusahaan / perorangan)</label><input type="text" id="ag-Pihak" autocomplete="off" list="agr-pihak-list"></div>
+      <div><label>Bentuk</label><select id="ag-Bentuk"><option>Badan Hukum</option><option>Perorangan</option></select></div>
+    </div>
+    <datalist id="agr-pihak-list"></datalist>
+    <div class="row">
+      <div><label>Diwakili oleh</label><input type="text" id="ag-Wakil" autocomplete="off"></div>
+      <div><label>Jabatan</label><input type="text" id="ag-Jabatan" autocomplete="off" placeholder="Mis. Direktur"></div>
+    </div>
+    <div class="row">
+      <div><label>Alamat</label><input type="text" id="ag-Alamat" autocomplete="off"></div>
+      <div><label>Email</label><input type="text" id="ag-Email" autocomplete="off"></div>
+    </div>
+    <div class="row hidden" id="ag-induk-w">
+      <div><label>Perjanjian induk</label><select id="ag-Induk" onchange="agrIndukPick()"></select></div>
+      <div><label>Tanggal perjanjian induk</label><input type="date" id="ag-IndukTgl"></div>
+    </div>
+    <label style="margin-top:6px">Unit &amp; harga sewa per bulan</label>
+    <div id="ag-items"></div>
+    <div class="btns" style="margin:4px 0 8px"><button class="btn sec sm" style="margin:0" onclick="agrItemAdd()">+ Tambah unit</button><span class="muted" id="ag-total" style="align-self:center"></span></div>
+    <div class="row">
+      <div><label>Pajak</label><select id="ag-Pajak"><option>Belum termasuk PPN 11%</option><option>Termasuk PPN 11%</option><option>PPh 23 2%</option><option>Tidak disebut</option></select></div>
+      <div><label>Kode unit (opsional)</label><input type="text" id="ag-Kode_Unit" autocomplete="off" placeholder="Mis. LV6-008, TYR-030"></div>
+    </div>
+    <div class="row3">
+      <div><label>Mulai</label><input type="date" id="ag-Mulai" onchange="agrDur()"></div>
+      <div><label>Lama (bulan)</label><input type="number" id="ag-Bulan" min="1" step="1" value="12" onchange="agrDur()"></div>
+      <div><label>Selesai</label><input type="date" id="ag-Selesai"></div>
+    </div>
+    <div class="row">
+      <div><label>Departemen di Alokasi EV (opsional)</label><input type="text" id="ag-Departemen" autocomplete="off" list="agr-dept-list" placeholder="Mis. Luna, Nusantara"></div>
+      <div><label>Status</label><select id="ag-Status"><option value="">Aktif (sesuai tanggal)</option><option>Draft</option><option>Diganti</option><option>Dihentikan</option></select></div>
+    </div>
+    <datalist id="agr-dept-list"></datalist>
+    <div id="ag-managed-w" class="hidden">
+      <div class="row">
+        <div><label>Jam operasional</label><input type="text" id="ag-Jam" autocomplete="off" value="07.00 - 19.00 WITA"></div>
+        <div><label>Tagihan dikirim</label><input type="text" value="Setiap akhir bulan lewat email" disabled></div>
+      </div>
+      <label>Rincian layanan</label><textarea id="ag-Layanan" rows="2" placeholder="Mis. Antar jemput guru, siswa dan orang tua sesuai jadwal penyewa"></textarea>
+    </div>
+    <div id="ag-facility-w" class="hidden"><label>Invoice terbit setiap tanggal</label><input type="number" id="ag-InvTgl" min="1" max="28" value="1"></div>
+    <label>Catatan</label><input type="text" id="ag-Catatan" autocomplete="off">
+    <label>File perjanjian yang sudah ditandatangani (PDF / foto)</label>
+    <div class="muted" id="ag-file-now" style="margin-bottom:4px"></div>
+    <input type="file" id="ag-File" accept="application/pdf,image/*">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-agr-save" onclick="saveAgr()">Simpan</button>
+      <button class="btn sec" style="margin:0" id="btn-agr-doc" onclick="saveAgr(true)">Simpan &amp; buat dokumen PDF</button>
+      <button class="btn danger hidden" style="margin:0" id="btn-agr-del" onclick="delAgr()">Hapus</button>
+    </div>
+  </div>
+</div>
 <div class="modal hidden" id="ab-modal" onclick="if (event.target === this) closeBatch()">
   <div class="modal-box" style="max-width:620px">
     <div class="modal-head"><b id="ab-title">Batch pembelian</b><button class="btn sec sm" onclick="closeBatch()">Tutup</button></div>
@@ -2212,7 +2323,7 @@ function centerTab(b) {
 
 function show(view) {
   if (isSvc() && view !== 'alloc') view = 'alloc';
-  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc', 'kdab'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
+  ['list', 'new', 'detail', 'income', 'pr', 'summary', 'users', 'alloc', 'kdab', 'agr'].forEach(v => $('view-' + v).classList.toggle('hidden', v !== view));
   CUR_VIEW = view;
   const navV = (view === 'new' || view === 'detail') ? 'list' : view;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.v === navV));
@@ -2225,6 +2336,7 @@ function show(view) {
   if (view === 'summary') loadSummary();
   if (view === 'users') loadUsers();
   if (view === 'alloc' && !ALLOC_LOADED) loadAlloc();
+  if (view === 'agr' && !AGR_LOADED) loadAgr();
   redrawCharts();
 }
 
@@ -2919,13 +3031,13 @@ function closeModal() {
 }
 
 // ---------- BACA FILE UPLOAD ----------
-function readFile(file) {
+function readFile(file, maxMB) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
     fr.onerror = () => reject(new Error('Gagal membaca file'));
     fr.onload = () => {
       if (!file.type.startsWith('image/')) {
-        if (file.size > 5 * 1024 * 1024) return reject(new Error('File maksimal 5 MB'));
+        if (file.size > (maxMB || 5) * 1024 * 1024) return reject(new Error('File maksimal ' + (maxMB || 5) + ' MB'));
         return resolve({ name: file.name, mimeType: file.type || 'application/pdf', base64: fr.result.split(',')[1] });
       }
       const img = new Image();
@@ -4147,6 +4259,456 @@ function initKdab() {
   if (!KD) loadKdab(); else redrawCharts();
 }
 
+// ---------- AGREEMENT ----------
+// Daftar perjanjian + pembuatan dokumen perjanjian baru (dua bahasa, format sama dengan perjanjian WFV yang sudah ada).
+let AGR = [], AGR_LOADED = false, AGR_EDIT = null;
+const AGR_TPL_NAME = { self: 'Sewa dioperasikan penyewa', managed: 'Sewa dengan layanan Nuanu', facility: 'Fasilitas EV perorangan', addendum: 'Adendum perpanjangan' };
+const BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const BULAN_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ROMAWI = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const tglID = ymd => { if (!ymd) return '-'; const [y, m, d] = ymd.split('-').map(Number); return d + ' ' + BULAN_ID[m - 1] + ' ' + y; };
+const tglEN = ymd => { if (!ymd) return '-'; const [y, m, d] = ymd.split('-').map(Number); return BULAN_EN[m - 1] + ' ' + d + ', ' + y; };
+function terbilang(n) {
+  n = Math.floor(Math.abs(Number(n) || 0));
+  const s = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  const f = x => x < 12 ? s[x] : x < 20 ? f(x - 10) + ' belas' : x < 100 ? f(Math.floor(x / 10)) + ' puluh ' + f(x % 10) : x < 200 ? 'seratus ' + f(x - 100) :
+    x < 1000 ? f(Math.floor(x / 100)) + ' ratus ' + f(x % 100) : x < 2000 ? 'seribu ' + f(x - 1000) : x < 1e6 ? f(Math.floor(x / 1000)) + ' ribu ' + f(x % 1000) :
+    x < 1e9 ? f(Math.floor(x / 1e6)) + ' juta ' + f(x % 1e6) : f(Math.floor(x / 1e9)) + ' miliar ' + f(x % 1e9);
+  return n === 0 ? 'nol' : f(n).replace(/\s+/g, ' ').trim();
+}
+const enWords = n => numWords(n).trim() || 'zero';
+const rpID = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const rpEN = n => 'IDR ' + Math.round(n).toLocaleString('en-US');
+const agrDetail = r => { try { return typeof r.Detail === 'string' ? JSON.parse(r.Detail || '{}') : (r.Detail || {}); } catch (e) { return {}; } };
+const agrMonths = (a, b) => { if (!a || !b) return 0; const [y1, m1, d1] = a.split('-').map(Number), [y2, m2, d2] = b.split('-').map(Number); let m = (y2 - y1) * 12 + (m2 - m1); if (d2 >= d1 - 1) m += 0; return Math.max(1, Math.round(m + (d2 - d1 + 1) / 30)); };
+function agrState(r) {
+  const now = today();
+  if (r.Status) return { k: 'lain', t: r.Status, cls: 's0' };
+  if (r.Mulai > now) return { k: 'aktif', t: 'Belum mulai', cls: 's2' };
+  if (r.Selesai < now) return { k: 'berakhir', t: 'Berakhir', cls: 's0' };
+  const left = Math.round((new Date(r.Selesai + 'T00:00') - new Date(now + 'T00:00')) / 864e5);
+  return left <= 30 ? { k: 'segera', t: `Berakhir ${left} hari lagi`, cls: 's1', left } : { k: 'aktif', t: 'Aktif', cls: 's3', left };
+}
+async function loadAgr(force) {
+  $('agr-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  try {
+    const d = await apiGet({ action: 'agrList' });
+    AGR = d.rows || [];
+    AGR_LOADED = true;
+    renderAgr();
+  } catch (e) {
+    $('agr-body').innerHTML = `<tr><td colspan="7" class="muted">Gagal memuat: ${esc(e.message)}</td></tr>`;
+  }
+}
+function renderAgr() {
+  const q = $('agr-cari').value.trim().toLowerCase(), f = $('agr-f').value;
+  const all = AGR.map(r => Object.assign({ st: agrState(r) }, r));
+  const act = all.filter(r => r.st.k === 'aktif' || r.st.k === 'segera');
+  const soon = all.filter(r => r.st.k === 'segera');
+  $('agr-stats').innerHTML = `<div class="stat"><div class="l">Agreement aktif</div><div class="v">${act.length}</div><div class="muted">dari ${all.length} agreement</div></div>
+    <div class="stat"><div class="l">Nilai sewa aktif / bulan</div><div class="v">${rp(act.reduce((a, r) => a + r.Nilai_Bulan, 0))}</div><div class="muted">sesuai perjanjian (sebagian belum termasuk PPN)</div></div>
+    <div class="stat"><div class="l">Akan berakhir (≤ 30 hari)</div><div class="v ${soon.length ? 'neg' : ''}">${soon.length}</div><div class="muted">${soon.length ? esc(soon.map(r => r.Pihak + ' (' + fmtTgl(r.Selesai) + ')').join(', ')) : 'tidak ada'}</div></div>`;
+  const rows = all.filter(r => (!f || r.st.k === f) && (!q || [r.No, r.Judul, r.Pihak, r.Unit, r.Kode_Unit, r.Departemen, r.Wakil].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => ['segera', 'aktif', 'berakhir', 'lain'].indexOf(a.st.k) - ['segera', 'aktif', 'berakhir', 'lain'].indexOf(b.st.k) || String(b.Tanggal).localeCompare(String(a.Tanggal)));
+  const byId = Object.fromEntries(AGR.map(r => [r.Agr_ID, r]));
+  $('agr-body').innerHTML = rows.map(r => `<tr>
+      <td><b>${esc(r.No || '(tanpa nomor)')}</b><div class="al-sub">${esc(r.Jenis)} · ${esc(r.Judul || '')}</div>${r.Induk && byId[r.Induk] ? `<div class="al-sub">induk: ${esc(byId[r.Induk].No || byId[r.Induk].Judul)}</div>` : ''}</td>
+      <td><b>${esc(r.Pihak)}</b>${r.Wakil ? `<div class="al-sub">${esc(r.Wakil)}${r.Jabatan ? ' · ' + esc(r.Jabatan) : ''}</div>` : ''}${r.Departemen ? `<div class="al-sub">Alokasi: ${esc(r.Departemen)}</div>` : ''}</td>
+      <td>${esc(r.Unit || '-')}${r.Kode_Unit ? `<div class="al-sub">${esc(r.Kode_Unit)}</div>` : ''}</td>
+      <td class="nw">${esc(fmtTgl(r.Mulai))} –<br>${esc(fmtTgl(r.Selesai))}<div class="al-sub">${agrMonths(r.Mulai, r.Selesai)} bulan</div></td>
+      <td class="num">${rp(r.Nilai_Bulan)}<div class="al-sub">${esc(r.Pajak || '')}</div></td>
+      <td><span class="kd-st ${r.st.cls}">${esc(r.st.t)}</span></td>
+      <td style="width:170px"><div class="btns" style="flex-wrap:wrap;gap:6px">
+        ${r.File ? `<a class="btn sec sm" style="text-decoration:none" href="${esc(r.File)}" target="_blank" rel="noopener">File</a>` : ''}
+        <button class="btn sec sm" onclick="openAgr('${esc(r.Agr_ID)}')">Detail</button>
+        ${r.Template ? `<button class="btn sec sm" onclick="agrPdf('${esc(r.Agr_ID)}')">Dokumen</button>` : ''}
+        <button class="btn sec sm" onclick="agrExtend('${esc(r.Agr_ID)}')" title="Buat adendum perpanjangan">Perpanjang</button>
+      </div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">Tidak ada agreement</td></tr>';
+}
+
+// ----- form -----
+function agrItemRow(it) {
+  it = it || {};
+  return `<div class="row3 ag-item" style="grid-template-columns:2fr .6fr 1fr auto;align-items:end">
+    <div><input type="text" class="ag-nama" placeholder="Mis. Buggy listrik 6 kursi" value="${esc(it.nama || '')}" oninput="agrSum()"></div>
+    <div><input type="number" class="ag-qty" min="1" step="1" placeholder="Qty" value="${esc(it.qty || 1)}" oninput="agrSum()"></div>
+    <div><input type="text" inputmode="numeric" class="ag-harga" placeholder="Harga / unit / bulan" value="${it.harga ? Number(it.harga).toLocaleString('id-ID') : ''}" oninput="this.value=this.value.replace(/[^\\d]/g,'')?Number(this.value.replace(/[^\\d]/g,'')).toLocaleString('id-ID'):'';agrSum()"></div>
+    <div><button class="btn sec sm" style="margin:0 0 8px" onclick="this.closest('.ag-item').remove();agrSum()">Hapus</button></div>
+  </div>`;
+}
+function agrItemAdd(it) { $('ag-items').insertAdjacentHTML('beforeend', agrItemRow(it)); agrSum(); }
+function agrItems() {
+  return [...document.querySelectorAll('#ag-items .ag-item')].map(el => ({
+    nama: el.querySelector('.ag-nama').value.trim(), qty: Number(el.querySelector('.ag-qty').value) || 0,
+    harga: Number(el.querySelector('.ag-harga').value.replace(/[^\d]/g, '')) || 0
+  })).filter(x => x.nama && x.qty > 0);
+}
+function agrSum() {
+  const t = agrItems().reduce((a, x) => a + x.qty * x.harga, 0);
+  $('ag-total').textContent = t ? 'Total ' + rp(t) + ' per bulan' : '';
+  return t;
+}
+function agrDur() {
+  const a = $('ag-Mulai').value, n = Number($('ag-Bulan').value) || 0;
+  if (!a || !n) return;
+  const [y, m, d] = a.split('-').map(Number), e = new Date(y, m - 1 + n, d - 1);
+  $('ag-Selesai').value = isoOf(e);
+}
+function agrNoSuggest(force) {
+  const t = $('ag-Tanggal').value || today();
+  if (!force && $('ag-No').value) return;
+  const [y, m] = t.split('-').map(Number);
+  let max = 0;
+  AGR.forEach(r => { const mm = String(r.No || '').match(/^(\d{3})[A-Z]?\/WFV\/(?:ADD-[IVX]+\/)?(?:PK\/)?[IVX]+\/(\d{4})$/); if (mm && Number(mm[2]) === y) max = Math.max(max, Number(mm[1])); });
+  const add = $('ag-Jenis').value === 'Adendum', pk = $('ag-Template').value === 'facility';
+  $('ag-No').value = String(max + 1).padStart(3, '0') + '/WFV/' + (add ? 'ADD-I/PK/' : pk ? 'PK/' : '') + ROMAWI[m - 1] + '/' + y;
+}
+function agrJenis() {
+  const add = $('ag-Jenis').value === 'Adendum';
+  $('ag-induk-w').classList.toggle('hidden', !add);
+  if (add && $('ag-Template').value !== '') $('ag-Template').value = 'addendum';
+  if ($('ag-Jenis').value === 'Surat Kesepakatan' && $('ag-Template').value !== '') { $('ag-Template').value = 'facility'; $('ag-Bentuk').value = 'Perorangan'; }
+  agrTpl();
+}
+function agrTpl() {
+  const t = $('ag-Template').value;
+  $('ag-managed-w').classList.toggle('hidden', t !== 'managed');
+  $('ag-facility-w').classList.toggle('hidden', t !== 'facility');
+  if (t === 'addendum') { $('ag-Jenis').value = 'Adendum'; $('ag-induk-w').classList.remove('hidden'); }
+  $('btn-agr-doc').classList.toggle('hidden', !t);
+}
+function agrIndukPick() {
+  const p = AGR.find(r => r.Agr_ID === $('ag-Induk').value);
+  if (!p) return;
+  $('ag-IndukTgl').value = p.Tanggal || '';
+  ['Pihak', 'Bentuk', 'Wakil', 'Jabatan', 'Alamat', 'Email', 'Departemen', 'Kode_Unit', 'Pajak'].forEach(k => { if (!$('ag-' + k).value || k === 'Pihak') $('ag-' + k).value = p[k] || $('ag-' + k).value; });
+  if (!agrItems().length) { $('ag-items').innerHTML = ''; (agrDetail(p).items || []).forEach(it => agrItemAdd(it)); }
+}
+function openAgr(id, preset) {
+  const r = id ? AGR.find(x => x.Agr_ID === id) : null;
+  AGR_EDIT = r ? r.Agr_ID : null;
+  const v = Object.assign({ Jenis: 'Perjanjian', Template: 'self', Bentuk: 'Badan Hukum', Pajak: 'Belum termasuk PPN 11%', Status: '', Tanggal: today(), Mulai: '', Selesai: '' }, r || {}, preset || {});
+  const det = agrDetail(v);
+  $('agr-title').textContent = r ? 'Agreement ' + (r.No || r.Pihak) : preset ? 'Adendum perpanjangan' : 'Agreement baru';
+  ['Jenis', 'Template', 'No', 'Tanggal', 'Judul', 'Pihak', 'Bentuk', 'Wakil', 'Jabatan', 'Alamat', 'Email', 'Kode_Unit', 'Mulai', 'Selesai', 'Departemen', 'Status', 'Catatan', 'Pajak']
+    .forEach(k => { const el = $('ag-' + k); if (el) el.value = v[k] == null ? '' : v[k]; });
+  $('ag-Induk').innerHTML = '<option value="">- pilih -</option>' + AGR.filter(x => x.Agr_ID !== AGR_EDIT).map(x => `<option value="${esc(x.Agr_ID)}">${esc((x.No || '(tanpa nomor)') + ' · ' + x.Pihak)}</option>`).join('');
+  $('ag-Induk').value = v.Induk || '';
+  $('ag-IndukTgl').value = det.indukTgl || ((AGR.find(x => x.Agr_ID === v.Induk) || {}).Tanggal) || '';
+  $('ag-Bulan').value = v.Mulai && v.Selesai ? agrMonths(v.Mulai, v.Selesai) : 12;
+  $('ag-Jam').value = det.jam || '07.00 - 19.00 WITA';
+  $('ag-Layanan').value = det.layanan || '';
+  $('ag-InvTgl').value = det.invoiceTgl || 1;
+  $('ag-items').innerHTML = '';
+  (det.items && det.items.length ? det.items : [{}]).forEach(it => agrItemAdd(it));
+  $('ag-File').value = '';
+  $('ag-file-now').innerHTML = v.File ? `File sekarang: <a href="${esc(v.File)}" target="_blank" rel="noopener">buka</a> (upload baru untuk mengganti)` : 'Belum ada file';
+  $('agr-pihak-list').innerHTML = [...new Set(AGR.map(x => x.Pihak))].map(x => `<option value="${esc(x)}">`).join('');
+  $('agr-dept-list').innerHTML = ALLOC_LOADED ? [...new Set(ALLOC.units.map(u => String(u.Department || '').trim()).filter(Boolean))].sort().map(x => `<option value="${esc(x)}">`).join('') : '';
+  $('btn-agr-del').classList.toggle('hidden', !r);
+  $('ag-induk-w').classList.toggle('hidden', v.Jenis !== 'Adendum');
+  agrTpl();
+  if (!r) agrNoSuggest(!preset || !v.No);
+  $('agr-modal').classList.remove('hidden');
+}
+function closeAgr() { $('agr-modal').classList.add('hidden'); }
+function agrExtend(id) {
+  const p = AGR.find(x => x.Agr_ID === id);
+  if (!p) return;
+  const [y, m, d] = p.Selesai.split('-').map(Number), start = isoOf(new Date(y, m - 1, d + 1));
+  const det = agrDetail(p);
+  openAgr(null, {
+    Jenis: 'Adendum', Template: 'addendum', No: '', Tanggal: today(), Judul: '', Pihak: p.Pihak, Bentuk: p.Bentuk, Wakil: p.Wakil, Jabatan: p.Jabatan, Alamat: p.Alamat, Email: p.Email,
+    Departemen: p.Departemen, Kode_Unit: p.Kode_Unit, Pajak: p.Pajak, Induk: p.Agr_ID, Mulai: start, Selesai: isoOf(new Date(y, m - 1 + 12, d)), Catatan: '',
+    Detail: { items: det.items || [], indukTgl: p.Tanggal, indukNo: p.No }
+  });
+}
+function agrCollect() {
+  const items = agrItems(), tpl = $('ag-Template').value;
+  const d = {
+    Agr_ID: AGR_EDIT || '', Jenis: $('ag-Jenis').value, Template: tpl, No: $('ag-No').value.trim(), Tanggal: $('ag-Tanggal').value, Pihak: $('ag-Pihak').value.trim(),
+    Bentuk: $('ag-Bentuk').value, Wakil: $('ag-Wakil').value.trim(), Jabatan: $('ag-Jabatan').value.trim(), Alamat: $('ag-Alamat').value.trim(), Email: $('ag-Email').value.trim(),
+    Departemen: $('ag-Departemen').value.trim(), Kode_Unit: $('ag-Kode_Unit').value.trim(), Mulai: $('ag-Mulai').value, Selesai: $('ag-Selesai').value,
+    Pajak: $('ag-Pajak').value, Status: $('ag-Status').value, Catatan: $('ag-Catatan').value.trim(), Induk: $('ag-Jenis').value === 'Adendum' ? $('ag-Induk').value : '',
+    Unit: items.map(x => x.qty + ' ' + x.nama).join(', '), Nilai_Bulan: items.reduce((a, x) => a + x.qty * x.harga, 0),
+    Detail: { items, jam: $('ag-Jam').value.trim(), layanan: $('ag-Layanan').value.trim(), invoiceTgl: Number($('ag-InvTgl').value) || 1, indukTgl: $('ag-IndukTgl').value, indukNo: (AGR.find(x => x.Agr_ID === $('ag-Induk').value) || {}).No || '' }
+  };
+  if (!d.Judul) d.Judul = agrTitle(d).id;
+  else d.Judul = $('ag-Judul').value.trim();
+  return d;
+}
+async function saveAgr(withDoc) {
+  const d = agrCollect();
+  if (!d.Pihak) return toast('Isi nama pihak kedua');
+  if (!agrItems().length) return toast('Isi minimal satu unit');
+  if (!d.Mulai || !d.Selesai) return toast('Isi tanggal mulai dan selesai');
+  if (d.Jenis === 'Adendum' && !d.Induk && !d.Detail.indukTgl) return toast('Pilih perjanjian induk atau isi tanggalnya');
+  const b = $('btn-agr-save');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('ag-File').files[0];
+    if (f) { b.textContent = 'Mengunggah file...'; d.File = await readFile(f, 15); }
+    const res = await apiPost('saveAgr', d);
+    AGR = res.rows || AGR;
+    renderAgr();
+    closeAgr();
+    toast('Agreement disimpan');
+    if (withDoc) await agrPdf(res.id);
+  } catch (e) {
+    toast('Gagal: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Simpan';
+  }
+}
+async function delAgr() {
+  if (!AGR_EDIT || !confirm('Hapus agreement ini dari aplikasi? File di Drive tidak ikut terhapus.')) return;
+  try { const res = await apiPost('deleteAgr', { Agr_ID: AGR_EDIT }); AGR = res.rows || []; renderAgr(); closeAgr(); toast('Agreement dihapus'); }
+  catch (e) { toast('Gagal: ' + e.message); }
+}
+
+// ----- dokumen perjanjian (dua bahasa) -----
+const WFV = {
+  nama: 'PT WOODEN FISH VILLAGE', wakil: 'IDA AYU ASTARI PRADA', jabID: 'Direktur', jabEN: 'Director',
+  alamatID: 'Jl. Pantai Nyanyi, Desa Beraban, Kecamatan Kediri, Kabupaten Tabanan, Bali', alamatEN: 'Jl. Pantai Nyanyi, Beraban Village, Kediri District, Tabanan Regency, Bali',
+  email: 'dimas@nuanu.com', attn: 'Dimas Destrian Caesar', bank: 'OCBC', rek: '160800027064', rekNama: 'PT Wooden Fish Village'
+};
+function agrTitle(d) {
+  const t = d.Template, items = (d.Detail && d.Detail.items) || [];
+  const motor = items.some(x => /motor|bike|tyran|vfly|volta|alva/i.test(x.nama)), buggy = items.some(x => /buggy|bus|car/i.test(x.nama));
+  if (t === 'facility') return { id: 'Surat Kesepakatan Fasilitas Transportasi', en: 'Transportation Facility Cooperation Agreement Letter' };
+  if (t === 'addendum') return { id: 'Adendum Perjanjian Sewa Kendaraan Listrik', en: 'Addendum to Electric Vehicle Rental Agreement' };
+  if (t === 'managed') return { id: 'Perjanjian Sewa Buggy (Pickup & Drop Off)', en: 'Buggy Rental Agreement (Pickup & Drop Off)' };
+  if (buggy && motor) return { id: 'Perjanjian Sewa Buggy dan Motor Listrik', en: 'Electric Buggy and Electric Motorcycle Rental Agreement' };
+  if (motor) return { id: 'Perjanjian Sewa Motor Listrik', en: 'Electric Motorcycle Rental Agreement' };
+  return { id: 'Perjanjian Sewa Buggy Listrik', en: 'Electric Buggy Rental Agreement' };
+}
+const nID = n => `${n} (${terbilang(n)})`, nEN = n => `${n} (${enWords(n)})`;
+const amtID = n => `${rpID(n)} (${terbilang(n)} rupiah)`, amtEN = n => `${rpEN(n)} (${enWords(n)} Rupiah)`;
+function agrParties(r) {
+  const p2ID = r.Bentuk === 'Perorangan'
+    ? `<b>${esc(r.Pihak.toUpperCase())}</b>${r.Alamat ? ', beralamat di ' + esc(r.Alamat) : ''} (untuk selanjutnya disebut “Pihak Kedua”).`
+    : `<b>${esc(r.Pihak.toUpperCase())}</b>, sebuah badan hukum yang didirikan berdasarkan hukum Indonesia, memiliki dan tempat usaha utamanya di ${esc(r.Alamat || '-')}, dalam hal ini diwakili oleh ${esc((r.Wakil || '-').toUpperCase())} selaku ${esc(r.Jabatan || 'Direktur')} (untuk selanjutnya disebut “Pihak Kedua”).`;
+  const p2EN = r.Bentuk === 'Perorangan'
+    ? `<b>${esc(r.Pihak.toUpperCase())}</b>${r.Alamat ? ', having the address at ' + esc(r.Alamat) : ''} (hereinafter referred to as the “Second Party”).`
+    : `<b>${esc(r.Pihak.toUpperCase())}</b>, a legal entity established under Indonesian law, with its principal place of business at ${esc(r.Alamat || '-')}, represented herein by ${esc((r.Wakil || '-').toUpperCase())} as the ${esc(agrJabEN(r.Jabatan))} (hereinafter referred to as the “Second Party”).`;
+  return [
+    [`<b>${WFV.nama}</b>, sebuah badan hukum yang didirikan berdasarkan hukum Indonesia, memiliki dan tempat usaha utamanya di ${WFV.alamatID}, dalam hal ini diwakili oleh ${WFV.wakil} selaku ${WFV.jabID} (untuk selanjutnya disebut “Pihak Pertama”); dan`,
+     `<b>${WFV.nama}</b>, a legal entity established under Indonesian law, with its principal place of business located at ${WFV.alamatEN}, represented herein by ${WFV.wakil} as the ${WFV.jabEN} (hereinafter referred to as the “First Party”); and`],
+    [p2ID, p2EN],
+    ['Selanjutnya, secara bersama-sama disebut “Para Pihak” dan masing-masing disebut “Pihak”.', 'Hereinafter, collectively referred to as the “Parties” and individually as a “Party”.']
+  ];
+}
+const agrJabEN = j => ({ 'direktur': 'Director', 'direktur utama': 'President Director', 'ketua yayasan': 'Chairperson of the Foundation', 'komisaris utama': 'President Commissioner', 'manager': 'Manager', 'general manager': 'General Manager' })[String(j || '').trim().toLowerCase()] || (j || 'Director');
+function agrUnitsTxt(items) {
+  return {
+    id: items.map(x => `${nID(x.qty)} unit ${esc(x.nama)}`).join(' dan '),
+    en: items.map(x => `${nEN(x.qty)} unit${x.qty > 1 ? 's' : ''} of ${esc(agrUnitEN(x.nama))}`).join(' and ')
+  };
+}
+const agrUnitEN = n => String(n).replace(/buggy listrik/i, 'electric buggy').replace(/motor listrik/i, 'electric motorcycle').replace(/(\d+) kursi/i, '$1 seats').replace(/kursi/i, 'seats');
+function agrFeeList(items, pajak) {
+  const tot = items.reduce((a, x) => a + x.qty * x.harga, 0);
+  const pjID = /belum/i.test(pajak) ? ' (belum termasuk PPN 11%)' : /termasuk ppn/i.test(pajak) ? ' (sudah termasuk PPN 11%)' : '';
+  const pjEN = /belum/i.test(pajak) ? ' (excluding 11% VAT)' : /termasuk ppn/i.test(pajak) ? ' (including 11% VAT)' : '';
+  const one = items.length === 1;
+  return {
+    tot,
+    id: one ? `Para Pihak setuju biaya sewa Kendaraan sebesar ${amtID(items[0].harga)} per unit per bulan${pjID}${items[0].qty > 1 ? `, atau total ${amtID(tot)} per bulan untuk ${nID(items[0].qty)} unit` : ''} (“Biaya Sewa”).`
+      : `Para Pihak setuju biaya sewa Kendaraan yaitu:<ol type="a">${items.map(x => `<li>${nID(x.qty)} unit ${esc(x.nama)} sebesar ${amtID(x.harga)} per unit per bulan${pjID};</li>`).join('')}</ol><b>TOTAL ${amtID(tot)} per bulan${pjID}</b>, selanjutnya disebut sebagai (“Biaya Sewa”).`,
+    en: one ? `The Parties agree that the rental fee for the Vehicle is ${amtEN(items[0].harga)} per unit per month${pjEN}${items[0].qty > 1 ? `, or a total of ${amtEN(tot)} per month for ${nEN(items[0].qty)} units` : ''} (“Rental Fee”).`
+      : `The Parties agree on the Vehicle rental fees as follows:<ol type="a">${items.map(x => `<li>${nEN(x.qty)} unit${x.qty > 1 ? 's' : ''} of ${esc(agrUnitEN(x.nama))} at ${amtEN(x.harga)} per unit per month${pjEN};</li>`).join('')}</ol><b>TOTAL ${amtEN(tot)} per month${pjEN}</b>, hereinafter referred to as the (“Rental Fee”).`
+  };
+}
+const AGR_PAY = (stopID, stopEN) => [
+  ['Para Pihak setuju pembayaran Biaya Sewa akan dibebankan PPh 23 sebesar 2% dan dibayarkan paling lambat 7 hari kerja sejak Pihak Pertama mengirimkan faktur pembayaran kepada Pihak Kedua melalui email setiap akhir bulan.',
+   'The Parties agree that the Rental Fee shall be subject to a 2% withholding tax (PPh 23) and shall be paid no later than 7 working days after the First Party issues the payment invoice to the Second Party via email at the end of each month.'],
+  ['Pihak Kedua setuju jika terjadi keterlambatan pembayaran, maka Pihak Pertama berhak membebankan denda sebesar 0,1% per hari dari total kewajiban pembayaran kepada Pihak Kedua, dengan total denda maksimal 5% dari total biaya sewa per bulan.',
+   'The Second Party agrees that in the event of a late payment, the First Party shall be entitled to impose a penalty of 0.1% per day of the total outstanding amount, with a maximum penalty of 5% of the monthly rental fee.'],
+  [`Apabila total denda maksimal sudah terpenuhi, dan Pihak Kedua belum melakukan pembayaran, maka Pihak Pertama berhak ${stopID}.`, `If the maximum penalty has been reached and the Second Party has not made the payment, the First Party shall have the right to ${stopEN}.`],
+  ['Pembayaran biaya sewa wajib dibayarkan secara penuh oleh Pihak Kedua. Tidak ada pengurangan Biaya Sewa dengan alasan bahwa Pihak Kedua tidak menggunakan Kendaraan kecuali yang telah ditentukan dalam Perjanjian ini.',
+   'The Rental Fee shall be paid in full by the Second Party. No reduction in the Rental Fee shall be allowed because the Second Party did not utilize the Vehicle, except as expressly provided in this Agreement.'],
+  [`Semua pembayaran wajib dilakukan melalui transfer bank ke rekening berikut:<br>Nama Bank: ${WFV.bank}<br>No. Rekening: ${WFV.rek}<br>Nama Rekening: ${WFV.rekNama}`,
+   `All payments must be made via bank transfer to the following account:<br>Bank Name: ${WFV.bank}<br>Account Number: ${WFV.rek}<br>Account Name: ${WFV.rekNama}`],
+  ['Pajak yang timbul dari Perjanjian ini menjadi tanggung jawab masing-masing Pihak.', 'Any taxes arising from this Agreement shall be the responsibility of each Party.'],
+  ['Seluruh biaya yang telah dibayarkan tidak dapat dikembalikan.', 'All payments made are non-refundable.']
+];
+const AGR_FM = [
+  ['Yang dimaksud dengan Keadaan Kahar adalah kejadian-kejadian sebagai berikut: Bencana Alam, Bukan Bencana Alam, Bencana Sosial, Mogok, Kebakaran (pandemi Covid 19 tidak termasuk) dan/atau Gangguan industri lainnya yang tertuang dalam Keputusan Bersama Menteri Keuangan dan Kementerian Teknis terkait.',
+   'Force Majeure events include the following: Natural Disasters, Non-Natural Disasters, Social Disasters, Strikes, Fires (excluding the COVID-19 pandemic), and/or other industrial disturbances as specified in the Joint Decree of the Minister of Finance and the relevant Technical Ministry.'],
+  ['Dalam hal terjadi Keadaan Kahar, Pihak Kedua wajib memberitahukan Pihak Pertama secara tertulis selambat-lambatnya 3 hari sejak terjadinya Keadaan Kahar, dengan melampirkan salinan pernyataan force majeure yang dikeluarkan oleh pihak/instansi yang berwenang sesuai dengan ketentuan undang-undang. Kelalaian dalam melakukan pemberitahuan yang dimaksud maka Keadaan Kahar dapat dianggap tidak terjadi oleh Pihak Pertama.',
+   'In the event of Force Majeure, the Second Party shall notify the First Party in writing no later than 3 days from the occurrence of Force Majeure, attaching a copy of the force majeure statement issued by the relevant authority in accordance with the applicable laws. Failure to provide the required notice shall result in the Force Majeure being considered not to have occurred by the First Party.'],
+  ['Dalam hal terjadi Keadaan Kahar yang mengakibatkan Pihak Kedua tidak dapat menggunakan Kendaraan sebagaimana dimaksud dalam Perjanjian ini, maka Para Pihak sepakat Pihak Kedua hanya berkewajiban melakukan pembayaran Biaya Sewa secara prorata berdasarkan jumlah hari pemakaian sebelum terjadinya Keadaan Kahar.',
+   'In the event of Force Majeure that prevents the Second Party from using the Vehicle as stipulated in this Agreement, the Parties agree that the Second Party shall only be obligated to pay the Rental Fee on a pro-rata basis, calculated based on the number of days the Vehicle was used prior to the occurrence of the Force Majeure event.']
+];
+const AGR_TERM = [
+  ['Para Pihak dapat melakukan pengakhiran Perjanjian dengan memberitahukan secara tertulis kepada pihak lainnya paling lambat pada 5 (lima) hari kalender sebelumnya.', 'The Parties may terminate this Agreement by providing written notice to the other party no later than 5 (five) calendar days in advance.'],
+  ['Apabila pengakhiran terjadi, Para Pihak setuju pembayaran biaya sewa dilakukan secara pro rata kepada Pihak Pertama.', 'In the event of termination, the Parties agree that the rental fee shall be paid to the First Party on a pro-rata basis.'],
+  ['Pihak Pertama dapat mengakhiri Perjanjian ini secara sepihak apabila Pihak Kedua gagal melaksanakan pembayaran dengan ketentuan telah tercapainya batas denda yang disepakati dalam Pasal 3 Perjanjian ini. Kewajiban pembayaran Biaya Sewa yang tertunggak termasuk denda, tetap berlaku walaupun Perjanjian telah diakhiri.',
+   'The First Party may unilaterally terminate this Agreement if the Second Party fails to make the payment and the agreed penalty threshold, as stipulated in Article 3 of this Agreement, has been reached. The obligation to pay any outstanding Rental Fees, including penalties, shall remain in effect even after the termination of this Agreement.'],
+  ['Pihak Kedua dapat mengakhiri Perjanjian ini secara sepihak apabila Pihak Pertama gagal menyediakan Kendaraan kepada Pihak Kedua selama 15 hari kalender.', 'The Second Party may unilaterally terminate this Agreement if the First Party fails to provide the Vehicle to the Second Party for a period of 15 calendar days.'],
+  ['Para Pihak dengan ini menyetujui untuk mengesampingkan Pasal 1266 dari Kitab Undang-undang Hukum Perdata berkenaan dengan pembatalan dan/atau pengakhiran dari Perjanjian ini.', 'The Parties hereby agree to waive the application of Article 1266 of the Indonesian Civil Code concerning the cancellation and/or termination of this Agreement.']
+];
+const AGR_DISP = [
+  ['Perjanjian ini akan diatur oleh dan ditafsirkan sesuai dengan Undang-Undang Republik Indonesia.', 'This Agreement shall be governed by and construed in accordance with the laws of the Republic of Indonesia.'],
+  ['Setiap perselisihan antara Para Pihak yang mungkin timbul dari Perjanjian ini harus diselesaikan terlebih dahulu antara kedua Pihak dengan cara musyawarah mufakat dengan itikad baik.', 'Any disputes between the Parties arising from this Agreement must first be settled amicably through good faith negotiations.'],
+  ['Jika sengketa tersebut tidak dapat diselesaikan secara damai oleh Para Pihak dalam waktu 30 (tiga puluh) hari kalender, Para Pihak sepakat bahwa sengketa tersebut akan diselesaikan oleh Pengadilan Negeri Tabanan.', 'If the dispute cannot be resolved amicably within 30 (thirty) calendar days, the Parties agree that the dispute will be settled by the Tabanan District Court.']
+];
+function agrMisc(r) {
+  const p2 = `${esc(r.Pihak)}<br>Alamat: ${esc(r.Alamat || '-')}<br>Email: ${esc(r.Email || '-')}<br>Perhatian: ${esc(r.Wakil || '-')}`;
+  const p2e = `${esc(r.Pihak)}<br>Address: ${esc(r.Alamat || '-')}<br>Email: ${esc(r.Email || '-')}<br>Attention: ${esc(r.Wakil || '-')}`;
+  return [
+    [`Para Pihak sepakat setiap pemberitahuan yang dibuat berdasarkan Perjanjian ini harus dibuat secara tertulis dan disampaikan atau dikirimkan kepada pihak terkait di alamat yang disebutkan di bawah ini:<br><br><b>Pihak Pertama</b> - PT Wooden Fish Village<br>Alamat: ${WFV.alamatID}<br>Email: ${WFV.email}<br>Perhatian: ${WFV.attn}<br><br><b>Pihak Kedua</b> - ${p2}`,
+     `The Parties agree that any notice given under this Agreement must be made in writing and delivered or sent to the relevant party at the address specified below:<br><br><b>First Party</b> - PT Wooden Fish Village<br>Address: ${WFV.alamatEN}<br>Email: ${WFV.email}<br>Attention: ${WFV.attn}<br><br><b>Second Party</b> - ${p2e}`],
+    ['Perjanjian ini, seluruh isinya dan kesepakatan di dalamnya wajib untuk dirahasiakan dan tidak akan diungkapkan kepada pihak ketiga tanpa persetujuan tertulis dari Para Pihak. Ketentuan kerahasiaan ini akan tetap berlaku sekalipun Perjanjian ini telah berakhir.',
+     'This Agreement, its entire contents and the agreement therein shall be kept confidential and will not be disclosed to third parties without written consent from the Parties. This confidentiality provision shall remain in effect even after the termination of this Agreement.'],
+    ['Perjanjian ini berisi keseluruhan perjanjian antara Para Pihak sehubungan dengan pokok bahasan perjanjian ini, dan menggantikan semua negosiasi, pemahaman dan perjanjian sebelumnya.', 'This Agreement contains the entire agreement between the Parties with respect to the subject matter hereof and supersedes all prior negotiations, understandings, and agreements.'],
+    ['Bahwa lampiran-lampiran dan dokumen pendukung lainnya serta hal-hal yang belum diatur dalam Perjanjian ini, dapat dibuatkan perubahan dan/atau penambahan ketentuan lebih lanjut yang merupakan satu kesatuan dan bagian yang tak terpisahkan dari Perjanjian ini.',
+     'Attachments and other supporting documents, as well as matters not addressed in this Agreement, may be amended and/or supplemented further, and shall constitute an integral part of this Agreement.'],
+    ['Para Pihak bersepakat bahwa Perjanjian ini dapat ditandatangani secara digital dan pertukaran salinan Perjanjian ini dapat dilakukan dengan cara transmisi elektronik dan karenanya dapat digunakan serta mempunyai kekuatan hukum untuk keperluan pelaksanaan Perjanjian ini secara efektif.',
+     'The Parties agree that this Agreement may be signed digitally and exchanged electronically, and therefore, it shall be deemed effective and legally binding for the purposes of implementing this Agreement.']
+  ];
+}
+// Isi pasal per template: [[judul ID, judul EN, [[ayat ID, ayat EN], ...] | [teks ID, teks EN]], ...]
+function agrArticles(r) {
+  const det = agrDetail(r), items = det.items || [], u = agrUnitsTxt(items), fee = agrFeeList(items, r.Pajak);
+  const n = agrMonths(r.Mulai, r.Selesai), per = [`${nID(n)} bulan terhitung sejak tanggal ${tglID(r.Mulai)} sampai ${tglID(r.Selesai)}`, `${nEN(n)} months, commencing on ${tglEN(r.Mulai)} and expiring on ${tglEN(r.Selesai)}`];
+  if (r.Template === 'managed') return [
+    ['RUANG LINGKUP', 'SCOPE', [[`Para Pihak sepakat akan menggunakan kendaraan milik Pihak Pertama sebanyak ${u.id} untuk layanan Pickup & Drop Off (untuk selanjutnya disebut “Kendaraan”)${det.layanan ? ', dengan detail sebagai berikut: ' + esc(det.layanan) : ''}.`,
+      `The Parties agree to use ${u.en} owned by the First Party for pick-up and drop-off purposes (hereinafter referred to as the “Vehicle”)${det.layanan ? ', with the following details: ' + esc(det.layanan) : ''}.`]]],
+    ['KETENTUAN SEWA', 'RENTAL TERMS', [
+      [`Para Pihak setuju masa sewa Kendaraan selama ${per[0]}. Perjanjian ini dapat diperpanjang berdasarkan kesepakatan Para Pihak (“Jangka Waktu”).`, `The Parties agree that the Vehicle rental period shall be ${per[1]}. This Agreement may be extended upon the agreement of the Parties (“Period of Time”).`],
+      [`Para Pihak setuju penggunaan Kendaraan hanya terbatas pada kepentingan operasional dan mobilitas di dalam kawasan Nuanu dengan jam operasional ${esc(det.jam || '07.00 - 19.00 WITA')}.`, `The Parties agree that the use of the Vehicle is limited to operational purposes and mobility within the Nuanu area, with operating hours from ${esc((det.jam || '07.00 - 19.00 WITA').replace(/\./g, ':'))}.`],
+      ['Segala resiko yang timbul atas penggunaan Kendaraan termasuk yang dialami oleh penumpang menjadi tanggung jawab Pihak Pertama.', 'All risks arising from the use of the Vehicles, including those experienced by passengers, shall be the responsibility of the First Party.'],
+      ['Kendaraan yang telah disewa oleh Pihak Kedua, tidak dapat digunakan oleh Pihak Pertama untuk kegiatan atau acara apapun yang diselenggarakan oleh Pihak Pertama selama masa sewa dengan alasan apapun.', 'The Vehicle that has been rented by the Second Party shall not be used by the First Party for any activities or events organized by the First Party during the rental period, for any reason whatsoever.'],
+      ['Pihak Kedua diperbolehkan memasang branding pada Kendaraan, namun seluruh branding wajib dilepas atau kondisi Kendaraan dikembalikan seperti semula apabila Jangka Waktu sewa tidak diperpanjang.', 'The Second Party is permitted to apply branding to the Vehicle; however, all branding must be removed, or the Vehicle restored to its original condition, if the rental period is not extended.'],
+      ['Dalam hal Pihak Kedua tidak dapat menggunakan Kendaraan karena kelalaian Pihak Pertama, termasuk namun tidak terbatas pada selama masa pemeliharaan atau dalam hal terjadi kerusakan dan tidak disediakan kendaraan pengganti, maka Pihak Kedua berhak memperoleh kompensasi berupa pengurangan biaya sewa secara prorata berdasarkan jangka waktu Kendaraan tidak dapat digunakan.',
+       'In the event that the Second Party is unable to use the Vehicle due to the negligence of the First Party, including but not limited to during maintenance or in the event of damage where no replacement vehicle is provided, the Second Party shall be entitled to compensation in the form of a prorated reduction of the rental fee based on the period during which the Vehicle cannot be used.'],
+      ['Dalam hal Kendaraan tidak dapat digunakan karena mengalami kerusakan, menjalani perawatan atau pemeliharaan, atau karena sebab lain yang menjadi tanggung jawab Pihak Pertama, Pihak Pertama wajib menyediakan kendaraan pengganti yang laik jalan dengan kapasitas dan fungsi sekurang-kurangnya setara. Seluruh biaya penyediaan kendaraan pengganti menjadi tanggung jawab Pihak Pertama.',
+       'In the event that the Vehicle cannot be used due to damage, servicing or maintenance, or for other reasons attributable to the First Party, the First Party shall provide a roadworthy replacement vehicle with at least equivalent capacity and functionality. All costs of providing the replacement vehicle shall be borne by the First Party.']]],
+    ['BIAYA SEWA DAN PEMBAYARAN', 'RENTAL FEE AND PAYMENT', [[fee.id, fee.en], ...AGR_PAY('memberhentikan layanan', 'discontinue the service')]],
+    ['SANKSI', 'SANCTIONS', ['Pihak Pertama bertanggung jawab atas cidera pribadi, kerusakan properti, dan/atau klaim pihak ketiga yang timbul akibat kelalaian Pihak Pertama dalam menggunakan Kendaraan.', 'The First Party shall be responsible for personal injury, property damage, and/or third-party claims arising from the First Party negligence in using the Vehicles.']],
+    ['KEADAAN KAHAR', 'FORCE MAJEURE', AGR_FM], ['PENGAKHIRAN', 'TERMINATION', AGR_TERM], ['PERSELISIHAN', 'DISPUTES', AGR_DISP],
+    ['BAHASA', 'LANGUAGE', ['Perjanjian ini ditandatangani dalam bahasa Indonesia dan bahasa Inggris. Jika ada perbedaan dalam penafsiran Perjanjian ini, versi bahasa Indonesia yang akan berlaku.', 'This Agreement is executed in both Indonesian and English. In case of any discrepancy in interpretation, the Indonesian version shall prevail.']],
+    ['LAIN-LAIN', 'MISCELLANEOUS', agrMisc(r)]
+  ];
+  // self (dioperasikan penyewa)
+  return [
+    ['RUANG LINGKUP', 'SCOPE', [
+      [`Para Pihak sepakat Pihak Kedua akan menyewa kendaraan listrik milik Pihak Pertama sebanyak ${u.id} (untuk selanjutnya disebut “Kendaraan”).`, `The Parties agree that the Second Party shall rent from the First Party ${u.en} (hereinafter referred to as the “Vehicles”).`],
+      ['Para Pihak sepakat Kendaraan akan dioperasikan secara mandiri oleh Pihak Kedua.', 'The Parties agree that the Vehicles shall be operated independently by the Second Party.'],
+      ['Pihak Kedua wajib mematuhi prosedur dan standar penggunaan Kendaraan, termasuk melakukan perawatan Kendaraan selama masa sewa.', 'The Second Party shall comply with the procedures and standards for the use of the Vehicles, including carrying out maintenance of the Vehicles during the rental period.']]],
+    ['KETENTUAN SEWA', 'RENTAL TERMS', [
+      [`Para Pihak setuju masa sewa Kendaraan selama ${per[0]}. Perjanjian ini dapat diperpanjang berdasarkan kesepakatan Para Pihak.`, `The Parties agree that the rental period of the Vehicle shall be ${per[1]}. This Agreement may be extended upon mutual agreement of the Parties.`],
+      ['Para Pihak setuju penggunaan Kendaraan hanya terbatas pada kepentingan operasional dan mobilitas di dalam kawasan Nuanu.', 'The Parties agree that the Vehicles shall be used solely for operational purposes and mobility within the Nuanu area.'],
+      ['Para Pihak sepakat untuk melakukan pengecekan kondisi Kendaraan sebelum diserahkan kepada Pihak Kedua dan hasil pemeriksaan dibuat dalam Berita Acara Serah Terima.', 'The Parties agree to conduct an inspection of the Vehicles prior to handover to the Second Party, with the inspection results to be recorded in a Handover Minutes of Meeting.'],
+      ['Pihak Pertama setuju untuk melakukan pemeliharaan bulanan pada Kendaraan sehingga Kendaraan dapat digunakan dengan kondisi yang baik.', 'The First Party agrees to carry out monthly maintenance of the Vehicles to ensure that the Vehicles remain in good operating condition.'],
+      ['Pihak Pertama setuju untuk memberikan layanan pemeliharaan atas Kendaraan sebanyak 2 (dua) kali dalam setiap bulan masa sewa. Jadwal pelaksanaan pemeliharaan ditentukan oleh Pihak Kedua, dengan ketentuan bahwa Pihak Kedua wajib menyampaikan pemberitahuan secara tertulis kepada Pihak Pertama paling lambat 2 (dua) hari kalender sebelum tanggal pelaksanaan, serta berkewajiban membawa Kendaraan ke lokasi yang telah disepakati bersama.',
+       'The First Party agrees to provide maintenance services for the Vehicles twice (2) each month during the rental term. The schedule of maintenance shall be determined by the Second Party, provided that the Second Party must give written notice to the First Party no later than two (2) calendar days prior to the scheduled maintenance date, and is obliged to bring the Vehicles to a mutually agreed location.'],
+      ['Pihak Kedua dapat memasang stiker dan/atau logo pada Kendaraan selama jangka waktu sewa atas persetujuan tertulis Pihak Pertama terlebih dahulu. Pada saat Perjanjian ini berakhir atau diakhiri, Pihak Kedua harus mengembalikan Kendaraan kepada Pihak Pertama bersih dari stiker dan/atau logo.',
+       'The Second Party shall be entitled to affix stickers and/or logos to the Vehicle throughout the rental term, provided that the prior written consent of the First Party has been obtained. Upon expiry or termination of this Agreement, the Second Party shall return the Vehicle to the First Party free from any stickers and/or logos.'],
+      ['Apabila Pihak Pertama menemukan kerusakan dan/atau kehilangan bagian pada Kendaraan yang disebabkan oleh kelalaian Pihak Kedua, dan/atau disebabkan oleh pemasangan stiker dan/atau logo Pihak Kedua, maka Pihak Kedua bertanggung jawab untuk memberikan ganti rugi sesuai dengan nilai kerugian yang dialami oleh Pihak Pertama.',
+       'If the First Party discovers any damage to and/or loss of any part of the Vehicle caused by the negligence of the Second Party and/or resulting from the installation of the Second Party’s stickers and/or logos, the Second Party shall be liable to compensate the First Party for the full amount of the losses incurred by the First Party.'],
+      ['Pihak Pertama akan memberikan kendaraan pengganti apabila terjadi kerusakan yang bukan disebabkan kelalaian Pihak Kedua. Apabila Pihak Pertama gagal menyediakan kendaraan pengganti, maka Pihak Kedua berhak memperoleh kompensasi berupa pengurangan Biaya Sewa secara prorata, yang dihitung berdasarkan durasi ketidaksediaan Kendaraan.',
+       'The First Party shall provide a replacement vehicle in the event of damage not caused by the negligence of the Second Party. Should the First Party fail to provide a replacement vehicle, the Second Party shall be entitled to compensation in the form of a prorated reduction of the Rental Fee, calculated based on the duration of unavailability of the Vehicle.'],
+      ['Pihak Kedua bertanggung jawab untuk menjaga dan merawat Kendaraan dalam penggunaan wajar selama masa sewa.', 'The Second Party shall be responsible for properly maintaining and caring for the Vehicles under normal usage during the rental term.'],
+      ['Segala resiko yang timbul atas penggunaan Kendaraan termasuk yang dialami oleh penumpang menjadi tanggung jawab Pihak Kedua.', 'All risks arising from the use of the Vehicles, including those experienced by passengers, shall be the responsibility of the Second Party.'],
+      ['Apabila terjadi kerusakan akibat kesalahan penggunaan, maka Pihak Kedua bertanggung jawab untuk memperbaiki kerusakan dan menanggung biaya yang timbul atas perbaikan tersebut. Pihak Kedua dapat melakukan penggantian suku cadang secara mandiri atau meminta penggantian suku cadang melalui Pihak Pertama.',
+       'In the event of damage resulting from misuse, the Second Party shall be responsible for repairing such damage and bearing the costs of said repair. The Second Party may either independently replace spare parts or request replacement of spare parts through the First Party.'],
+      ['Pihak Kedua hanya mengendarai Kendaraan terbatas pada sekitar kawasan Nuanu atau sepanjang Jalan Galiran dan dilarang membawa dan/atau mengendarai Kendaraan keluar kawasan Nuanu selama masa sewa tanpa mendapat persetujuan Pihak Pertama terlebih dahulu.',
+       'The Second Party may only operate the Vehicles within the Nuanu area or along Jalan Galiran and is prohibited from taking and/or operating the Vehicles outside the Nuanu area during the rental term without the prior consent of the First Party.'],
+      ['Pihak Kedua dilarang untuk mengalihkan, menjual, menggadai, dan menjaminkan Kendaraan kepada pihak lain.', 'The Second Party is prohibited from transferring, selling, pawning, or pledging the Vehicles to any third party.'],
+      ['Kendaraan yang telah disewa oleh Pihak Kedua, tidak dapat digunakan oleh Pihak Pertama untuk kegiatan atau acara apapun yang diselenggarakan oleh Pihak Pertama selama masa sewa dengan alasan apapun.', 'The Vehicle that has been rented by the Second Party shall not be used by the First Party for any activities or events organized by the First Party during the rental period, for any reason whatsoever.']]],
+    ['BIAYA SEWA DAN PEMBAYARAN', 'RENTAL FEE AND PAYMENT', [[fee.id, fee.en], ...AGR_PAY('meminta pengembalian Kendaraan', 'request the return of the Vehicle')]],
+    ['SANKSI', 'SANCTIONS', [
+      ['Pihak Kedua setuju bertanggung jawab atas kehilangan dan/atau kerusakan pada Kendaraan selama masa pemakaian dan bersedia dengan biaya sendiri untuk mengganti Kendaraan sesuai dengan permintaan Pihak Pertama.', 'The Second Party agrees to be responsible for any loss and/or damage to the Vehicles during the period of use and agrees, at its own expense, to replace the Vehicles in accordance with the First Party’s request.'],
+      ['Pihak Kedua bertanggung jawab atas cidera pribadi, kerusakan properti, dan/atau klaim pihak ketiga yang timbul akibat kelalaian Pihak Kedua dalam menggunakan Kendaraan.', 'The Second Party shall be responsible for personal injury, property damage, and/or third-party claims arising from the Second Party’s negligence in using the Vehicles.']]],
+    ['KEADAAN KAHAR', 'FORCE MAJEURE', AGR_FM], ['PENGAKHIRAN', 'TERMINATION', AGR_TERM], ['PERSELISIHAN', 'DISPUTES', AGR_DISP],
+    ['BAHASA', 'LANGUAGE', ['Perjanjian ini ditandatangani dalam bahasa Indonesia dan bahasa Inggris. Jika ada perbedaan dalam penafsiran Perjanjian ini, versi bahasa Indonesia yang akan berlaku.', 'This Agreement is executed in both Indonesian and English. In case of any discrepancy in interpretation, the Indonesian version shall prevail.']],
+    ['LAIN-LAIN', 'MISCELLANEOUS', agrMisc(r)]
+  ];
+}
+const agrRow = (a, b) => `<tr><td>${a}</td><td>${b}</td></tr>`;
+function agrSign(r, title) {
+  return `<table class="ag-sign"><tr>
+    <td><div>${title ? WFV.nama : 'Pihak Pertama / First Party<br>' + WFV.nama}</div><div class="sp"></div><div class="nm">${WFV.wakil}</div><div>${WFV.jabID} / ${WFV.jabEN}</div></td>
+    <td><div>${title ? esc(r.Pihak.toUpperCase()) : 'Pihak Kedua / Second Party<br>' + esc(r.Pihak.toUpperCase())}</div><div class="sp"><span class="mtr">Meterai</span></div><div class="nm">${esc((r.Wakil || r.Pihak).toUpperCase())}</div><div>${r.Bentuk === 'Perorangan' ? '&nbsp;' : esc(r.Jabatan || 'Direktur') + ' / ' + esc(agrJabEN(r.Jabatan))}</div></td>
+  </tr></table>`;
+}
+function agrDocHtml(r) {
+  const det = agrDetail(r), t = agrTitle(r), items = det.items || [];
+  const head = `<div class="ag-title"><div>${esc(t.id.toUpperCase())}</div><div>${esc(t.en.toUpperCase())}</div>${r.No ? `<div class="ag-no">${r.Jenis === 'Adendum' ? 'No.' : 'Nomor:'} ${esc(r.No)}</div>` : ''}</div>`;
+  if (r.Template === 'facility') {
+    const it = items[0] || { nama: 'EV Bike', qty: 1, harga: 0 }, tot = items.reduce((a, x) => a + x.qty * x.harga, 0), n = agrMonths(r.Mulai, r.Selesai), u = agrUnitsTxt(items);
+    const pts = [
+      [`PIHAK PERTAMA dengan ini setuju untuk mengizinkan PIHAK KEDUA secara eksklusif menggunakan ${u.id} sebagai fasilitas transportasi PIHAK KEDUA di Kawasan Nuanu.`, `The FIRST PARTY hereby agrees to permit the SECOND PARTY to exclusively use ${u.en} as the SECOND PARTY’s transportation facility within the Nuanu Area.`],
+      [`PIHAK KEDUA setuju membayar biaya eksklusivitas penggunaan fasilitas transportasi tersebut sebesar ${amtID(tot)} setiap bulan kepada PIHAK PERTAMA.`, `The SECOND PARTY agrees to pay an exclusivity fee for the use of the said transportation facility in the amount of ${amtEN(tot)} per month to the FIRST PARTY.`],
+      [`PIHAK KEDUA setuju untuk membayar biaya eksklusivitas ke PIHAK PERTAMA melalui transfer dengan rincian sebagai berikut:<br>Nama Bank: ${WFV.bank}<br>Nomor Rekening: ${WFV.rek}<br>Penerima: ${WFV.rekNama}`, `The SECOND PARTY agrees to pay the exclusivity fee to the FIRST PARTY by bank transfer, with the details as follows:<br>Bank Name: ${WFV.bank}<br>Account Number: ${WFV.rek}<br>Behalf of: ${WFV.rekNama}`],
+      [`Para Pihak sepakat PIHAK PERTAMA menerbitkan invoice pembayaran eksklusivitas kepada PIHAK KEDUA setiap tanggal ${det.invoiceTgl || 1} setiap bulan.`, `The Parties agree that the FIRST PARTY shall issue an invoice for the payment of exclusivity to the SECOND PARTY on day ${det.invoiceTgl || 1} of each month.`],
+      [`Para Pihak sepakat bahwa kesepakatan ini berlaku untuk jangka waktu ${nID(n)} bulan terhitung sejak ${tglID(r.Mulai)} hingga ${tglID(r.Selesai)}.`, `The Parties agree that this cooperation is effective for the period of ${nEN(n)} months, commencing from ${tglEN(r.Mulai)} to ${tglEN(r.Selesai)}.`],
+      [`PIHAK PERTAMA dengan ini setuju untuk menyediakan fasilitas berupa ${u.id}, dan memastikan PIHAK KEDUA dapat secara eksklusif menggunakan fasilitas tersebut di Kawasan Nuanu. PIHAK PERTAMA juga menyediakan fasilitas charging port.`, `The FIRST PARTY hereby agrees to provide a facility in the form of ${u.en} and to ensure that the SECOND PARTY is able to exclusively use such facility within the Nuanu Area. The FIRST PARTY shall also provide a charging port facility.`],
+      ['Pengakhiran kerja sama sebelum berakhirnya jangka waktu dapat dilakukan dengan pemberitahuan tertulis kepada pihak lainnya selambat-lambatnya 7 (tujuh) hari kalender sebelum tanggal berlakunya pengakhiran.', 'Termination of this cooperation prior to the expiration of its duration can be effected by providing written notice to the other party no later than seven (7) calendar days prior to the effective termination date.'],
+      ['PIHAK PERTAMA berhak untuk mengakhiri kerja sama secara sepihak dalam hal PIHAK KEDUA: (a) lalai atau menunggak pembayaran sebagaimana disepakati, dan/atau (b) menggunakan fasilitas transportasi tersebut untuk tujuan selain sebagaimana diatur dalam kesepakatan ini; dan/atau (c) dalam penggunaan fasilitas transportasi tersebut melanggar peraturan perundang-undangan yang berlaku.',
+       'The FIRST PARTY shall be entitled to unilaterally terminate the cooperation in the event that the SECOND PARTY: (a) is negligent in or in arrears of making payments as agreed; and/or (b) uses the transportation facility for purposes other than those stipulated in this agreement; and/or (c) in using the transportation facility, violates applicable laws and regulations.'],
+      ['PIHAK KEDUA wajib menggunakan fasilitas transportasi sebagaimana dimaksud dalam kesepakatan ini secara hati-hati, patut, dan cakap sesuai dengan fungsi dan ketentuan yang berlaku. PIHAK KEDUA menyatakan dan menjamin bahwa PIHAK KEDUA memiliki seluruh izin, lisensi, dan persyaratan hukum yang diperlukan untuk menggunakan fasilitas transportasi tersebut. Segala risiko, kerusakan, kerugian, kecelakaan, atau konsekuensi hukum yang timbul akibat penggunaan fasilitas transportasi tersebut sepenuhnya menjadi tanggung jawab dan risiko PIHAK KEDUA, dan PIHAK KEDUA melepaskan dan membebaskan PIHAK PERTAMA dari segala tuntutan, gugatan, klaim, tanggung jawab, dan kerugian dalam bentuk apa pun yang timbul sehubungan dengan penggunaan fasilitas transportasi tersebut oleh PIHAK KEDUA.',
+       'The SECOND PARTY shall use the transportation facility as referred to in this agreement in a careful, proper, and competent manner in accordance with its intended function and applicable regulations. The SECOND PARTY represents and warrants that it holds all permits, licenses, and legal requirements necessary to use such transportation facility. Any and all risks, damages, losses, accidents, or legal consequences arising from the use of the transportation facility shall be entirely borne by and at the sole risk of the SECOND PARTY, and the SECOND PARTY hereby releases and holds harmless the FIRST PARTY from and against any and all claims, actions, demands, liabilities, and losses of any kind arising out of or in connection with the use of the transportation facility by the SECOND PARTY.']
+    ];
+    const p2ID = r.Bentuk === 'Perorangan' ? `<b>${esc(r.Pihak.toUpperCase())}</b>${r.Alamat ? ', beralamat di ' + esc(r.Alamat) : ''} (untuk selanjutnya disebut “PIHAK KEDUA”).` : `<b>${esc(r.Pihak.toUpperCase())}</b>, beralamat di ${esc(r.Alamat || '-')}, dalam hal ini diwakili oleh ${esc(r.Wakil || '-')} selaku ${esc(r.Jabatan || 'Direktur')} (untuk selanjutnya disebut “PIHAK KEDUA”).`;
+    const p2EN = r.Bentuk === 'Perorangan' ? `<b>${esc(r.Pihak.toUpperCase())}</b>${r.Alamat ? ', having the address at ' + esc(r.Alamat) : ''} (hereinafter referred to as the “SECOND PARTY”).` : `<b>${esc(r.Pihak.toUpperCase())}</b>, having its address at ${esc(r.Alamat || '-')}, represented by ${esc(r.Wakil || '-')} as ${esc(agrJabEN(r.Jabatan))} (hereinafter referred to as the “SECOND PARTY”).`;
+    return `<div class="ag-doc">${head}<table class="ag-tbl">
+      ${agrRow('Kami yang bertanda tangan di bawah ini:', 'We, the undersigned:')}
+      ${agrRow(`<b>${WFV.nama}</b>, beralamat di ${WFV.alamatID}, dalam hal ini diwakili oleh ${WFV.wakil} selaku ${WFV.jabID} (untuk selanjutnya disebut “PIHAK PERTAMA”); dan`, `<b>${WFV.nama}</b>, having its address at ${WFV.alamatEN}, in this matter represented by ${WFV.wakil} as ${WFV.jabEN} (hereinafter referred to as the “FIRST PARTY”); and`)}
+      ${agrRow(p2ID, p2EN)}
+      ${agrRow('Dengan ini, kedua belah pihak sepakat melakukan kerja sama penggunaan fasilitas transportasi pada Kawasan Nuanu dengan ketentuan sebagai berikut:', 'Hereby, both parties agree to enter into a cooperation for the use of a transportation facility in the Nuanu area with the following terms and conditions:')}
+      ${pts.map((x, i) => agrRow(`<div class="ag-li"><span>${i + 1}.</span><div>${x[0]}</div></div>`, `<div class="ag-li"><span>${i + 1}.</span><div>${x[1]}</div></div>`)).join('')}
+      ${agrRow('Kedua belah pihak dengan ini menyatakan bahwa mereka telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan yang tercantum dalam kesepakatan ini.', 'Both parties hereby declare that they have read, understood, and agreed to all the terms and conditions set forth in this agreement.')}
+    </table><div class="ag-place">Tabanan, ${esc(tglID(r.Tanggal || today()))}</div>${agrSign(r)}</div>`;
+  }
+  if (r.Template === 'addendum') {
+    const tot = items.reduce((a, x) => a + x.qty * x.harga, 0), u = agrUnitsTxt(items), n = agrMonths(r.Mulai, r.Selesai), fee = agrFeeList(items, r.Pajak);
+    const ind = AGR.find(x => x.Agr_ID === r.Induk) || {}, indTgl = det.indukTgl || ind.Tanggal, indNo = det.indukNo || ind.No;
+    return `<div class="ag-doc">${head}<table class="ag-tbl">
+      ${agrRow(`Adendum Perjanjian ini (“Adendum”) dibuat pada tanggal ${tglID(r.Tanggal || today())} dan dibuat antara:`, `This Addendum to the Agreement (“Addendum”) is made on ${tglEN(r.Tanggal || today())} and made between:`)}
+      ${agrParties(r).map(x => agrRow(x[0], x[1])).join('')}
+      ${agrRow(`Bahwa Para Pihak telah menandatangani Perjanjian Sewa${indNo ? ' Nomor ' + esc(indNo) : ''} tertanggal ${tglID(indTgl)} (seluruhnya untuk selanjutnya disebut “Perjanjian”).`, `Whereas, the Parties have entered into a Rental Agreement${indNo ? ' Number ' + esc(indNo) : ''} dated ${tglEN(indTgl)} (all of which hereinafter referred to as the “Agreement”).`)}
+      ${agrRow('Para Pihak sepakat untuk memperpanjang masa sewa dengan rincian sebagai berikut:', 'The Parties hereby agree to extend the rent with the following details:')}
+      ${agrRow(`<div class="ag-li"><span>1.</span><div>Para Pihak telah sepakat untuk memperpanjang sewa ${u.id} sebagaimana tercantum sebagai objek Perjanjian, untuk jangka waktu ${nID(n)} bulan, terhitung sejak ${tglID(r.Mulai)} sampai dengan ${tglID(r.Selesai)}.</div></div>`,
+        `<div class="ag-li"><span>1.</span><div>The Parties have agreed to extend the lease of ${u.en}, as specified as the objects of the Agreement, for a period of ${nEN(n)} months, commencing on ${tglEN(r.Mulai)} and ending on ${tglEN(r.Selesai)}.</div></div>`)}
+      ${agrRow(`<div class="ag-li"><span>2.</span><div>Untuk periode perpanjangan pada ayat (1) di atas: ${fee.id.replace(/^Para Pihak setuju /, '')}</div></div>`, `<div class="ag-li"><span>2.</span><div>For the extension period referred to in paragraph (1) above: ${fee.en.replace(/^The Parties agree (that )?/, '')}</div></div>`)}
+      ${agrRow('Hal-hal lain yang secara detail diuraikan dalam Perjanjian yang tidak diubah berdasarkan Adendum ini masih dan tetap berlaku sebagaimana yang telah disepakati Para Pihak.', 'Other matters detailed in the Agreement that are not amended by this Addendum remain in full force and effect as agreed upon by the Parties.')}
+      ${agrRow('Adendum ini dibuat dan ditandatangani dan dinyatakan sah serta mengikat Para Pihak sejak ditandatangani.', 'This Addendum is made and signed and is declared valid and binding on the Parties from the moment it is signed.')}
+    </table>${agrSign(r, true)}</div>`;
+  }
+  // self / managed
+  const arts = agrArticles(r);
+  const whereas = r.Template === 'managed'
+    ? [[`Pihak Pertama merupakan pemilik kendaraan listrik yang digunakan untuk kendaraan Pickup & Drop Off di kawasan Nuanu, ${WFV.alamatID}.`, `The First Party is the owner of electric vehicles used as Pickup & Drop Off vehicles within the Nuanu area, located on ${WFV.alamatEN}.`],
+       ['Pihak Kedua merupakan pemilik kegiatan usaha di sekitar kawasan Nuanu yang memerlukan layanan Pickup & Drop Off sebagai transportasi pendukung dalam melakukan kegiatan operasional usaha.', 'The Second Party is the owner of a business operation in the vicinity of the Nuanu area that requires Pickup & Drop Off services as supporting transportation for its business operations.']]
+    : [[`Pihak Pertama merupakan pemilik kendaraan bertenaga listrik yang digunakan untuk kendaraan operasional perusahaan di kawasan Nuanu, ${WFV.alamatID}.`, `The First Party is the owner of electric-powered vehicles used as operational vehicles for the company within the Nuanu area, located on ${WFV.alamatEN}.`],
+       ['Pihak Kedua merupakan pemilik kegiatan usaha di sekitar kawasan Nuanu yang memerlukan kendaraan listrik sebagai transportasi pendukung dalam melakukan kegiatan operasional usaha.', 'The Second Party is the owner of a business activity in the vicinity of the Nuanu area that requires electric vehicles as supporting transportation for its operational activities.']];
+  const body = arts.map((a, i) => {
+    const h = agrRow(`<div class="ag-h">PASAL ${i + 1}<br>${a[0]}</div>`, `<div class="ag-h">ARTICLE ${i + 1}<br>${a[1]}</div>`);
+    if (typeof a[2][0] === 'string') return h + agrRow(a[2][0], a[2][1]);
+    return h + a[2].map((x, j) => agrRow(`<div class="ag-li"><span>${j + 1}.</span><div>${x[0]}</div></div>`, `<div class="ag-li"><span>${j + 1}.</span><div>${x[1]}</div></div>`)).join('');
+  }).join('');
+  return `<div class="ag-doc">${head}<table class="ag-tbl">
+    ${agrRow(`${esc(t.id)} ini (“Perjanjian”) tertanggal ${tglID(r.Tanggal || today())} dan dibuat oleh dan antara:`, `This ${esc(t.en)} (“Agreement”) is dated ${tglEN(r.Tanggal || today())} and is made by and between:`)}
+    ${agrParties(r).map(x => agrRow(x[0], x[1])).join('')}
+    ${agrRow('BAHWA:', 'WHEREAS:')}
+    ${whereas.map((x, i) => agrRow(`<div class="ag-li"><span>${'ab'[i]}.</span><div>${x[0]}</div></div>`, `<div class="ag-li"><span>${'ab'[i]}.</span><div>${x[1]}</div></div>`)).join('')}
+    ${agrRow('Para Pihak sepakat membuat perjanjian sewa kendaraan bertenaga listrik dengan syarat dan ketentuan sebagai berikut:', 'The Parties agree to enter into a rental agreement for electric-powered vehicles under the following terms and conditions:')}
+    ${body}
+    ${agrRow('Perjanjian ini dibuat dan ditandatangani dalam 2 (dua) rangkap yang masing-masing mempunyai kekuatan hukum yang sama dan dinyatakan sah serta mengikat Para Pihak sejak ditandatangani.', 'This Agreement is made and signed in 2 (two) counterparts, each of which has the same legal force and is declared valid and binding upon the Parties as of the date of signature.')}
+  </table>${agrSign(r)}</div>`;
+}
+async function agrPdf(id) {
+  const r = AGR.find(x => x.Agr_ID === id);
+  if (!r) return toast('Agreement tidak ditemukan');
+  if (!r.Template) return toast('Agreement ini hanya arsip, tidak ada template dokumen');
+  $('print-area').innerHTML = agrDocHtml(r);
+  setPageSize('A4 portrait');
+  printAs(`${r.Jenis} ${r.No ? r.No.replace(/\//g, '-') + ' ' : ''}${r.Pihak}`);
+}
+
 // ---------- PENGINGAT MAKER KDAB ----------
 // Transfer net revenue ke PT Mandiri Perkasa (maker Bank Mandiri):
 // Jumat untuk laporan Senin - Kamis minggu itu, Senin untuk laporan Jumat - Minggu sebelumnya.
@@ -4210,9 +4772,11 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
 }
 if (location.hash === '#kdab') setTimeout(() => { if (!isSvc()) kdRemindOpen(); }, 2500);
 const FAVICON_BASE = 'icon-192.png';
+let PRINT_ON = false, BADGE_TITLE = 'Transport Finance';
 function setAppBadge(n) {
   try { if (navigator.setAppBadge) { if (n > 0) navigator.setAppBadge(n).catch(() => {}); else navigator.clearAppBadge().catch(() => {}); } } catch (e) {}
-  document.title = (n > 0 ? `(${n}) ` : '') + 'Transport Finance';
+  BADGE_TITLE = (n > 0 ? `(${n}) ` : '') + 'Transport Finance';
+  if (!PRINT_ON) document.title = BADGE_TITLE;   // saat dialog cetak, judul = nama file PDF, jangan ditimpa
   const link = $('app-favicon');
   if (!link) return;
   if (!(n > 0)) { link.href = FAVICON_BASE; return; }
@@ -6045,10 +6609,11 @@ const safeName = (s, max) => String(s ?? '').replace(/[\\/:*?"<>|\r\n\t]+/g, ' '
 
 function printAs(title) {
   if (JC_CAPTURE) { JC_CAPTURE.title = title; return; }   // mode kirim: dokumen disiapkan tanpa dialog cetak
-  const old = document.title;
+  PRINT_ON = true;
   document.title = safeName(title, 150);
   const restore = () => {
-    document.title = old;
+    PRINT_ON = false;
+    document.title = BADGE_TITLE;
     window.removeEventListener('afterprint', restore);
   };
   window.addEventListener('afterprint', restore);
