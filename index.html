@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Transport Finance</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1e5246">
+<link rel="icon" type="image/png" href="icon-192.png" id="app-favicon">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Transport">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -567,7 +574,7 @@ html,body{max-width:100%;overflow-x:hidden}
   </div>
   <div class="login-banner kd-remind hidden" id="kd-remind">
     <span id="kd-remind-txt"></span>
-    <span class="btns"><button class="btn" style="margin:0" onclick="kdRemindOpen()">Buka KDAB</button><button class="btn sec" style="margin:0" onclick="$('kd-remind').classList.add('hidden')">Nanti</button></span>
+    <span class="btns"><button class="btn" style="margin:0" onclick="kdRemindOpen()">Buka KDAB</button><button class="btn sec hidden" style="margin:0" id="btn-notif" onclick="enableNotif()">Aktifkan notifikasi</button><button class="btn sec" style="margin:0" onclick="$('kd-remind').classList.add('hidden')">Nanti</button></span>
   </div>
 
   <!-- DAFTAR CA -->
@@ -1257,7 +1264,7 @@ html,body{max-width:100%;overflow-x:hidden}
     </div>
     <div class="card">
       <h2>Cetak Laporan KDAB</h2>
-      <div class="hint">Laporan format Koperasi Kencana (tanpa logo Nuanu) untuk ditandatangani COO. Pilih jenis dan periode, lalu cetak atau kirim.</div>
+      <div class="hint">Laporan format Koperasi Kencana (tanpa logo Nuanu). Pilih jenis dan periode, lalu cetak.</div>
       <div class="row3">
         <div><label>Jenis laporan</label>
           <select id="kr-jenis" onchange="krJenis()">
@@ -1269,9 +1276,7 @@ html,body{max-width:100%;overflow-x:hidden}
       </div>
       <div class="btns" style="margin-top:14px">
         <button class="btn" style="margin:0" onclick="kdPrintRange()">Cetak Laporan</button>
-        <button class="btn sec" style="margin:0" onclick="kdSendRange()">Kirim Email ke COO</button>
         <button class="btn sec" style="margin:0" onclick="kdPreview()">Lihat laporan</button>
-        <button class="btn sec" style="margin:0" onclick="kdStatusRange()">Status / upload TTD</button>
       </div>
       <div class="muted" id="kr-info" style="margin-top:8px"></div>
       <div id="kr-preview" class="hidden" style="margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:auto;background:#f3f4f6;padding:12px">
@@ -2392,7 +2397,7 @@ async function init() {
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     restoreSubs();
     if (isSvc()) { show('alloc'); setAlMode('sewa'); }
-    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); }
+    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); setInterval(() => checkKdMaker(true), 30 * 60 * 1000); }
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -4155,7 +4160,7 @@ function kdDueDate(tgl) {
 }
 const kdHari = tgl => { const d = new Date(tgl + 'T00:00'); return ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d.getDay()] + ' ' + d.getDate() + ' ' + d.toLocaleDateString('id-ID', { month: 'short' }); };
 let KD_REMIND = null;
-async function checkKdMaker() {
+async function checkKdMaker(force) {
   if (isSvc()) return;
   const now = today(), start = new Date(now + 'T00:00');
   start.setDate(start.getDate() - 40);
@@ -4164,7 +4169,7 @@ async function checkKdMaker() {
   const open = [];
   for (const ym of yms) {
     let d;
-    try { d = await kdFetch(ym); } catch (e) { continue; }
+    try { d = await kdFetch(ym, force && ym === now.slice(0, 7)); } catch (e) { continue; }
     const byDay = {};
     d.trips.forEach(t => { (byDay[t.tgl] = byDay[t.tgl] || []).push(t); });
     Object.keys(byDay).forEach(tgl => {
@@ -4180,6 +4185,7 @@ async function checkKdMaker() {
   KD_REMIND = open;
   const btn = document.querySelector('nav button[data-v="kdab"]');
   if (btn) { btn.querySelectorAll('.nav-badge').forEach(x => x.remove()); if (open.length) btn.insertAdjacentHTML('beforeend', `<span class="nav-badge">${open.length}</span>`); }
+  setAppBadge(open.length);
   const box = $('kd-remind');
   if (!open.length) { box.classList.add('hidden'); return; }
   const sum = a => rp(Math.round(a.reduce((x, o) => x + o.net, 0)));
@@ -4189,7 +4195,64 @@ async function checkKdMaker() {
   if (todayDue.length) parts.push(`<b>Hari ini jadwal maker KDAB.</b> Transfer ke PT Mandiri Perkasa untuk laporan ${esc(range(todayDue))} (${todayDue.length} hari, ${sum(todayDue)}) belum di-maker.`);
   if (late.length) parts.push(`${todayDue.length ? '' : '<b>Pengingat maker KDAB.</b> '}${late.length} laporan sudah lewat jadwal maker (${sum(late)}): ${esc(late.map(o => kdHari(o.tgl)).join(', '))}.`);
   $('kd-remind-txt').innerHTML = parts.join(' ');
+  $('btn-notif').classList.toggle('hidden', !('Notification' in window) || Notification.permission !== 'default');
   box.classList.remove('hidden');
+  kdNotify(todayDue, late, sum);
+}
+
+// ---------- ANGKA DI IKON APLIKASI & NOTIFIKASI ----------
+// Angka di ikon: aplikasi yang sudah diinstal (Chrome / Edge di Windows & Mac, iPhone dari "Add to Home Screen"
+// setelah notifikasi diizinkan). Di tab browser: angka di judul tab dan di ikon tab.
+let SW_REG = null;
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').then(r => { SW_REG = r; }).catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open-kdab') kdRemindOpen(); });
+}
+if (location.hash === '#kdab') setTimeout(() => { if (!isSvc()) kdRemindOpen(); }, 2500);
+const FAVICON_BASE = 'icon-192.png';
+function setAppBadge(n) {
+  try { if (navigator.setAppBadge) { if (n > 0) navigator.setAppBadge(n).catch(() => {}); else navigator.clearAppBadge().catch(() => {}); } } catch (e) {}
+  document.title = (n > 0 ? `(${n}) ` : '') + 'Transport Finance';
+  const link = $('app-favicon');
+  if (!link) return;
+  if (!(n > 0)) { link.href = FAVICON_BASE; return; }
+  const c = document.createElement('canvas'), S = 64;
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  const draw = img => {
+    if (img) x.drawImage(img, 0, 0, S, S);
+    else { x.fillStyle = '#1e5246'; x.beginPath(); x.roundRect(0, 0, S, S, 14); x.fill(); }
+    x.fillStyle = '#dc2626'; x.beginPath(); x.arc(S - 18, 18, 18, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#fff'; x.font = 'bold 24px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(n > 9 ? '9+' : String(n), S - 18, 19);
+    try { link.href = c.toDataURL('image/png'); } catch (e) {}
+  };
+  const img = new Image();
+  img.onload = () => draw(img);
+  img.onerror = () => draw(null);
+  img.src = FAVICON_BASE;
+}
+// Notifikasi sistem: maksimal sekali sehari, saat ada laporan yang jadwal maker-nya hari ini / sudah lewat
+async function kdNotify(todayDue, late, sum) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const key = 'tf-kd-notif', now = today();
+  try { if (localStorage.getItem(key) === now) return; } catch (e) {}
+  const body = (todayDue.length ? `Hari ini jadwal maker ${todayDue.length} laporan (${sum(todayDue)}).` : '') +
+    (late.length ? `${todayDue.length ? ' ' : ''}${late.length} laporan lewat jadwal (${sum(late)}).` : '') + ' Transfer ke PT Mandiri Perkasa.';
+  const opt = { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'kdab-maker' };
+  try {
+    const reg = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+    if (reg) await reg.showNotification('Pengingat maker KDAB', opt);
+    else new Notification('Pengingat maker KDAB', opt);
+    try { localStorage.setItem(key, now); } catch (e) {}
+  } catch (e) {}
+}
+async function enableNotif() {
+  if (!('Notification' in window)) return toast('Browser ini belum mendukung notifikasi');
+  const p = await Notification.requestPermission();
+  $('btn-notif').classList.add('hidden');
+  if (p === 'granted') { toast('Notifikasi aktif'); checkKdMaker(); }
+  else toast('Notifikasi tidak diizinkan. Bisa diaktifkan lagi dari pengaturan browser.');
 }
 function kdRemindOpen() {
   $('kd-remind').classList.add('hidden');
@@ -4273,16 +4336,15 @@ function renderKdab() {
   const dep = KD.days.reduce((a, d) => a + d.total, 0), allRev = all.reduce((a, t) => a + t.rev, 0);
   const bike = rows.filter(t => t.jenis === 'Bike').length;
   const days = kdDaily();
-  const signed = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Status === 'Ditandatangani').length;
   const madeDays = days.filter(d => (kdRep(d.tgl, d.tgl) || {}).Maker), made = madeDays.length;
   const netMade = madeDays.reduce((a, d) => a + d.net, 0), netOpen = days.reduce((a, d) => a + d.net, 0) - netMade;
   $('kd-info').innerHTML = `${esc(fmtPeriode(KD.periode))} · ${all.length} trip di REPORT ORDER${KD.tabRevenue ? ' · setoran dari tab ' + esc(KD.tabRevenue) : ''}${rows.length !== all.length ? ` · <b>filter aktif: ${rows.length} trip</b>` : ''}`;
   $('kd-stats').innerHTML = `
     <div class="stat"><div class="l">Trip</div><div class="v">${rows.length.toLocaleString('id-ID')}</div><div class="muted">${rows.length - bike} car · ${bike} bike · ${drivers} driver</div></div>
-    <div class="stat"><div class="l">Revenue (termasuk pajak)</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip</div></div>
+    <div class="stat"><div class="l">Revenue (termasuk pajak)</div><div class="v">${rp(rev)}</div><div class="muted">rata-rata ${rp(rows.length ? Math.round(rev / rows.length) : 0)} / trip${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>
     <div class="stat"><div class="l">Net revenue koperasi</div><div class="v">${rp(Math.round(net))}</div><div class="muted">bagian Nuanu ${rp(Math.round(rev - net))} (pajak 10% + bagi hasil 5%)</div></div>
     <div class="stat"><div class="l">Transfer ke PT Mandiri Perkasa</div><div class="v ${made < days.length ? 'neg' : 'pos'}">${made} / ${days.length} hari</div><div class="muted">sudah di-maker ${rp(Math.round(netMade))}${netOpen > 0.5 ? ` · <span class="neg">belum ${rp(Math.round(netOpen))}</span>` : ''}</div></div>
-    <div class="stat"><div class="l">Laporan harian</div><div class="v">${signed} / ${days.length}</div><div class="muted">sudah ditandatangani${KD.days.length && dep !== allRev ? ` · <span class="neg">setoran selisih ${rp(dep - allRev)}</span>` : ''}</div></div>`;
+`;
   const byPay = {};
   rows.forEach(t => { const o = byPay[t.bayar] = byPay[t.bayar] || { n: 0, rev: 0 }; o.n++; o.rev += t.rev; });
   $('kd-chips').innerHTML = Object.entries(byPay).sort((a, b) => b[1].rev - a[1].rev).map(([k, o]) => `<span class="rs-chip"><i style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${KD_PAY[k] || '#c9c8c3'};margin-right:4px"></i>${esc(k)} <b>${rp(o.rev)}</b> · ${o.n} trip</span>`).join('');
@@ -4307,7 +4369,7 @@ function renderKdab() {
   const payTxt = p => KD_PAYS.filter(k => p[k]).map(k => `${k} ${rp(p[k])}`).join(' · ');
   let body = '';
   if (KD_MODE === 'harian') {
-    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Laporan', 'Maker Mandiri', '']);
+    $('kd-head').innerHTML = H(['Tanggal', '>Trip', '>Revenue', '>Net revenue', '>Bagian Nuanu', 'Setoran / POS', 'Maker Mandiri', '']);
     const canMk = !AUTH_ON || (USER && USER.peran !== 'Viewer');
     body = days.map(x => {
       const r = kdRep(x.tgl, x.tgl), open = KD_OPEN.has(x.tgl);
@@ -4315,21 +4377,18 @@ function renderKdab() {
       let h = `<tr class="click${open ? ' kd-open' : ''}" onclick="kdToggle('${x.tgl}')"><td><b>${esc(fmtTgl(x.tgl))}</b><div class="al-sub">${esc(new Date(x.tgl + 'T00:00').toLocaleDateString('id-ID', { weekday: 'long' }))}</div></td>
         <td class="num">${x.n}</td><td class="num">${rp(x.rev)}</td><td class="num">${rp(Math.round(x.net))}</td><td class="num">${rp(Math.round(x.rev - x.net))}</td>
         <td>${setor}</td>
-        <td>${kdStTag(r)}${r && r.Ditandatangani ? `<div class="al-sub">ttd ${esc(fmtTgl(String(r.Ditandatangani).slice(0, 10)))}</div>` : r && r.Dikirim ? `<div class="al-sub">dikirim ${esc(fmtTgl(String(r.Dikirim).slice(0, 10)))}</div>` : ''}</td>
         <td onclick="event.stopPropagation()">${r && r.Maker ? '<span class="kd-st s3">Sudah</span>' : '<span class="kd-st s0">Belum</span>' + (x.tgl >= KD_MAKER_FROM ? `<div class="al-sub"${kdDueDate(x.tgl) <= today() ? ' style="color:#dc2626;font-weight:600"' : ''}>jadwal ${esc(kdHari(kdDueDate(x.tgl)))}</div>` : '')}
           <input type="date" class="kd-maker" value="${esc((r && r.Maker) || '')}" title="Tanggal transfer net revenue dibuat (maker) di Bank Mandiri ke rekening PT Mandiri Perkasa. Kosongkan jika belum." ${canMk ? '' : 'disabled'} onchange="kdMaker('${x.tgl}', this)"></td>
         <td><div class="btns" style="flex-wrap:nowrap">
           <button class="btn sec sm" onclick="event.stopPropagation(); kdPrint('${x.tgl}','${x.tgl}')">Cetak</button>
-          <button class="btn sec sm" onclick="event.stopPropagation(); kdSend('${x.tgl}','${x.tgl}')">Kirim</button>
-          <button class="btn sec sm" onclick="event.stopPropagation(); kdStatus('${x.tgl}','${x.tgl}')">TTD</button>
         </div></td></tr>`;
-      if (open) h += `<tr class="kd-open"><td colspan="9"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
+      if (open) h += `<tr class="kd-open"><td colspan="8"><table class="kd-sub items"><thead><tr><th>No</th><th>Jam</th><th>Driver</th><th>Tujuan</th><th>Jenis</th><th>Bayar</th><th class="num">Revenue</th><th class="num">Net revenue</th></tr></thead><tbody>` +
         x.trips.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t.jam || '-')}</td><td><b>${esc(t.driver || '-')}</b></td><td>${esc(t.tujuan)}</td><td>${esc(t.jenis)}${t.mobil ? ' · ' + esc(t.mobil) : ''}</td><td>${esc(t.bayar)}</td><td class="num">${rp(t.rev)}</td><td class="num">${rp(Math.round(kdNet(t.rev)))}</td></tr>`).join('') +
         `</tbody></table><div class="muted">${esc(payTxt(x.pay))}${x.dep && x.dep.remarks ? ' · ' + esc(x.dep.remarks) : ''}</div></td></tr>`;
       return h;
     }).join('');
     const tr = days.reduce((a, x) => a + x.rev, 0);
-    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(Math.round(kdNet(tr)))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td></td><td>${days.filter(x => (kdRep(x.tgl, x.tgl) || {}).Maker).length} / ${days.length}</td><td></td></tr>`;
+    if (days.length) body += `<tr class="total"><td>Total ${days.length} hari</td><td class="num">${days.reduce((a, x) => a + x.n, 0)}</td><td class="num">${rp(tr)}</td><td class="num">${rp(Math.round(kdNet(tr)))}</td><td class="num">${rp(Math.round(tr - kdNet(tr)))}</td><td></td><td>${days.filter(x => (kdRep(x.tgl, x.tgl) || {}).Maker).length} / ${days.length}</td><td></td></tr>`;
   } else if (KD_MODE === 'driver' || KD_MODE === 'tujuan') {
     const g = kdGroup(rows, KD_MODE === 'driver' ? 'driver' : 'tujuan');
     $('kd-head').innerHTML = H([KD_MODE === 'driver' ? 'Driver' : 'Tujuan', '>Trip', '>Revenue', '>Net revenue', '>Rata-rata / trip', KD_MODE === 'driver' ? 'Hari kerja / mobil' : 'Car / bike', 'Pembayaran']);
@@ -4345,7 +4404,7 @@ function renderKdab() {
   }
   $('kd-body').innerHTML = body || '<tr><td colspan="9" class="muted">Tidak ada data</td></tr>';
   $('kd-note').innerHTML = 'Net revenue = revenue ÷ 1,1 (pajak 10% sudah termasuk tarif) × 95% (bagi hasil Nuanu 5%), sama dengan laporan Koperasi Kencana. Klik tanggal untuk melihat trip hari itu. ' +
-    `Alur laporan: Cetak / kirim email ke COO → upload scan yang sudah ditandatangani di tombol TTD → transfer net revenue lewat Bank Mandiri ke rekening PT Mandiri Perkasa, isi tanggal maker-nya di kolom Maker Mandiri. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
+    `Alur: cetak laporan → transfer net revenue lewat Bank Mandiri ke rekening PT Mandiri Perkasa → isi tanggal maker-nya di kolom Maker Mandiri. <a href="${esc(KD.url)}" target="_blank" rel="noopener">Buka sheet KDAB</a>`;
 }
 
 // Tanggal transfer net revenue harian dibuat (maker) di Bank Mandiri ke rekening PT Mandiri Perkasa (kosong = belum)
@@ -4447,7 +4506,7 @@ function krInfo() {
   const tr = KD.trips.filter(t => t.tgl >= a && t.tgl <= b), rev = tr.reduce((s2, t) => s2 + t.rev, 0);
   const lintas = a.slice(0, 7) !== KD.periode || b.slice(0, 7) !== KD.periode;
   $('kr-info').innerHTML = `Periode ${esc(kdPeriodeTxt(a, b))}` + (lintas ? ' · sebagian di luar bulan yang dipilih, trip dimuat saat cetak' : ` · ${tr.length} trip · net revenue ${rp(Math.round(kdNet(rev)))}`) +
-    ` · status: ${kdStTag(r)}${r && r.Dikirim ? ' dikirim ' + esc(fmtTgl(String(r.Dikirim).slice(0, 10))) : ''}${r && r.Ditandatangani ? ' · ttd ' + esc(fmtTgl(String(r.Ditandatangani).slice(0, 10))) : ''}${r && r.File_TTD ? ` · <a href="${esc(r.File_TTD)}" target="_blank" rel="noopener">scan TTD</a>` : ''}`;
+    (r && r.Maker ? ` · di-maker ${esc(fmtTgl(r.Maker))}` : '');
   if (!$('kr-preview').classList.contains('hidden')) kdPreview(true);
 }
 function krRange() {
