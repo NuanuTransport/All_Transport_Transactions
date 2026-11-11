@@ -12,3 +12,9 @@ self.addEventListener('notificationclick', e => {
     return self.clients.openWindow(url);
   }));
 });
+// Angka di ikon aplikasi, dikirim dari halaman
+self.addEventListener('message', e => {
+  const d = e.data || {};
+  if (d.type !== 'badge' || !self.navigator || !self.navigator.setAppBadge) return;
+  e.waitUntil((d.n > 0 ? self.navigator.setAppBadge(d.n) : self.navigator.clearAppBadge()).catch(() => {}));
+});
