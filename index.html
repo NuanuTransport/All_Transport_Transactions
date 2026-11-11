@@ -124,7 +124,8 @@ table.items input{padding:6px 8px;font-size:13px}
 .login-banner{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .login-banner.hidden{display:none}
 .kd-remind{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
-.kd-remind .btns{display:flex;gap:6px;flex-wrap:wrap}
+.kd-remind .btns,.agr-remind .btns{display:flex;gap:6px;flex-wrap:wrap}
+.agr-remind{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
 .nav-badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:16px;font-weight:700;vertical-align:1px}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
 body.viewer #btn-agr-new,body.viewer #btn-agr-save,body.viewer #btn-agr-doc,body:not(.head) #btn-agr-del,body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
@@ -588,6 +589,10 @@ html,body{max-width:100%;overflow-x:hidden}
   <div class="login-banner hidden" id="login-banner">
     <span><b>Login belum aktif.</b> Siapa pun yang punya link aplikasi ini bisa melihat dan mengubah data keuangan.</span>
     <button class="btn" style="margin:0" onclick="openSetup()">Aktifkan Login</button>
+  </div>
+  <div class="login-banner agr-remind hidden" id="agr-remind">
+    <span id="agr-remind-txt"></span>
+    <span class="btns"><button class="btn" style="margin:0" onclick="agrRemindOpen()">Buka Agreement</button><button class="btn sec hidden btn-notif" style="margin:0" onclick="enableNotif()">Aktifkan notifikasi</button><button class="btn sec" style="margin:0" onclick="$('agr-remind').classList.add('hidden');$('agr-remind').dataset.closed=today()">Nanti</button></span>
   </div>
   <div class="login-banner kd-remind hidden" id="kd-remind">
     <span id="kd-remind-txt"></span>
@@ -2509,7 +2514,7 @@ async function init() {
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     restoreSubs();
     if (isSvc()) { show('alloc'); setAlMode('sewa'); }
-    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); setInterval(() => checkKdMaker(true), 30 * 60 * 1000); }
+    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); setTimeout(checkAgrNotif, 2500); setInterval(() => { checkKdMaker(true); checkAgrNotif(true); }, 30 * 60 * 1000); }
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -4281,9 +4286,13 @@ const rpID = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
 const rpEN = n => 'IDR ' + Math.round(n).toLocaleString('en-US');
 const agrDetail = r => { try { return typeof r.Detail === 'string' ? JSON.parse(r.Detail || '{}') : (r.Detail || {}); } catch (e) { return {}; } };
 const agrMonths = (a, b) => { if (!a || !b) return 0; const [y1, m1, d1] = a.split('-').map(Number), [y2, m2, d2] = b.split('-').map(Number); let m = (y2 - y1) * 12 + (m2 - m1); if (d2 >= d1 - 1) m += 0; return Math.max(1, Math.round(m + (d2 - d1 + 1) / 30)); };
+// Agreement yang sudah punya adendum / perjanjian lanjutan (Induk = agreement ini) dianggap sudah diperpanjang
+const agrRenewal = r => AGR.find(x => x.Induk === r.Agr_ID && x.Status !== 'Dihentikan' && x.Status !== 'Draft' && String(x.Selesai) > String(r.Selesai));
 function agrState(r) {
   const now = today();
   if (r.Status) return { k: 'lain', t: r.Status, cls: 's0' };
+  const ren = r.Selesai <= isoOf(new Date(new Date(now + 'T00:00').getTime() + 30 * 864e5)) && agrRenewal(r);
+  if (ren) return r.Selesai < now ? { k: 'berakhir', t: 'Berakhir · diperpanjang', cls: 's0' } : { k: 'aktif', t: 'Aktif · sudah diperpanjang', cls: 's3' };
   if (r.Mulai > now) return { k: 'aktif', t: 'Belum mulai', cls: 's2' };
   if (r.Selesai < now) return { k: 'berakhir', t: 'Berakhir', cls: 's0' };
   const left = Math.round((new Date(r.Selesai + 'T00:00') - new Date(now + 'T00:00')) / 864e5);
@@ -4451,6 +4460,7 @@ async function saveAgr(withDoc) {
     const res = await apiPost('saveAgr', d);
     AGR = res.rows || AGR;
     renderAgr();
+    checkAgrNotif();
     closeAgr();
     toast('Agreement disimpan');
     if (withDoc) await agrPdf(res.id);
@@ -4462,7 +4472,7 @@ async function saveAgr(withDoc) {
 }
 async function delAgr() {
   if (!AGR_EDIT || !confirm('Hapus agreement ini dari aplikasi? File di Drive tidak ikut terhapus.')) return;
-  try { const res = await apiPost('deleteAgr', { Agr_ID: AGR_EDIT }); AGR = res.rows || []; renderAgr(); closeAgr(); toast('Agreement dihapus'); }
+  try { const res = await apiPost('deleteAgr', { Agr_ID: AGR_EDIT }); AGR = res.rows || []; renderAgr(); checkAgrNotif(); closeAgr(); toast('Agreement dihapus'); }
   catch (e) { toast('Gagal: ' + e.message); }
 }
 
@@ -4709,6 +4719,69 @@ async function agrPdf(id) {
   printAs(`${r.Jenis} ${r.No ? r.No.replace(/\//g, '-') + ' ' : ''}${r.Pihak}`);
 }
 
+// ---------- PENGINGAT AGREEMENT ----------
+// Agreement yang berakhir dalam 30 hari atau sudah berakhir (≤ 14 hari lalu) dan belum diperpanjang:
+// banner di atas halaman, angka di menu Agreement & ikon aplikasi, serta pop-up notifikasi
+// pada H-30, H-14, H-7, H-1, hari terakhir, dan setelah berakhir (masing-masing sekali per perangkat).
+let AGR_REMIND = [];
+const AGR_STEPS = [30, 14, 7, 1, 0];
+async function checkAgrNotif(force) {
+  if (isSvc()) return;
+  if (!AGR_LOADED || force) {
+    try {
+      const d = await apiGet({ action: 'agrList' });
+      AGR = d.rows || [];
+      AGR_LOADED = true;
+      if (!$('view-agr').classList.contains('hidden')) renderAgr();
+    } catch (e) { return; }
+  }
+  const now = today(), t0 = new Date(now + 'T00:00');
+  AGR_REMIND = AGR.filter(r => !r.Status && r.Selesai && r.Mulai <= now && !agrRenewal(r)).map(r => {
+    const left = Math.round((new Date(r.Selesai + 'T00:00') - t0) / 864e5);
+    return { r, left };
+  }).filter(x => x.left <= 30 && x.left >= -14).sort((a, b) => a.left - b.left);
+  const btn = document.querySelector('nav button[data-v="agr"]');
+  if (btn) { btn.querySelectorAll('.nav-badge').forEach(x => x.remove()); if (AGR_REMIND.length) btn.insertAdjacentHTML('beforeend', `<span class="nav-badge">${AGR_REMIND.length}</span>`); }
+  setBadgePart('agr', AGR_REMIND.length);
+  const box = $('agr-remind');
+  if (!AGR_REMIND.length) { box.classList.add('hidden'); return; }
+  const when = x => x.left < 0 ? `sudah berakhir ${fmtTgl(x.r.Selesai)} (${-x.left} hari lalu)` : x.left === 0 ? 'berakhir hari ini' : `berakhir ${fmtTgl(x.r.Selesai)}, ${x.left} hari lagi`;
+  const ended = AGR_REMIND.filter(x => x.left < 0);
+  $('agr-remind-txt').innerHTML = `<b>${ended.length === AGR_REMIND.length ? 'Agreement sudah berakhir.' : 'Agreement akan berakhir.'}</b> ` +
+    AGR_REMIND.map(x => `${esc(x.r.Pihak)}${x.r.No ? ' (' + esc(x.r.No) + ')' : ''} ${esc(when(x))}`).join('; ') + '. Perpanjang dengan adendum atau tandai dihentikan.';
+  box.querySelectorAll('.btn-notif').forEach(b => b.classList.toggle('hidden', !('Notification' in window) || Notification.permission !== 'default'));
+  if (!(box.dataset.closed === now)) box.classList.remove('hidden');
+  agrNotify();
+}
+async function agrNotify() {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  let rang = false;
+  for (const x of AGR_REMIND) {
+    const step = x.left < 0 ? 'end' : AGR_STEPS.find((s, i) => x.left <= s && (i === AGR_STEPS.length - 1 || x.left > AGR_STEPS[i + 1]));
+    const key = `tf-agr-notif|${x.r.Agr_ID}|${x.r.Selesai}|${step}`;
+    try { if (localStorage.getItem(key)) continue; } catch (e) {}
+    const title = x.left < 0 ? 'Agreement sudah berakhir' : x.left === 0 ? 'Agreement berakhir hari ini' : `Agreement berakhir ${x.left} hari lagi`;
+    const opt = {
+      body: `${x.r.Pihak}${x.r.No ? ' · ' + x.r.No : ''}\nSelesai ${fmtTgl(x.r.Selesai)} · ${rp(x.r.Nilai_Bulan)}/bulan. Buat adendum perpanjangan bila lanjut.`,
+      icon: 'icon-192.png', badge: 'icon-192.png', tag: 'agr-' + x.r.Agr_ID, data: { type: 'open-agr', url: './#agr' }
+    };
+    try {
+      const reg = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+      if (reg) await reg.showNotification(title, opt);
+      else { const n = new Notification(title, opt); n.onclick = () => { window.focus(); agrRemindOpen(); }; }
+      if (!rang) { playRing(); rang = true; }
+      try { localStorage.setItem(key, today()); } catch (e) {}
+    } catch (e) {}
+  }
+}
+function agrRemindOpen() {
+  $('agr-remind').classList.add('hidden');
+  show('agr');
+  $('agr-f').value = '';
+  if (AGR_LOADED) renderAgr();
+  setTimeout(() => { const t = $('agr-table'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
+}
+
 // ---------- PENGINGAT MAKER KDAB ----------
 // Transfer net revenue ke PT Mandiri Perkasa (maker Bank Mandiri):
 // Jumat untuk laporan Senin - Kamis minggu itu, Senin untuk laporan Jumat - Minggu sebelumnya.
@@ -4747,7 +4820,7 @@ async function checkKdMaker(force) {
   KD_REMIND = open;
   const btn = document.querySelector('nav button[data-v="kdab"]');
   if (btn) { btn.querySelectorAll('.nav-badge').forEach(x => x.remove()); if (open.length) btn.insertAdjacentHTML('beforeend', `<span class="nav-badge">${open.length}</span>`); }
-  setAppBadge(open.length);
+  setBadgePart('kd', open.length);
   const box = $('kd-remind');
   if (!open.length) { box.classList.add('hidden'); return; }
   const sum = a => rp(Math.round(a.reduce((x, o) => x + o.net, 0)));
@@ -4768,10 +4841,45 @@ async function checkKdMaker(force) {
 let SW_REG = null;
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').then(r => { SW_REG = r; }).catch(() => {});
-  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open-kdab') kdRemindOpen(); });
+  navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'open-kdab') kdRemindOpen(); if (e.data && e.data.type === 'open-agr') agrRemindOpen(); });
 }
 if (location.hash === '#kdab') setTimeout(() => { if (!isSvc()) kdRemindOpen(); }, 2500);
+if (location.hash === '#agr') setTimeout(() => { if (!isSvc()) agrRemindOpen(); }, 2500);
+// Nada dering pengingat: dibuat langsung dengan Web Audio (tanpa file suara).
+// Browser hanya mengizinkan suara setelah pengguna pernah klik / mengetik di aplikasi, jadi suara "dibuka" pada interaksi pertama.
+let RING_CTX = null, RING_PENDING = false;
+function ringUnlock() {
+  try {
+    if (!RING_CTX) RING_CTX = new (window.AudioContext || window.webkitAudioContext)();
+    const go = () => { if (RING_PENDING && RING_CTX.state === 'running') { RING_PENDING = false; playRing(); } };
+    if (RING_CTX.state === 'suspended') RING_CTX.resume().then(go).catch(() => {}); else go();
+  } catch (e) {}
+}
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => window.addEventListener(ev, ringUnlock, { passive: true }));
+function playRing() {
+  try {
+    // belum ada interaksi (mis. pengingat muncul saat aplikasi baru dibuka): bunyikan pada klik / ketikan pertama
+    if (!RING_CTX || RING_CTX.state !== 'running') { RING_PENDING = true; return; }
+    RING_PENDING = false;
+    const t = RING_CTX.currentTime;
+    // tiga nada naik (ding-ding-ding), diulang dua kali
+    [0, 0.9].forEach(off => [[880, 0], [1175, 0.16], [1568, 0.32]].forEach(([f, d]) => {
+      const o = RING_CTX.createOscillator(), g = RING_CTX.createGain(), st = t + off + d;
+      o.type = 'sine';
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.35, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.45);
+      o.connect(g).connect(RING_CTX.destination);
+      o.start(st);
+      o.stop(st + 0.5);
+    }));
+  } catch (e) {}
+}
 const FAVICON_BASE = 'icon-192.png';
+// Angka di ikon = jumlah semua pengingat (maker KDAB + agreement yang mau / sudah berakhir)
+const BADGE_PARTS = {};
+function setBadgePart(k, n) { BADGE_PARTS[k] = n || 0; setAppBadge(Object.values(BADGE_PARTS).reduce((a, x) => a + x, 0)); }
 let PRINT_ON = false, BADGE_TITLE = 'Transport Finance';
 function setAppBadge(n) {
   try { if (navigator.setAppBadge) { if (n > 0) navigator.setAppBadge(n).catch(() => {}); else navigator.clearAppBadge().catch(() => {}); } } catch (e) {}
@@ -4806,16 +4914,18 @@ async function kdNotify(todayDue, late, sum) {
   const opt = { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'kdab-maker' };
   try {
     const reg = SW_REG || (navigator.serviceWorker && await navigator.serviceWorker.getRegistration());
+    opt.data = { type: 'open-kdab', url: './#kdab' };
     if (reg) await reg.showNotification('Pengingat maker KDAB', opt);
     else new Notification('Pengingat maker KDAB', opt);
+    playRing();
     try { localStorage.setItem(key, now); } catch (e) {}
   } catch (e) {}
 }
 async function enableNotif() {
   if (!('Notification' in window)) return toast('Browser ini belum mendukung notifikasi');
   const p = await Notification.requestPermission();
-  $('btn-notif').classList.add('hidden');
-  if (p === 'granted') { toast('Notifikasi aktif'); checkKdMaker(); }
+  document.querySelectorAll('#btn-notif,.btn-notif').forEach(b => b.classList.add('hidden'));
+  if (p === 'granted') { ringUnlock(); setTimeout(playRing, 150); toast('Notifikasi aktif'); checkKdMaker(); checkAgrNotif(); }
   else toast('Notifikasi tidak diizinkan. Bisa diaktifkan lagi dari pengaturan browser.');
 }
 function kdRemindOpen() {
