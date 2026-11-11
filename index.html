@@ -6423,17 +6423,39 @@ function mechPage(r, dept, withPhotos) {
     </div>` : ''}`;
 }
 
+// Halaman ringkasan JOB COMPLETION REPORT (tabel WO, terbilang, catatan, approval)
+function mechSummary(rows, dept, no, perEn, soNo) {
+  const sum = k => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
+  const total = sum('Total');
+  return `${mechHead('JOB COMPLETION REPORT', `${esc(no)}<br>${esc(perEn)}${soNo ? '<br>' + esc(soNo) : ''}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
+    <table class="mj-kv"><tr><td>Department</td><td><b>${esc(dept)}</b></td></tr></table>
+    <table class="mj-tbl">
+      <tr><th>Date</th><th>WO ID / SO No.</th><th>Vehicle</th><th>Job description</th><th class="num">Parts</th><th class="num">Service fee</th><th class="num">Total</th></tr>
+      ${rows.map(r => `<tr><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}${okSO(r.SO) ? '<br><span class="mj-sub">' + esc(String(r.SO).toUpperCase()) + '</span>' : ''}</td><td>${esc(r.Kendaraan || '-')}</td><td>${nl2br(r.Pekerjaan || '-')}</td><td class="num">${rp(r.PartsTotal)}</td><td class="num">${rp(r.Fee)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
+      <tr class="mj-total"><td colspan="4">Total (${rows.length} job${rows.length === 1 ? '' : 's'})</td><td class="num">${rp(sum('PartsTotal'))}</td><td class="num">${rp(sum('Fee'))}</td><td class="num">${rp(total)}</td></tr>
+    </table>
+    <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
+    <div class="inv-note">${esc(NOTE_MECH)}</div>
+    ${mechSign(dept, dept)}
+    <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div>`;
+}
+
 async function printMechJC(all, woId) {
   const dept = all.pelanggan;
   const btn = $('btn-inv');
   const progress = (d, t) => { if (btn) btn.textContent = `Memuat foto ${d}/${t}...`; };
 
-  // ----- JC per work order -----
+  // ----- JC per work order: ringkasan JOB COMPLETION REPORT, lalu detail WO, lalu foto -----
   if (woId) {
     const r = all.rows.find(x => x.Id === woId);
     if (!r) return toast('Work order tidak ditemukan');
     if ((r.Photos || []).length) await loadMechPhotos(r.Photos, progress);
-    $('print-area').innerHTML = `<div class="mj">${mechPage(r, dept, true)}<div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div></div>`;
+    const noDef = String(all.noInvoice || '').replace(/^INV\//, 'JC/');
+    const per = fmtPeriodeEn(String(r.Tanggal || all.periode).slice(0, 7));
+    $('print-area').innerHTML = `<div class="mj">
+      ${mechSummary([r], dept, noDef, per, okSO(r.SO) ? String(r.SO).toUpperCase() : '')}
+      <div class="mj-page">${mechPage(r, dept, true)}</div>
+    </div>`;
     await waitImages();
     setPageSize('A4');
     printAs(`Job Completion ${r.Id} - ${dept}`);
@@ -6457,17 +6479,7 @@ async function printMechJC(all, woId) {
   if (withPages && nPhotos) await loadMechPhotos(rows.reduce((a, r) => a.concat(r.Photos || []), []), progress);
 
   $('print-area').innerHTML = `<div class="mj">
-    ${mechHead('JOB COMPLETION REPORT', `${esc(no.trim() || noDef)}<br>${esc(perEn)}${all.soNo ? '<br>' + esc(all.soNo) : ''}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
-    <table class="mj-kv"><tr><td>Department</td><td><b>${esc(dept)}</b></td></tr></table>
-    <table class="mj-tbl">
-      <tr><th>Date</th><th>WO ID / SO No.</th><th>Vehicle</th><th>Job description</th><th class="num">Parts</th><th class="num">Service fee</th><th class="num">Total</th></tr>
-      ${rows.map(r => `<tr><td class="nw">${esc(fmtTgl(r.Tanggal))}</td><td class="nw">${esc(r.Id)}${okSO(r.SO) ? '<br><span class="mj-sub">' + esc(String(r.SO).toUpperCase()) + '</span>' : ''}</td><td>${esc(r.Kendaraan || '-')}</td><td>${nl2br(r.Pekerjaan || '-')}</td><td class="num">${rp(r.PartsTotal)}</td><td class="num">${rp(r.Fee)}</td><td class="num">${rp(r.Total)}</td></tr>`).join('')}
-      <tr class="mj-total"><td colspan="4">Total (${rows.length} job${rows.length === 1 ? '' : 's'})</td><td class="num">${rp(sum('PartsTotal'))}</td><td class="num">${rp(sum('Fee'))}</td><td class="num">${rp(total)}</td></tr>
-    </table>
-    <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
-    <div class="inv-note">${esc(NOTE_MECH)}</div>
-    ${mechSign(dept, dept)}
-    <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div>
+    ${mechSummary(rows, dept, no.trim() || noDef, perEn, all.soNo || '')}
     ${withPages ? rows.map(r => `<div class="mj-page">${mechPage(r, dept, true)}</div>`).join('') : ''}
   </div>`;
   await waitImages();
