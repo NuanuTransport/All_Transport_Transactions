@@ -1579,6 +1579,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <div id="notif-status"></div>
     <div class="btns" style="margin-top:12px;flex-wrap:wrap">
       <button class="btn" id="btn-notif-on" onclick="enableNotif().then(renderNotifSet)">Aktifkan notifikasi</button>
+      <button class="btn hidden" id="btn-install" onclick="installApp()">Pasang sebagai aplikasi</button>
       <button class="btn sec" onclick="testNotif()">Tes notifikasi</button>
       <button class="btn sec hidden" id="btn-sw-re" onclick="swRegister().then(() => setTimeout(renderNotifSet, 1500)); toast('Mendaftarkan sw.js...')">Daftarkan ulang</button>
     </div>
@@ -4735,6 +4736,17 @@ async function agrPdf(id) {
 }
 
 // ---------- PENGATURAN & TES NOTIFIKASI (per perangkat) ----------
+// Tombol "Pasang sebagai aplikasi" (Chrome / Edge di Windows, Mac, Android)
+let INSTALL_EVT = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); INSTALL_EVT = e; if (!$('notif-modal').classList.contains('hidden')) renderNotifSet(); });
+window.addEventListener('appinstalled', () => { INSTALL_EVT = null; toast('Aplikasi terpasang. Buka Transport Finance dari ikon di desktop / taskbar / layar utama.'); });
+async function installApp() {
+  if (!INSTALL_EVT) return toast('Gunakan menu browser: ikon pasang di kolom alamat, atau ⋮ → Install / Pasang aplikasi');
+  INSTALL_EVT.prompt();
+  try { await INSTALL_EVT.userChoice; } catch (e) {}
+  INSTALL_EVT = null;
+  renderNotifSet();
+}
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 async function renderNotifSet() {
@@ -4758,18 +4770,20 @@ async function renderNotifSet() {
     ['Dibuka sebagai aplikasi', isStandalone() ? ok(true, 'Ya') : ok(false, isIOS() ? 'Tidak, masih di Safari' : 'Tidak, di tab browser')],
     ['Izin notifikasi', perm === 'granted' ? ok(true, 'Diizinkan') : perm === 'denied' ? ok(false, 'Diblokir') : perm === 'default' ? ok(false, 'Belum diaktifkan') : ok(false, 'Tidak didukung di sini')],
     ['Service worker (sw.js)', ok(sw === 'aktif', sw)],
-    ['Angka di ikon', 'setAppBadge' in navigator ? ok(perm === 'granted', perm === 'granted' ? 'Aktif' : 'Perlu izin notifikasi') : ok(false, 'Tidak didukung di perangkat ini')],
+    ['Angka di ikon', !isStandalone() ? ok(false, 'Hanya di judul tab (pasang aplikasi dulu)') : 'setAppBadge' in navigator ? ok(perm === 'granted', perm === 'granted' ? 'Aktif' : 'Perlu izin notifikasi') : ok(false, 'Tidak didukung di perangkat ini')],
     ['Nada dering', ok(RING_CTX && RING_CTX.state === 'running', RING_CTX && RING_CTX.state === 'running' ? 'Siap' : 'Aktif setelah sentuh layar')],
     ['Pengingat terbuka sekarang', `<b>${pending}</b> (KDAB ${BADGE_PARTS.kd || 0}, agreement ${BADGE_PARTS.agr || 0})`]
   ];
   $('notif-status').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' + rows.map(r => `<tr><td style="padding:7px 0;border-bottom:1px solid #eef1f4">${r[0]}</td><td style="padding:7px 0;border-bottom:1px solid #eef1f4;text-align:right">${r[1]}</td></tr>`).join('') + '</table>';
   $('btn-notif-on').classList.toggle('hidden', perm !== 'default');
   $('btn-sw-re').classList.toggle('hidden', sw === 'aktif');
+  $('btn-install').classList.toggle('hidden', isStandalone() || isIOS());
   let help = '';
   if (isIOS() && !isStandalone()) help = 'Di iPhone, notifikasi hanya bisa untuk aplikasi yang dipasang di Home Screen. Di Safari: tombol Share → Add to Home Screen, lalu buka dari ikon tersebut dan aktifkan notifikasi di sini.';
   else if (!has) help = 'Browser ini tidak mendukung notifikasi. Di iPhone perlu iOS 16.4 atau lebih baru dan dibuka dari ikon Home Screen.';
   else if (perm === 'denied') help = isIOS() ? 'Notifikasi diblokir. Buka Settings → Notifications → Transport Finance → nyalakan Allow Notifications, Sounds dan Badges, lalu buka ulang aplikasi.' : 'Notifikasi diblokir. Klik ikon gembok di sebelah alamat web → Notifications → Allow, lalu muat ulang halaman.';
   else if (sw !== 'aktif') help = swInfo || 'File sw.js belum terbaca. Pastikan sw.js ada di folder yang sama dengan index.html di GitHub Pages, lalu buka ulang aplikasi.';
+  else if (!isStandalone()) help = isIOS() ? '' : 'Notifikasi sudah jalan di tab browser ini. Supaya terbuka sebagai aplikasi dan angka muncul di ikon taskbar / layar utama, tekan "Pasang sebagai aplikasi" (atau ikon pasang di ujung kanan kolom alamat Chrome / Edge), lalu buka dari ikon Transport Finance yang baru.';
   else if (perm === 'granted') help = 'Semua siap. Pop-up dan nada muncul saat ada pengingat selama aplikasi terbuka; angka di ikon tetap terlihat setelah aplikasi ditutup.' + (isIOS() ? ' Di iPhone, aplikasi berhenti saat ditutup, jadi pengingat baru dicek ketika aplikasi dibuka lagi.' : '');
   $('notif-help').textContent = help;
 }
