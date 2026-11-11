@@ -1780,6 +1780,7 @@ html,body{max-width:100%;overflow-x:hidden}
     <input type="text" id="ap-cari" placeholder="Cari departemen" oninput="apRender()" style="margin-bottom:6px">
     <div class="jp-list" id="ap-list"></div>
     <div class="muted" id="ap-info" style="margin-top:6px"></div>
+    <label class="jp-row hidden" id="ap-split-w" style="border:0;padding:8px 0 0"><input type="checkbox" id="ap-split" checked onchange="apInfo()"> <span class="jp-main">Satu file PDF per departemen<div class="muted">Semua BOQ diunduh sekaligus dalam satu file ZIP, isinya PDF terpisah tiap departemen</div></span></label>
     <label class="jp-row" style="border:0;padding:8px 0 0"><input type="checkbox" id="ap-hidefree" onchange="apInfo()"> <span class="jp-main">Tampilkan hanya unit yang dikenai biaya<div class="muted">Unit tanpa biaya (internal, gratis, tidak aktif) tidak dicantumkan</div></span></label>
     <div class="btns" style="margin-top:12px"><button class="btn" style="margin:0" id="btn-ap" onclick="apDownload()">Download</button></div>
   </div>
@@ -3781,7 +3782,8 @@ function apSelect(m) {
 const apFmt = () => (document.querySelector('input[name="ap-fmt"]:checked') || {}).value || 'pdf';
 function apInfo() {
   const sel = AP.list.filter(x => AP.sel.has(x.k));
-  if (!$('btn-ap').disabled) $('btn-ap').textContent = apFmt() === 'xlsx' ? 'Download Excel' : apFmt() === 'boq' ? 'Download BOQ' : 'Download PDF';
+  $('ap-split-w').classList.toggle('hidden', apFmt() !== 'boq');
+  if (!$('btn-ap').disabled) $('btn-ap').textContent = apFmt() === 'xlsx' ? 'Download Excel' : apFmt() === 'boq' ? ($('ap-split').checked && sel.length > 1 ? 'Download BOQ (ZIP)' : 'Download BOQ') : 'Download PDF';
   $('ap-info').textContent = `${sel.length} dari ${AP.list.length} departemen dipilih · ${sel.reduce((a, x) => a + x.n, 0)} unit · ${rp(sel.reduce((a, x) => a + x.amt, 0))} / bulan`;
 }
 async function apDownload() {
@@ -3792,7 +3794,7 @@ async function apDownload() {
   b.disabled = true; b.textContent = fmt === 'xlsx' ? 'Membuat Excel...' : fmt === 'boq' ? 'Membuat BOQ...' : 'Membuat PDF...';
   try {
     if (fmt === 'xlsx') exportSewa({ rows, hideFree, all: AP.sel.size === AP.list.length });
-    else if (fmt === 'boq') await sewaBoqPdf(rows, b);
+    else if (fmt === 'boq') await sewaBoqPdf(rows, b, $('ap-split').checked);
     else await alDeptPdf(null, { depts: new Set(rows.map(u => u.Department || '(tanpa departemen)')), hideFree, all: AP.sel.size === AP.list.length });
     closeAlPdfPick();
   } finally {
@@ -4871,7 +4873,13 @@ const boqRequester = dept => BOQ_INFO.requester[dept.toLowerCase()] || '';
 const BQ_LOGO = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(LOGO_SVG.replace('<svg ', '<svg width="476" height="88" fill="#1e5246" '));
 // Tinggi area isi satu halaman A4 portrait (margin 12 mm), dikurangi sedikit agar satu departemen pasti satu halaman
 const bqH = () => Math.floor((297 - 24) * PX_MM) - 4;
-async function sewaBoqPdf(rows, btn) {
+const dlBlob = (blob, name) => {
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+};
+async function sewaBoqPdf(rows, btn, split) {
   const ym = AL_YM || curYm();
   try { BOQ_INFO = await apiGet({ action: 'boqInfo', periode: ym }); } catch (e) { BOQ_INFO = { requester: {}, returned: {} }; }
   const g = {}, canon = {};
@@ -4879,7 +4887,7 @@ async function sewaBoqPdf(rows, btn) {
   const [yy, mm] = ym.split('-').map(Number);
   const tgl = new Date(yy, mm, 0).getDate() + ' ' + fmtPeriodeEn(ym);
   const per = fmtPeriodeEn(ym);
-  const pages = [], skipped = [];
+  const pages = [], skipped = [], pageDepts = [];
   let grand = 0;
   Object.keys(g).sort((a, b) => a.localeCompare(b)).forEach(dept => {
     const lines = {}, order = [];
@@ -4906,6 +4914,7 @@ async function sewaBoqPdf(rows, btn) {
     const total = items.reduce((a, x) => a + x.harga * x.codes.length, 0);
     if (!total) { skipped.push(dept); return; }
     grand += total;
+    pageDepts.push(dept);
     const req = boqRequester(dept);
     const codesLen = items.reduce((a, x) => a + Math.ceil(x.codes.join(', ').length / 70), 0);
     pages.push(`<div class="bq-page${items.length + codesLen > 16 ? ' tight' : ''}" style="height:${bqH()}px">
@@ -4934,12 +4943,25 @@ async function sewaBoqPdf(rows, btn) {
   $('print-area').innerHTML = pages.join('');
   setPageSize('A4 portrait');
   const pdf = await makePrintPdf((i, n) => { if (btn) btn.textContent = `Membuat BOQ ${i}/${n}...`; });
-  const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
-  const a = document.createElement('a');
-  const one = pages.length === 1 ? Object.keys(g).find(d => !skipped.includes(d)) : '';
-  a.href = url; a.download = `BOQ EV Rental ${one ? safeName(one, 60) + ' ' : ''}${ym}.pdf`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  const fname = d => `BOQ EV Rental ${safeName(d, 60)} ${ym}.pdf`;
+  if (pages.length === 1) dlBlob(new Blob([pdf.bytes], { type: 'application/pdf' }), fname(pageDepts[0]));
+  else if (!split) dlBlob(new Blob([pdf.bytes], { type: 'application/pdf' }), `BOQ EV Rental ${ym}.pdf`);
+  else {
+    // satu halaman = satu departemen: pecah PDF per halaman, lalu satukan dalam ZIP
+    const src = await PDFLib.PDFDocument.load(pdf.bytes);
+    if (src.getPageCount() !== pageDepts.length) throw new Error('Jumlah halaman BOQ tidak sesuai jumlah departemen');
+    const files = [], used = {};
+    for (let i = 0; i < pageDepts.length; i++) {
+      if (btn) btn.textContent = `Memisah PDF ${i + 1}/${pageDepts.length}...`;
+      const doc = await PDFLib.PDFDocument.create();
+      const [pg] = await doc.copyPages(src, [i]);
+      doc.addPage(pg);
+      let nm = fname(pageDepts[i]);
+      if (used[nm]) nm = nm.replace(/\.pdf$/, ` (${++used[nm]}).pdf`); else used[nm] = 1;
+      files.push({ name: nm, data: await doc.save() });
+    }
+    dlBlob(new Blob([zipStore(files)], { type: 'application/zip' }), `BOQ EV Rental ${ym} (${files.length} departemen).zip`);
+  }
   toast(`BOQ dibuat: ${pages.length} departemen, total ${rp(grand)}` + (skipped.length ? ` (${skipped.length} departemen tanpa biaya dilewati)` : ''));
 }
 
