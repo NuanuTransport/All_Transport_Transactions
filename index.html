@@ -128,6 +128,7 @@ table.items input{padding:6px 8px;font-size:13px}
 .kd-remind{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a}
 .kd-remind .btns,.agr-remind .btns{display:flex;gap:6px;flex-wrap:wrap}
 .agr-remind{background:#fff7ed;border-color:#fed7aa;color:#7c2d12}
+.upd-banner{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .nav-badge{display:inline-block;min-width:16px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;line-height:16px;font-weight:700;vertical-align:1px}
 .role-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#eef3f1;color:#1e5246}
 body.viewer #btn-agr-new,body.viewer #btn-agr-save,body.viewer #btn-agr-doc,body:not(.head) #btn-agr-del,body.viewer [onclick*="payIncome("],body.viewer [onclick*="kdSend("],body.viewer #btn-tu-add,body.viewer #btn-ca-edit,body.viewer [onclick*="openCaEdit("],body.viewer #btn-ps-add,body:not(.head) [onclick*="delTopupRef("],body.viewer #btn-jp-send,body.viewer [onclick*="kdStatus("],body.viewer [onclick*="kdSendRange("],body.viewer [onclick*="kdStatusRange("],body.viewer [onclick*="editIncome("],body.viewer [onclick*="openSO("],body.viewer [onclick*="addIncome("],body.viewer [onclick*="addPR("],body.viewer [onclick*="addRentalAdj("],
@@ -684,6 +685,10 @@ body.viewer [data-edit]{display:none!important}
   <div class="login-banner hidden" id="login-banner">
     <span><b>Login belum aktif.</b> Siapa pun yang punya link aplikasi ini bisa melihat dan mengubah data keuangan.</span>
     <button class="btn" style="margin:0" onclick="openSetup()">Aktifkan Login</button>
+  </div>
+  <div class="login-banner upd-banner hidden" id="upd-banner">
+    <span><b>Versi baru tersedia.</b> Muat ulang untuk memakai versi terbaru aplikasi.</span>
+    <span class="btns"><button class="btn" style="margin:0" onclick="appReload()">Muat ulang sekarang</button></span>
   </div>
   <div class="login-banner agr-remind hidden" id="agr-remind">
     <span id="agr-remind-txt"></span>
@@ -5704,9 +5709,32 @@ async function monthlyReport() {
   finally { b.disabled = false; b.textContent = 'Laporan PDF'; }
 }
 
+// ---------- UPDATE OTOMATIS ----------
+// Cek index.html terbaru di GitHub Pages (tanpa cache). Jika versinya beda: tampilkan banner,
+// dan muat ulang otomatis saat aplikasi dibuka kembali / tidak sedang mengisi form.
+let NEW_VER = '';
+async function checkUpdate() {
+  if (location.protocol !== 'https:') return;
+  try {
+    const res = await fetch(location.pathname + '?cek=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const m = (await res.text()).match(new RegExp('const APP_' + "VER = '([^']+)'"));
+    if (m && m[1] !== APP_VER) { NEW_VER = m[1]; $('upd-banner').classList.remove('hidden'); }
+  } catch (e) {}
+}
+const appBusy = () => !!document.querySelector('.modal:not(.hidden)') || ['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName);
+function appReload() { location.replace(location.pathname + '?v=' + encodeURIComponent(NEW_VER || Date.now()) + location.hash); }
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  await checkUpdate();
+  if (NEW_VER && !appBusy()) appReload();
+});
+setTimeout(checkUpdate, 8000);
+setInterval(async () => { await checkUpdate(); if (NEW_VER && document.visibilityState === 'hidden') appReload(); }, 15 * 60 * 1000);
+
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '12 Nov 2026 · BAST';
+const APP_VER = '12 Nov 2026 · auto update';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 function toggleNav(on) {
   const b = document.body, v = on === undefined ? !b.classList.contains('nav-open') : !!on;
