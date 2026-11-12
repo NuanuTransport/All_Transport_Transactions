@@ -116,9 +116,45 @@ table.items input{padding:6px 8px;font-size:13px}
 .user-chip b{color:#fff;font-size:13px}
 .user-chip button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;font-family:inherit}
 .user-chip button:hover{background:rgba(255,255,255,.22)}
-.auth-wrap{position:fixed;inset:0;z-index:20;background:#1e5246;display:flex;align-items:center;justify-content:center;padding:16px}
+.auth-wrap{position:fixed;inset:0;z-index:20;background:radial-gradient(1200px 600px at 15% 10%,#2f7a63 0,transparent 60%),radial-gradient(900px 500px at 90% 100%,#2a6a57 0,transparent 55%),#16443a;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
 .auth-wrap.hidden{display:none}
-.auth-box{background:#fff;border-radius:14px;max-width:360px;width:100%;padding:22px}
+.lg-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.lg-bg span{position:absolute;border-radius:50%;background:rgba(255,255,255,.05)}
+.lg-bg span:nth-child(1){width:420px;height:420px;left:-120px;bottom:-160px}
+.lg-bg span:nth-child(2){width:260px;height:260px;right:-60px;top:-80px;background:rgba(242,184,75,.08)}
+.lg-bg span:nth-child(3){width:140px;height:140px;right:18%;bottom:8%;background:rgba(255,255,255,.04)}
+.lg-card{position:relative;display:flex;width:100%;max-width:920px;background:#fff;border-radius:22px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+.lg-hero{flex:1.15;position:relative;background:#0e3a30;display:flex;flex-direction:column;min-width:0}
+.lg-art{display:block;width:100%;height:auto}
+.lg-hero-t{padding:18px 26px 26px;color:#e7f2ee}
+.lg-hero-t h1{margin:0 0 6px;font-size:21px;line-height:1.25;color:#fff}
+.lg-hero-t p{margin:0;font-size:13px;line-height:1.55;color:#bcd6cd}
+.lg-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.lg-chips span{font-size:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:5px 11px}
+.auth-box{background:#fff;flex:1;max-width:400px;width:100%;padding:34px 32px;display:flex;flex-direction:column;justify-content:center}
+.lg-logo svg{height:24px;width:auto;display:block;fill:#1e5246;margin-bottom:22px}
+.lg-greet{font-size:13px;font-weight:600;color:#c2410c;margin-bottom:4px}
+.auth-box h2{font-size:22px!important}
+.lg-art .lg-f1{animation:lgFloat 5s ease-in-out infinite}
+.lg-art .lg-f2{animation:lgFloat 6s ease-in-out infinite .8s}
+.lg-art .lg-f3{animation:lgFloat 5.5s ease-in-out infinite 1.6s}
+.lg-art .lg-f4{animation:lgFloat 6.5s ease-in-out infinite .4s}
+.lg-art .lg-cur{animation:lgBlink 1s steps(1) infinite}
+.lg-art .lg-steam{animation:lgSteam 3s ease-in-out infinite}
+.lg-art .lg-spark{animation:lgTw 3s ease-in-out infinite}
+@keyframes lgFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes lgBlink{50%{opacity:0}}
+@keyframes lgSteam{0%,100%{opacity:.2;transform:translateY(2px)}50%{opacity:.8;transform:translateY(-3px)}}
+@keyframes lgTw{0%,100%{opacity:.5}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.lg-art *{animation:none!important}}
+@media(max-width:760px){
+  .auth-wrap{align-items:flex-start;padding:14px}
+  .lg-card{flex-direction:column;border-radius:18px;margin:auto 0}
+  .lg-hero-t{padding:12px 18px 16px}.lg-hero-t h1{font-size:17px}.lg-hero-t p{font-size:12px}.lg-chips{display:none}
+  .auth-box{max-width:none;padding:22px 20px 24px}
+  .lg-logo svg{margin-bottom:14px}
+}
+@media(max-width:760px) and (max-height:760px){.lg-hero-t{display:none}}
 .auth-box .logo-dark{display:block;margin-bottom:10px}
 .auth-box h2{margin:0 0 2px;font-size:18px}
 .auth-box input.pin{letter-spacing:8px;font-size:20px;text-align:center}
@@ -571,6 +607,8 @@ body.has-sb .sb-brand svg{height:22px;width:auto;display:block;fill:#fff}
 body.has-sb .sb-t{color:#a9c7bd;font-size:12px;font-weight:500}
 .sb-ver{display:none}body.has-sb .sb-ver{display:block;order:99;margin-top:auto;padding:12px 12px 2px;color:#7fa69a;font-size:11px}
 #nav-ov{display:none}
+#auth-wrap{z-index:200!important}
+body:has(#auth-wrap:not(.hidden)) nav,body:has(#auth-wrap:not(.hidden)) #nav-ov{display:none!important}
 @media(min-width:1000px){
   body.has-sb{padding-left:232px}
   body.has-sb header .logo,body.has-sb header .brand-sep{display:none}
@@ -1677,9 +1715,72 @@ body.viewer [data-edit]{display:none!important}
 
 <!-- LOGIN -->
 <div class="auth-wrap hidden" id="auth-wrap">
+  <div class="lg-bg" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="lg-card">
+  <div class="lg-hero">
+    <svg class="lg-art" viewBox="0 0 460 330" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Admin mendata keuangan Transport">
+  <defs>
+    <linearGradient id="lgBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0e3a30"/><stop offset="1" stop-color="#2c7a63"/></linearGradient>
+    <linearGradient id="lgScr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef6f3"/></linearGradient>
+    <linearGradient id="lgDesk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9a066"/><stop offset="1" stop-color="#b9824d"/></linearGradient>
+    <clipPath id="lgClip"><rect width="460" height="330"/></clipPath>
+  </defs>
+  <g clip-path="url(#lgClip)">
+    <rect width="460" height="330" fill="url(#lgBg)"/>
+    <circle cx="380" cy="60" r="90" fill="#ffffff" opacity=".05"/><circle cx="60" cy="300" r="110" fill="#ffffff" opacity=".04"/>
+    <g opacity=".14" stroke="#fff" stroke-width="1"><path d="M0 70 H460 M0 140 H460 M0 210 H460"/><path d="M90 0 V330 M200 0 V330 M310 0 V330"/></g>
+    <!-- jendela -->
+    <rect x="300" y="34" width="120" height="86" rx="10" fill="#f3b873" opacity=".9"/><rect x="300" y="34" width="120" height="86" rx="10" fill="none" stroke="#e8f3ef" stroke-width="5"/>
+    <path d="M360 34 V120 M300 77 H420" stroke="#e8f3ef" stroke-width="4"/><circle cx="392" cy="62" r="11" fill="#ffe29a"/>
+    <!-- kartu melayang -->
+    <g class="lg-f1"><rect x="26" y="40" width="96" height="62" rx="10" fill="#ffffff"/><text x="38" y="58" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="700" fill="#6b7f78">INCOME</text>
+      <text x="38" y="76" font-family="Inter,Arial,sans-serif" font-size="13" font-weight="800" fill="#1e5246">Rp 48,2 jt</text><path d="M38 92 l14 -6 l12 3 l14 -9 l14 2" fill="none" stroke="#2c7a63" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></g>
+    <g class="lg-f2"><rect x="168" y="22" width="104" height="70" rx="10" fill="#ffffff"/><text x="180" y="40" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="700" fill="#6b7f78">PER BULAN</text>
+      <g fill="#2c7a63"><rect x="182" y="66" width="10" height="16" rx="2"/><rect x="198" y="58" width="10" height="24" rx="2"/><rect x="214" y="62" width="10" height="20" rx="2"/><rect x="230" y="50" width="10" height="32" rx="2"/></g><rect x="246" y="56" width="10" height="26" rx="2" fill="#f2b84b"/></g>
+    <g class="lg-f3"><rect x="22" y="128" width="78" height="92" rx="9" fill="#ffffff"/><rect x="22" y="128" width="78" height="20" rx="9" fill="#e8643a"/><rect x="22" y="140" width="78" height="8" fill="#e8643a"/>
+      <text id="lg-cal-m" x="61" y="142" font-family="Inter,Arial,sans-serif" font-size="8" font-weight="700" fill="#fff" text-anchor="middle">NOV</text><text id="lg-cal-d" x="61" y="184" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="800" fill="#1e5246" text-anchor="middle">12</text>
+      <g fill="#cfe3dc"><rect x="32" y="196" width="10" height="7" rx="2"/><rect x="46" y="196" width="10" height="7" rx="2"/><rect x="60" y="196" width="10" height="7" rx="2"/><rect x="74" y="196" width="10" height="7" rx="2" fill="#f2b84b"/></g></g>
+    <g class="lg-f4"><rect x="352" y="140" width="84" height="98" rx="9" fill="#ffffff"/><g stroke="#cfe3dc" stroke-width="5" stroke-linecap="round"><path d="M384 160 H424 M384 182 H418 M384 204 H422 M384 226 H412"/></g>
+      <g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M362 159 l4 4 l8 -8" stroke="#2c7a63"/><path d="M362 181 l4 4 l8 -8" stroke="#2c7a63"/><path d="M362 203 l4 4 l8 -8" stroke="#2c7a63"/></g><rect x="362" y="219" width="12" height="12" rx="3" fill="none" stroke="#cfd8d5" stroke-width="2.5"/></g>
+    <!-- meja -->
+    <rect x="0" y="268" width="460" height="62" fill="url(#lgDesk)"/><rect x="0" y="264" width="460" height="8" fill="#e6b27c"/>
+    <!-- orang (punggung, siluet sederhana) -->
+    <g class="lg-person">
+      <path d="M150 268 C150 222 172 200 206 200 C240 200 262 222 262 268Z" fill="#1e5246"/>
+      <path d="M190 202 h32 v10 a16 10 0 0 1 -32 0z" fill="#e7b591"/>
+      <circle cx="206" cy="172" r="26" fill="#e7b591"/><circle cx="181" cy="175" r="5" fill="#dca783"/><g fill="#2b2420"><circle cx="200" cy="174" r="2.2"/><circle cx="218" cy="174" r="2.2"/></g><path d="M202 184 q7 5 13 0" fill="none" stroke="#a5604a" stroke-width="2" stroke-linecap="round"/><g fill="#f0a493" opacity=".55"><circle cx="195" cy="182" r="3"/><circle cx="223" cy="182" r="3"/></g>
+      <path d="M180 170 C178 146 196 134 212 136 C230 138 238 152 234 168 C226 156 214 152 200 156 C192 158 186 164 180 170Z" fill="#2b2420"/>
+      <path d="M166 250 C176 238 196 236 214 244 L250 254" fill="none" stroke="#e7b591" stroke-width="12" stroke-linecap="round"/>
+    </g>
+    <!-- laptop -->
+    <g class="lg-laptop">
+      <rect x="232" y="168" width="128" height="86" rx="7" fill="#2b3a36"/><rect x="238" y="174" width="116" height="74" rx="4" fill="url(#lgScr)"/>
+      <rect x="244" y="180" width="40" height="6" rx="3" fill="#1e5246"/><rect x="244" y="191" width="104" height="1.5" fill="#dfe9e5"/>
+      <g fill="#e6efec"><rect x="244" y="197" width="104" height="9" rx="2"/><rect x="244" y="210" width="104" height="9" rx="2"/><rect x="244" y="223" width="104" height="9" rx="2"/></g>
+      <g fill="#2c7a63"><rect x="248" y="200" width="30" height="3" rx="1.5"/><rect x="248" y="213" width="24" height="3" rx="1.5"/><rect x="248" y="226" width="34" height="3" rx="1.5"/></g>
+      <g fill="#1e5246"><rect x="320" y="200" width="24" height="3" rx="1.5"/><rect x="326" y="213" width="18" height="3" rx="1.5"/><rect x="316" y="226" width="28" height="3" rx="1.5"/></g>
+      <rect class="lg-cur" x="288" y="236" width="2" height="8" fill="#e8643a"/>
+      <path d="M220 254 H374 l-8 12 H228z" fill="#9fb3ad"/>
+    </g>
+    <!-- tumpukan dokumen, kopi, tanaman -->
+    <g><rect x="72" y="246" width="66" height="10" rx="2" fill="#f5f1e6" transform="rotate(-4 105 251)"/><rect x="70" y="236" width="66" height="10" rx="2" fill="#ffffff" transform="rotate(3 103 241)"/><rect x="74" y="226" width="62" height="10" rx="2" fill="#e8f3ef"/></g>
+    <g><rect x="392" y="240" width="22" height="26" rx="4" fill="#ffffff"/><path d="M414 246 c8 0 8 12 0 12" fill="none" stroke="#ffffff" stroke-width="3"/><rect x="392" y="240" width="22" height="6" rx="3" fill="#6b4a33"/>
+      <g class="lg-steam" fill="none" stroke="#e8f3ef" stroke-width="2" stroke-linecap="round" opacity=".7"><path d="M398 234 c-4 -6 4 -8 0 -14"/><path d="M407 234 c-4 -6 4 -8 0 -14"/></g></g>
+    <g><path d="M30 268 l4 -26 h24 l4 26z" fill="#e8643a"/><path d="M46 244 C40 222 28 214 18 214 C28 222 36 232 46 244Z" fill="#3f9c7d"/><path d="M46 244 C48 220 58 206 70 202 C62 214 54 228 46 244Z" fill="#2c7a63"/><path d="M46 244 C44 228 46 214 52 204 C52 218 50 230 46 244Z" fill="#57b394"/></g>
+    <g class="lg-spark" fill="#ffe29a"><path d="M140 118 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M300 140 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z"/></g>
+  </g>
+</svg>
+    <div class="lg-hero-t">
+      <h1>Pendataan keuangan Transport, rapi di satu tempat</h1>
+      <p>Income, purchase, cash advance, armada EV, BAST dan agreement Transport Department dalam satu tempat.</p>
+      <div class="lg-chips"><span>&#128229; Income</span><span>&#129534; Purchase &amp; CA</span><span>&#128202; Laporan</span><span>&#128276; Pengingat</span></div>
+    </div>
+  </div>
   <div class="auth-box">
-    <h2>Transport Finance</h2>
-    <div class="muted">Masuk dengan nama dan PIN Anda</div>
+    <span class="lg-logo" id="lg-logo"></span>
+    <div class="lg-greet" id="lg-greet">Selamat datang</div>
+    <h2>Masuk ke akun Anda</h2>
+    <div class="muted" id="lg-date">Masuk dengan nama dan PIN Anda</div>
     <label>Nama</label>
     <select id="lg-nama"></select>
     <label>PIN</label>
@@ -1687,6 +1788,7 @@ body.viewer [data-edit]{display:none!important}
     <div class="auth-err" id="lg-err"></div>
     <button class="btn" style="width:100%;margin-top:6px" id="btn-lg" onclick="doLogin()">Masuk</button>
     <div class="muted" style="margin-top:12px">Lupa PIN? Minta Head untuk mengatur ulang PIN Anda.</div>
+  </div>
   </div>
 </div>
 
@@ -2472,6 +2574,11 @@ function showLogin(names) {
   if (names) $('lg-nama').innerHTML = names.map(n => `<option>${esc(n)}</option>`).join('');
   try { const last = localStorage.getItem('tf-last-user'); if (last && names && names.includes(last)) $('lg-nama').value = last; } catch (e) {}
   $('lg-pin').value = ''; $('lg-err').textContent = '';
+  if ($('lg-logo') && !$('lg-logo').innerHTML) $('lg-logo').innerHTML = LOGO_SVG;
+  const h = new Date().getHours();
+  if ($('lg-cal-d')) { const t = new Date(); $('lg-cal-d').textContent = t.getDate(); $('lg-cal-m').textContent = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'][t.getMonth()]; }
+  $('lg-greet').textContent = h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 18 ? 'Selamat sore' : 'Selamat malam';
+  $('lg-date').textContent = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) + ' · masuk dengan nama dan PIN Anda';
   $('auth-wrap').classList.remove('hidden');
   setTimeout(() => $('lg-pin').focus(), 50);
 }
@@ -5734,7 +5841,7 @@ setInterval(async () => { await checkUpdate(); if (NEW_VER && document.visibilit
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '12 Nov 2026 · selalu terbaru';
+const APP_VER = '12 Nov 2026 · login admin';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 function toggleNav(on) {
   const b = document.body, v = on === undefined ? !b.classList.contains('nav-open') : !!on;
