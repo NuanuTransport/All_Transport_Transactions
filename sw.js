@@ -2,6 +2,12 @@
 // Tidak menyimpan cache, jadi aplikasi selalu memakai versi terbaru dari GitHub Pages.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+// Halaman aplikasi selalu diambil langsung dari GitHub Pages tanpa cache browser,
+// jadi aplikasi yang sudah diinstal langsung memakai versi terbaru setiap kali dibuka.
+self.addEventListener('fetch', e => {
+  if (e.request.mode !== 'navigate') return;
+  e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => fetch(e.request)));
+});
 // Klik notifikasi: buka / fokuskan aplikasi di menu yang sesuai (KDAB atau Agreement)
 self.addEventListener('notificationclick', e => {
   e.notification.close();
