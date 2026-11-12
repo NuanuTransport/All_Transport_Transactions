@@ -5294,7 +5294,7 @@ function bastPdf(id, ret) {
   const sign = (a, b) => `<table class="iv2-sign bs-sign"><tr>
       <td>${a[0]}<div class="s"></div><div class="ln"></div><b>${esc(a[1] || '')}</b><br>${esc(a[2] || '')}</td>
       <td>${b[0]}<div class="s"></div><div class="ln"></div><b>${esc(b[1] || '')}</b><br>${esc(b[2] || '')}</td></tr></table>`;
-  const head = `<div class="mr-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:26px"><div style="text-align:right"><div class="mr-h" style="font-size:15px">${ret ? 'VEHICLE RETURN REPORT' : 'VEHICLE HANDOVER REPORT'}</div><div class="mr-s">Berita Acara Serah Terima${ret ? ' (Pengembalian)' : ''} Kendaraan · No. ${esc(r.No)}</div></div></div>`;
+  const head = `<div class="mr-top">${logoTag().replace('class="doc-logo"', 'class="doc-logo" style="height:26px;width:auto;margin:0"')}<div style="text-align:right"><div class="mr-h" style="font-size:15px">${ret ? 'VEHICLE RETURN REPORT' : 'VEHICLE HANDOVER REPORT'}</div><div class="mr-s">Berita Acara Serah Terima${ret ? ' (Pengembalian)' : ''} Kendaraan · No. ${esc(r.No)}</div></div></div>`;
   const meta = `<table class="iv2-kv bs-kv">
       <tr><td>Handover type</td><td><b>${r.Jenis === 'Sewa' ? 'Rental' : 'Loan'}</b> (${esc(r.Jenis)})</td></tr>
       <tr><td>${ret ? 'Return date' : 'Handover date'}</td><td>${esc(tglEN(ret ? r.Tgl_Kembali : r.Tanggal))}</td></tr>
@@ -5596,7 +5596,7 @@ function invPdf(id) {
   const per = (() => { const [y, m] = v.Periode.split('-').map(Number); return BULAN_EN[m - 1] + ' ' + y; })();
   const words = n => (enWords(n) + ' Rupiah').replace(/\s+/g, ' ').replace(/^./, c => c.toUpperCase());
   $('print-area').innerHTML = `<div class="iv2-doc">
-    <div class="iv2-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:30px"><div class="iv2-h" style="font-size:20px">INVOICE REQUEST</div></div>
+    <div class="iv2-top">${logoTag().replace('class="doc-logo"', 'class="doc-logo" style="height:30px;width:auto;margin:0"')}<div class="iv2-h" style="font-size:20px">INVOICE REQUEST</div></div>
     <div class="iv2-from"><b>To:</b> Finance Department, PT Wooden Fish Village<br><b>From:</b> Transport Department<br>Please issue an invoice to the customer below for the electric vehicle rental under the referenced agreement.</div>
     <table class="iv2-meta"><tr>
       <td><div class="lb">Customer (bill to)</div><b>${esc(v.Pihak)}</b>${a.Alamat ? '<br>' + esc(a.Alamat) : ''}${a.Wakil && a.Bentuk !== 'Perorangan' ? '<br>Attn: ' + esc(a.Wakil) + (a.Jabatan ? ', ' + esc(agrJabEN(a.Jabatan)) : '') : ''}${a.Email ? '<br>' + esc(a.Email) : ''}</td>
@@ -5672,7 +5672,7 @@ async function monthlyReport() {
     const invP = INV.filter(v => v.Periode === p);
     const invSt = v => { const st = invStatus(v); return st.k === 'tunggu' ? 'Awaiting Finance invoice' : st.k === 'lunas' ? 'Paid' : st.k === 'lewat' ? 'Overdue' : st.t.startsWith('Sebagian') ? 'Partially paid' : 'Unpaid'; };
     $('print-area').innerHTML = `<div class="mr-doc">
-      <div class="mr-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:26px"><div style="text-align:right"><div class="mr-h">MONTHLY FINANCIAL REPORT</div><div class="mr-s">Transport Department · ${esc(perEN)}</div></div></div>
+      <div class="mr-top">${logoTag().replace('class="doc-logo"', 'class="doc-logo" style="height:26px;width:auto;margin:0"')}<div style="text-align:right"><div class="mr-h">MONTHLY FINANCIAL REPORT</div><div class="mr-s">Transport Department · ${esc(perEN)}</div></div></div>
       <table class="mr-k"><tr>
         ${kpi('Income received', ti, dl(ti, prev && prev.income, true))}
         ${kpi('Income unpaid', tp, dl(tp, prev && prev.piutang, false))}
