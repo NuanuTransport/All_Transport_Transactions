@@ -568,6 +568,7 @@ body.has-sb nav .nav-badge{margin-left:auto}
 body.has-sb .sb-brand{display:flex;flex-direction:column;gap:7px;padding:4px 10px 16px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,.1)}
 body.has-sb .sb-brand svg{height:22px;width:auto;display:block;fill:#fff}
 body.has-sb .sb-t{color:#a9c7bd;font-size:12px;font-weight:500}
+.sb-ver{display:none}body.has-sb .sb-ver{display:block;order:99;margin-top:auto;padding:12px 12px 2px;color:#7fa69a;font-size:11px}
 #nav-ov{display:none}
 @media(min-width:1000px){
   body.has-sb{padding-left:232px}
@@ -675,6 +676,7 @@ body.viewer [data-edit]{display:none!important}
   <button data-v="alloc" onclick="show('alloc')"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16V9l2-4h10l2 4v7"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="13" r="1"/><circle cx="16.5" cy="13" r="1"/></svg></span><span>Alokasi EV</span></button>
   <button data-v="agr" onclick="show('agr')"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg></span><span>Agreement</span></button>
   <button data-v="remind" onclick="show('remind')"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></span><span>Pengingat</span></button>
+  <div class="sb-ver" id="sb-ver"></div>
   <button data-v="users" onclick="show('users')"><span class="ni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14a6 6 0 0 1 3.5 6"/></svg></span><span>Pengguna</span></button>
 </nav>
 
@@ -1236,13 +1238,13 @@ body.viewer [data-edit]{display:none!important}
     <div class="card">
       <div class="rs-tabs" id="al-tabs">
         <button class="active" data-m="list" onclick="setAlMode('list')">Daftar unit</button>
+        <button data-m="bast" onclick="setAlMode('bast')">BAST<span class="badge hidden" id="bast-badge"></span></button>
         <button data-m="dept" onclick="setAlMode('dept')">Per departemen</button>
         <button data-m="sewa" onclick="setAlMode('sewa')">Harga sewa</button>
         <button data-m="avail" onclick="setAlMode('avail')">Unit available</button>
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
         <button data-m="life" onclick="setAlMode('life')">Masa guna</button>
-        <button data-m="bast" onclick="setAlMode('bast')">BAST<span class="badge hidden" id="bast-badge"></span></button>
       </div>
       <div class="filters" id="al-filters">
         <select id="al-cat" onchange="renderAlloc()"><option value="">Semua kategori</option></select>
@@ -1571,6 +1573,7 @@ body.viewer [data-edit]{display:none!important}
           <button class="qa-b" style="--c:#0f766e;--b:#e6f4f1" onclick="show('new')"><b>+</b>Buat CA</button>
           <button class="qa-b" style="--c:#4f46e5;--b:#eef2ff" onclick="show('agr');openAgr()" data-edit><b>+</b>Agreement baru</button>
           <button class="qa-b" style="--c:#b45309;--b:#fff7ed" onclick="show('alloc');setAlMode('sewa')"><b>&#8594;</b>Harga sewa &amp; BOQ</button>
+          <button class="qa-b" style="--c:#0369a1;--b:#e0f2fe" onclick="show('alloc');setAlMode('bast')"><b>+</b>BAST kendaraan</button>
           <button class="qa-b" style="--c:#be123c;--b:#fff1f2" onclick="show('remind')"><b id="qa-remind-n">0</b>Pengingat</button>
         </div>
       </div>
@@ -5086,6 +5089,7 @@ async function renderNotifSet() {
     ['Service worker (sw.js)', ok(sw === 'aktif', sw)],
     ['Angka di ikon', !isStandalone() ? ok(false, 'Hanya di judul tab (pasang aplikasi dulu)') : !('setAppBadge' in navigator) ? ok(false, 'Tidak didukung di perangkat ini') : perm !== 'granted' ? ok(false, 'Perlu izin notifikasi') : BADGE_ERR ? ok(false, 'Gagal: ' + esc(BADGE_ERR)) : ok(true, BADGE_N ? 'Angka ' + BADGE_N + ' terkirim' : 'Aktif (tidak ada pengingat)')],
     ['Nada dering', ok(RING_CTX && RING_CTX.state === 'running', RING_CTX && RING_CTX.state === 'running' ? 'Siap' : 'Aktif setelah sentuh layar')],
+    ['Versi aplikasi', esc(APP_VER)],
     ['Pengingat terbuka sekarang', `<b>${pending}</b> (KDAB ${BADGE_PARTS.kd || 0}, agreement ${BADGE_PARTS.agr || 0})`]
   ];
   $('notif-status').innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px">' + rows.map(r => `<tr><td style="padding:7px 0;border-bottom:1px solid #eef1f4">${r[0]}</td><td style="padding:7px 0;border-bottom:1px solid #eef1f4;text-align:right">${r[1]}</td></tr>`).join('') + '</table>';
@@ -5702,6 +5706,8 @@ async function monthlyReport() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
+const APP_VER = '12 Nov 2026 · BAST';
+if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 function toggleNav(on) {
   const b = document.body, v = on === undefined ? !b.classList.contains('nav-open') : !!on;
   b.classList.toggle('nav-open', v);
