@@ -618,6 +618,22 @@ body.viewer [data-edit]{display:none!important}
 #print-area .iv2-sign{width:100%;margin-top:26px;border-collapse:collapse;break-inside:avoid}#print-area .iv2-sign td{width:50%;text-align:center;border:0;vertical-align:top}
 #print-area .iv2-sign .s{height:62px;display:flex;align-items:center;justify-content:center}#print-area .iv2-sign .s svg{height:56px;width:auto}
 .sewa-agr td{background:#f8faff}
+
+#print-area .mr-doc{font-family:Inter,Arial,sans-serif;font-size:10.5px;color:#111;line-height:1.4;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#print-area .mr-top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1e5246;padding-bottom:9px;margin-bottom:12px}
+#print-area .mr-h{font-size:17px;font-weight:800;letter-spacing:1px;color:#1e5246}#print-area .mr-s{color:#555;font-size:11px}
+#print-area .mr-k{width:100%;border-collapse:separate;border-spacing:6px 0;margin:0 -6px 8px}#print-area .mr-k td{border:1px solid #dfe5e2;border-radius:6px;padding:8px 10px;vertical-align:top;width:25%;background:#fafcfb}
+#print-area .mr-l{font-size:9.5px;color:#666;text-transform:uppercase;letter-spacing:.4px}#print-area .mr-v{font-size:14px;font-weight:800;margin-top:2px}
+#print-area .mr-d{font-size:9.5px;margin-top:2px;color:#666}#print-area .mr-d.up{color:#15803d}#print-area .mr-d.dn{color:#dc2626}
+#print-area .mr-note{font-size:10px;color:#92400e;background:#fff7ed;padding:5px 8px;border-radius:4px;margin:4px 0}
+#print-area .mr-doc h3{font-size:12px;color:#1e5246;margin:14px 0 6px;break-after:avoid}
+#print-area .mr-t{width:100%;border-collapse:collapse;break-inside:auto}#print-area .mr-t th{text-align:left;font-size:9.5px;color:#555;border-bottom:1.5px solid #1e5246;padding:4px 6px}
+#print-area .mr-t td{border-bottom:1px solid #eee;padding:4px 6px}#print-area .mr-t .n{text-align:right;white-space:nowrap}#print-area .mr-t tfoot td{font-weight:700;border-top:1.5px solid #1e5246;border-bottom:0}
+#print-area .mr-t .mu{color:#888}#print-area .mr-t .neg{color:#dc2626}
+#print-area .mr-2{width:100%;border-collapse:collapse}#print-area .mr-2>tbody>tr>td{width:50%;vertical-align:top;padding:0 8px 0 0;border:0}#print-area .mr-2>tbody>tr>td+td{padding:0 0 0 8px}
+#print-area .mr-leg{font-size:9.5px;color:#555;margin:2px 0 6px}#print-area .mr-leg span{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
+#print-area .mr-pb{break-after:page;page-break-after:always;height:0}
+#print-area .mr-foot{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #eee;padding-top:6px}
 </style>
 <style id="page-size"></style>
 </head>
@@ -1230,6 +1246,13 @@ body.viewer [data-edit]{display:none!important}
         <input type="text" id="al-cari" placeholder="Cari kode / PIC / stiker / catatan" oninput="renderAlloc()">
       </div>
       <div id="al-list">
+        <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div class="muted">Data kendaraan tanpa harga / tagihan. Download mengikuti filter di atas.</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn sec" style="margin:0" onclick="exportUnits()">Download Excel</button>
+            <button class="btn sec" style="margin:0" id="btn-unit-pdf" onclick="unitsPdf()">Download PDF</button>
+          </div>
+        </div>
         <div class="tablewrap"><table>
           <thead><tr><th>Kode</th><th>Jenis</th><th>Departemen</th><th>PIC</th><th>Status</th><th>Kondisi</th><th>Catatan</th><th></th></tr></thead>
           <tbody id="al-body"></tbody>
@@ -1501,6 +1524,7 @@ body.viewer [data-edit]{display:none!important}
       <div><h2>Dashboard</h2><div class="muted">Income dan pengeluaran Transport Department</div></div>
       <div class="ctrl">
         <select id="r-periode" onchange="loadSummary()"></select>
+        <button class="btn sec" style="margin:0" id="btn-mrep" onclick="monthlyReport()">Laporan PDF</button>
         <button class="btn" style="margin:0" onclick="openExport()">Export Excel</button>
       </div>
     </div>
@@ -5307,6 +5331,85 @@ function invPdf(id) {
   printAs('Invoice Request ' + v.No.replace(/\//g, '-') + ' ' + v.Pihak);
 }
 
+// ---------- LAPORAN BULANAN PDF (bahasa Inggris, untuk COO / Finance) ----------
+let LAST_SUM = null;
+async function monthlyReport() {
+  const p = $('r-periode').value;
+  const b = $('btn-mrep');
+  b.disabled = true; b.textContent = 'Menyiapkan...';
+  try {
+    if (!LAST_SUM || LAST_SUM.p !== p) await loadSummary();
+    await Promise.all([INCOME_LOADED ? null : loadIncome(), ensureAgr(), loadInv()]);
+    const d = LAST_SUM.d, m = ((LAST_TREND && LAST_TREND.months) || []).filter(x => x.ym <= p).slice(-6);
+    const [yy, mm] = p.split('-').map(Number), perEN = BULAN_EN[mm - 1] + ' ' + yy;
+    const mon = ym => BULAN_EN[Number(ym.slice(5, 7)) - 1].slice(0, 3) + ' ' + ym.slice(2, 4);
+    const n = x => Math.round(x || 0).toLocaleString('en-US');
+    const keys = Object.keys(d.divisi);
+    let ti = 0, tp = 0, te = 0;
+    keys.forEach(k => { ti += d.divisi[k].income; tp += d.divisi[k].piutang; te += d.divisi[k].expense; });
+    const net = ti + tp - te, prev = m.length > 1 ? m[m.length - 2] : null;
+    const dl = (cur, pv, goodUp) => { if (!pv) return ''; const pc = Math.round((cur - pv) / Math.abs(pv) * 100); const up = cur >= pv; return `<div class="mr-d ${cur === pv ? '' : up === goodUp ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${Math.abs(pc)}% vs last month</div>`; };
+    const kpi = (l, v, sub) => `<td><div class="mr-l">${l}</div><div class="mr-v">IDR ${n(v)}</div>${sub}</td>`;
+    // grafik 6 bulan (SVG sederhana)
+    const W = 640, H = 150, mx = Math.max(1, ...m.map(x => Math.max(x.income + x.piutang, x.expense))), bw = W / Math.max(1, m.length);
+    const bars = m.map((x, i) => {
+      const x0 = i * bw + bw * 0.18, w = bw * 0.3, hp = x.income / mx * (H - 24), hu = x.piutang / mx * (H - 24), he = x.expense / mx * (H - 24);
+      return `<rect x="${x0}" y="${H - 18 - hp}" width="${w}" height="${hp}" fill="#1e5246"/><rect x="${x0}" y="${H - 18 - hp - hu}" width="${w}" height="${hu}" fill="#9ccbb9"/>
+        <rect x="${x0 + w + 4}" y="${H - 18 - he}" width="${w}" height="${he}" fill="#e8643a"/><text x="${i * bw + bw / 2}" y="${H - 4}" font-size="10" text-anchor="middle" fill="#555">${mon(x.ym)}</text>`;
+    }).join('');
+    const chart = `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}"><line x1="0" y1="${H - 18}" x2="${W}" y2="${H - 18}" stroke="#ccc"/>${bars}</svg>
+      <div class="mr-leg"><span style="background:#1e5246"></span>Paid <span style="background:#9ccbb9"></span>Unpaid <span style="background:#e8643a"></span>Expenses</div>`;
+    const tbl = (head, rows, foot) => `<table class="mr-t"><thead><tr>${head.map((h, i) => `<th class="${i ? 'n' : ''}">${h}</th>`).join('')}</tr></thead><tbody>${rows.join('') || `<tr><td colspan="${head.length}" class="mu">${head[0] === 'Invoice request' ? 'No invoice requests for this period' : 'No data'}</td></tr>`}</tbody>${foot || ''}</table>`;
+    const divRows = keys.filter(k => d.divisi[k].income + d.divisi[k].piutang + d.divisi[k].expense > 0)
+      .map(k => { const x = d.divisi[k]; return `<tr><td>${esc(k)}</td><td class="n">${n(x.income)}</td><td class="n">${n(x.piutang)}</td><td class="n">${n(x.expense)}</td><td class="n ${x.income + x.piutang - x.expense < 0 ? 'neg' : ''}">${n(x.income + x.piutang - x.expense)}</td></tr>`; });
+    const trendRows = m.slice().reverse().map(x => `<tr><td>${mon(x.ym)}</td><td class="n">${n(x.income)}</td><td class="n">${n(x.piutang)}</td><td class="n">${n(x.expense)}</td><td class="n">${n(x.income + x.piutang - x.expense)}</td></tr>`);
+    const srcRows = Object.keys(d.sumber).sort((a, b2) => d.sumber[b2].t - d.sumber[a].t).map(k => `<tr><td>${esc(k)}</td><td class="n">${d.sumber[k].n}</td><td class="n">${n(d.sumber[k].t)}</td></tr>`);
+    const katRows = Object.keys(d.kategori).sort((a, b2) => d.kategori[b2].t - d.kategori[a].t).map(k => `<tr><td>${esc(k)}</td><td class="n">${d.kategori[k].n}</td><td class="n">${n(d.kategori[k].t)}</td></tr>`);
+    // piutang (semua periode)
+    const unpaid = INCOME.filter(r => !isLangsung(r) && r.Status !== 'Lunas');
+    const B = [['Current month', 0, 0], ['0–30 days', 0, 0], ['31–60 days', 0, 0], ['61–90 days', 0, 0], ['> 90 days', 0, 0]];
+    unpaid.forEach(r => { const u = Number(r.Umur || 0), i = r.Berjalan ? 0 : u <= 30 ? 1 : u <= 60 ? 2 : u <= 90 ? 3 : 4; B[i][1] += Number(r.Nominal || 0); B[i][2]++; });
+    const per = {};
+    unpaid.forEach(r => { const k = r.Pelanggan || '(no name)'; per[k] = (per[k] || 0) + Number(r.Nominal || 0); });
+    const top = Object.entries(per).sort((a, b2) => b2[1] - a[1]).slice(0, 6);
+    // agreement & permintaan invoice
+    const agAct = AGR.filter(a => agrActiveIn(a, p));
+    const exp = agAct.filter(a => a.Selesai <= ymLast(p) || Math.round((new Date(a.Selesai + 'T00:00') - new Date(ymLast(p) + 'T00:00')) / 864e5) <= 30);
+    const invP = INV.filter(v => v.Periode === p);
+    const invSt = v => { const st = invStatus(v); return st.k === 'tunggu' ? 'Awaiting Finance invoice' : st.k === 'lunas' ? 'Paid' : st.k === 'lewat' ? 'Overdue' : st.t.startsWith('Sebagian') ? 'Partially paid' : 'Unpaid'; };
+    $('print-area').innerHTML = `<div class="mr-doc">
+      <div class="mr-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:26px"><div style="text-align:right"><div class="mr-h">MONTHLY FINANCIAL REPORT</div><div class="mr-s">Transport Department · ${esc(perEN)}</div></div></div>
+      <table class="mr-k"><tr>
+        ${kpi('Income received', ti, dl(ti, prev && prev.income, true))}
+        ${kpi('Income unpaid', tp, dl(tp, prev && prev.piutang, false))}
+        ${kpi('Expenses', te, dl(te, prev && prev.expense, false))}
+        ${kpi('Net (income − expenses)', net, dl(net, prev && prev.income + prev.piutang - prev.expense, true))}
+      </tr></table>
+      ${d.prMenunggu ? `<div class="mr-note">${d.prMenunggu} purchase request(s) / work order(s) are still awaiting the final amount and are not yet included in expenses.</div>` : ''}
+      <h3>Income vs expenses, last ${m.length} months</h3>${chart}
+      ${tbl(['Month', 'Paid', 'Unpaid', 'Expenses', 'Net'], trendRows)}
+      <h3>By division, ${esc(perEN)}</h3>
+      ${tbl(['Division', 'Paid', 'Unpaid', 'Expenses', 'Net'], divRows, `<tfoot><tr><td>Total</td><td class="n">${n(ti)}</td><td class="n">${n(tp)}</td><td class="n">${n(te)}</td><td class="n">${n(net)}</td></tr></tfoot>`)}
+      <div class="mr-pb"></div>
+      <table class="mr-2"><tr><td><h3>Income by source</h3>${tbl(['Source', 'Lines', 'Amount'], srcRows)}</td><td><h3>Expenses by category</h3>${tbl(['Category', 'Lines', 'Amount'], katRows)}</td></tr></table>
+      <h3>Outstanding receivables (all periods, as of ${esc(tglEN(today()))})</h3>
+      <table class="mr-2"><tr><td>${tbl(['Age', 'Bills', 'Amount'], B.map(x => `<tr><td>${x[0]}</td><td class="n">${x[2]}</td><td class="n">${n(x[1])}</td></tr>`), `<tfoot><tr><td>Total</td><td class="n">${unpaid.length}</td><td class="n">${n(sumNom(unpaid))}</td></tr></tfoot>`)}</td>
+        <td>${tbl(['Largest outstanding', 'Amount'], top.map(e => `<tr><td>${esc(e[0])}</td><td class="n">${n(e[1])}</td></tr>`))}</td></tr></table>
+      <h3>External rental agreements</h3>
+      <div class="mr-note" style="background:none;padding:0">${agAct.length} active agreement(s), total rental fee IDR ${n(agAct.reduce((x, a) => x + (Number(a.Nilai_Bulan) || 0), 0))} per month (before tax).${exp.length ? ' Ending within 30 days: ' + exp.map(a => esc(a.Pihak) + ' (' + esc(tglEN(a.Selesai)) + ')').join(', ') + '.' : ''}</div>
+      ${tbl(['Invoice request', 'Customer', 'Finance invoice', 'Amount (before tax)', 'Status'], invP.map(v => `<tr><td>${esc(v.No)}</td><td>${esc(v.Pihak)}</td><td>${esc(v.No_Finance || '-')}</td><td class="n">${n(v.Subtotal)}</td><td>${invSt(v)}</td></tr>`))}
+      <table class="iv2-sign" style="margin-top:22px"><tr>
+        <td>Prepared by,<div class="s">${TTD_ADMIN_SVG}</div><b>${INV_PREP_NAME}</b><br>${INV_PREP_TITLE}</td>
+        <td>Approved by,<div class="s">${TTD_HEAD_SVG}</div><b>${INV_HEAD_NAME}</b><br>${INV_HEAD_TITLE}</td>
+      </tr></table>
+      <div class="mr-foot">Generated from Transport Finance on ${esc(tglEN(today()))}. Amounts in IDR. Income is recorded before tax.</div>
+    </div>`;
+    setPageSize('A4 portrait');
+    printAs('Transport Monthly Report ' + perEN);
+  } catch (e) { toast('Gagal: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Laporan PDF'; }
+}
+
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
 function toggleNav(on) {
@@ -6563,6 +6666,79 @@ async function availPdf() {
     const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
     const a = document.createElement('a');
     a.href = url; a.download = `Available EV ${today()}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  } catch (e) {
+    toast('Gagal membuat PDF: ' + e.message);
+  } finally {
+    b.disabled = false; b.textContent = 'Download PDF';
+  }
+}
+
+// ---------- DOWNLOAD DATA KENDARAAN (tanpa harga / tagihan) ----------
+function unitGroups() {
+  const rows = alFiltered();
+  const g = {}, canon = {};
+  rows.forEach(u => { const n = String(u.Department || '').trim() || '(No department)', lk = n.toLowerCase(); canon[lk] = canon[lk] || n; (g[canon[lk]] = g[canon[lk]] || []).push(u); });
+  const keys = Object.keys(g).sort((a, b) => (a[0] === '(') - (b[0] === '(') || a.localeCompare(b));
+  keys.forEach(k => g[k].sort((a, b) => String(a.Type).localeCompare(String(b.Type)) || String(a.Code).localeCompare(String(b.Code), undefined, { numeric: true })));
+  return { rows, g, keys };
+}
+const unitCondEn = c => ({ Good: 'Good', Maintenance: 'Maintenance', Broken: 'Damaged' })[alCond(c)] || (c || '');
+const unitNote = u => [u.Note, u.Detail].filter(Boolean).join(' · ');
+const unitFilterTxt = () => [['al-cat', 'Category'], ['al-dept', 'Department'], ['al-status', 'Status'], ['al-cond', 'Condition']].map(([id, l]) => $(id).value ? l + ': ' + $(id).value : '').concat($('al-cari').value.trim() ? ['Search: ' + $('al-cari').value.trim()] : []).filter(Boolean).join(' · ');
+function exportUnits() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const { rows, g, keys } = unitGroups();
+  if (!rows.length) return toast('Tidak ada unit sesuai filter');
+  const H = a => a.map(v => v[0] === '>' ? { v: v.slice(1), s: 'hr' } : { v, s: 'h' });
+  const types = [...new Set(rows.map(u => String(u.Type || '-')))].sort();
+  const S = [[{ v: 'EV Allocation - Vehicle List', s: 'title' }], [{ v: 'Transport Department · ' + fmtTgl(today()) + (unitFilterTxt() ? ' · ' + unitFilterTxt() : ''), s: 'sub' }], [],
+    H(['Department', '>Total', ...types.map(t => '>' + t)])];
+  keys.forEach(k => S.push([k, { v: g[k].length, s: 'int' }, ...types.map(t => { const n = g[k].filter(u => String(u.Type || '-') === t).length; return n ? { v: n, s: 'int' } : ''; })]));
+  S.push([{ v: 'Total', s: 'b' }, { v: rows.length, s: 'int' }, ...types.map(t => ({ v: rows.filter(u => String(u.Type || '-') === t).length, s: 'int' }))]);
+  const D = [[{ v: 'EV Allocation - Units', s: 'title' }], [], H(['Department', 'Unit code', 'Vehicle type', 'PIC', 'Status', 'Condition', 'Sticker', 'Note'])];
+  keys.forEach(k => g[k].forEach(u => D.push([k, u.Code, u.Type || '', u.PIC || '', u.Status || '', unitCondEn(u.Condition), u.Sticker || '', unitNote(u)])));
+  const blob = buildXlsx([
+    { name: 'Summary', cols: [30, 8, ...types.map(() => 14)], rows: S, freeze: 4 },
+    { name: 'Units', cols: [28, 13, 26, 20, 14, 13, 10, 44], rows: D, freeze: 3, filter: `A3:H${D.length}` }
+  ]);
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `EV_Allocation_${today()}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+async function unitsPdf() {
+  if (!ALLOC_LOADED) return toast('Data alokasi belum dimuat');
+  const { rows, g, keys } = unitGroups();
+  if (!rows.length) return toast('Tidak ada unit sesuai filter');
+  const b = $('btn-unit-pdf');
+  b.disabled = true; b.textContent = 'Membuat PDF...';
+  try {
+    const cnt = {};
+    rows.forEach(u => { const c = alCond(u.Condition) || 'Good'; cnt[c] = (cnt[c] || 0) + 1; });
+    $('print-area').innerHTML = `<div class="rs-doc">
+      <div class="rs-head">
+        <div>${logoTag()}<h1>EV Allocation – Vehicle List</h1><div class="p-sub">Transport Department${unitFilterTxt() ? ' &middot; ' + esc(unitFilterTxt()) : ''}</div></div>
+        <div class="rs-meta">Printed: <b>${esc(fmtTgl(today()))}</b></div>
+      </div>
+      <div class="rs-kpi">
+        <div><div class="l">Total units</div><div class="v">${rows.length}</div></div>
+        <div><div class="l">Departments</div><div class="v">${keys.filter(k => k[0] !== '(').length}</div></div>
+        <div><div class="l">Good condition</div><div class="v">${cnt.Good || 0}</div></div>
+        <div><div class="l">Maintenance / damaged</div><div class="v">${(cnt.Maintenance || 0) + (cnt.Broken || 0)}</div></div>
+      </div>
+      ${keys.map(k => `<div class="rs-dh"><b>${esc(k)}</b><span>${g[k].length} unit${g[k].length === 1 ? '' : 's'}</span></div>
+        <table class="rs-tbl"><thead><tr><th style="width:12%">Unit code</th><th style="width:20%">Vehicle type</th><th style="width:16%">PIC</th><th style="width:11%">Status</th><th style="width:11%">Condition</th><th style="width:8%">Sticker</th><th>Note</th></tr></thead><tbody>
+        ${g[k].map(u => `<tr><td><b>${esc(u.Code)}</b></td><td>${esc(u.Type || '-')}</td><td>${esc(u.PIC || '-')}</td><td>${esc(u.Status || '-')}</td><td>${esc(unitCondEn(u.Condition) || '-')}</td><td>${esc(u.Sticker || '')}</td><td>${esc(unitNote(u))}</td></tr>`).join('')}
+        </tbody></table>`).join('')}
+      <div class="rs-foot">Source: Buggy Allocation sheet. This list shows vehicle data only, without rental prices or billing.</div>
+    </div>`;
+    setPageSize('A4 portrait');
+    const pdf = await makePrintPdf((i, n) => b.textContent = `Membuat PDF ${i}/${n}...`);
+    const url = URL.createObjectURL(new Blob([pdf.bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `EV Allocation ${today()}.pdf`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
   } catch (e) {
@@ -9064,6 +9240,7 @@ async function loadSummary() {
     ]);
     if (!INCOME_LOADED) loadIncome();   // untuk grafik umur tagihan
 
+    LAST_SUM = { p, d };
     // Per divisi
     let ti = 0, tp = 0, te = 0;
     const keys = Object.keys(d.divisi);
