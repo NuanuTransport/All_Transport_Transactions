@@ -601,6 +601,23 @@ body.has-sb .sb-t{color:#a9c7bd;font-size:12px;font-weight:500}
 body.viewer [data-edit]{display:none!important}
 @media(max-width:600px){ .kpis .kpi{grid-template-columns:1fr} .kpis .kpi-ic{display:none} .kpis .kpi .spark{grid-column:1} body.has-sb .hdr-time{display:none} }
 @media(max-width:640px){ body.has-sb header>div:nth-child(3){flex:0 0 auto} body.has-sb header>div:nth-child(4){flex:1;min-width:0} body.has-sb #btn-refresh{margin-left:0} }
+
+#print-area .iv2-doc{font-family:Inter,Arial,sans-serif;font-size:11px;color:#111;line-height:1.45}
+#print-area .iv2-top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1e5246;padding-bottom:10px}
+#print-area .iv2-h{font-size:26px;font-weight:800;letter-spacing:2px;color:#1e5246}
+#print-area .iv2-from{margin:10px 0 14px;color:#374151}
+#print-area .iv2-meta{width:100%;border-collapse:collapse;margin-bottom:14px}#print-area .iv2-meta>tbody>tr>td{vertical-align:top;width:50%;border:0;padding:0}
+#print-area .iv2-meta .lb{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:#6b7280;margin-bottom:3px}
+#print-area .iv2-meta td.r{text-align:right}#print-area .iv2-kv{margin-left:auto;border-collapse:collapse}#print-area .iv2-kv td{border:0;padding:1px 0 1px 14px;text-align:left}#print-area .iv2-kv td:first-child{color:#6b7280}
+#print-area .iv2-items{width:100%;border-collapse:collapse}#print-area .iv2-items th{background:#1e5246;color:#fff;padding:7px 8px;text-align:left;font-size:10px}
+#print-area .iv2-items td{border-bottom:1px solid #e5e7eb;padding:7px 8px;vertical-align:top}#print-area .iv2-items .n{text-align:right;white-space:nowrap}#print-area .iv2-items .sub{color:#6b7280;font-size:9.5px}
+#print-area .iv2-tot{width:62%;margin:8px 0 0 auto;border-collapse:collapse}#print-area .iv2-tot td{padding:4px 8px;border:0}#print-area .iv2-tot td:last-child{text-align:right;white-space:nowrap}
+#print-area .iv2-tot tr.g td{border-top:2px solid #1e5246;font-weight:800;font-size:13px;padding-top:7px}#print-area .iv2-tot tr.b td{font-weight:700;background:#f0f7f4}
+#print-area .iv2-words{margin:10px 0;color:#374151}
+#print-area .iv2-pay{border:1px solid #d1d5db;border-radius:6px;padding:9px 11px;margin-top:8px}
+#print-area .iv2-sign{width:100%;margin-top:26px;border-collapse:collapse;break-inside:avoid}#print-area .iv2-sign td{width:50%;text-align:center;border:0;vertical-align:top}
+#print-area .iv2-sign .s{height:62px;display:flex;align-items:center;justify-content:center}#print-area .iv2-sign .s svg{height:56px;width:auto}
+.sewa-agr td{background:#f8faff}
 </style>
 <style id="page-size"></style>
 </head>
@@ -1394,6 +1411,12 @@ body.viewer [data-edit]{display:none!important}
         <button class="btn" style="margin:0" id="btn-agr-new" onclick="openAgr()">+ Agreement baru</button>
       </div>
     </div>
+    <div class="subnav" id="sub-agr">
+      <button data-s="daftar" class="active" onclick="setSub('agr','daftar')">Daftar Agreement</button>
+      <button data-s="invoice" onclick="setSub('agr','invoice')">Permintaan Invoice<span class="badge hidden" id="inv-badge"></span></button>
+      <button data-s="cek" onclick="setSub('agr','cek')">Cek Alokasi<span class="badge hidden" id="agrcek-badge"></span></button>
+    </div>
+    <div class="sub" data-g="agr" data-s="daftar">
     <div class="stats" id="agr-stats"></div>
     <div class="card">
       <div class="filters">
@@ -1405,6 +1428,35 @@ body.viewer [data-edit]{display:none!important}
         <tbody id="agr-body"><tr><td colspan="7" class="muted">Belum dimuat</td></tr></tbody>
       </table></div>
       <div class="muted" style="margin-top:8px">Nilai per bulan sesuai perjanjian (lihat kolom pajak, sebagian belum termasuk PPN 11%). Status dihitung dari tanggal mulai dan selesai.</div>
+    </div>
+    </div>
+
+    <div class="sub hidden" data-g="agr" data-s="invoice">
+      <div class="stats" id="inv-stats"></div>
+      <div class="card">
+        <div class="card-head" style="flex-wrap:wrap;gap:8px">
+          <div><h2>Permintaan invoice ke Finance</h2><div class="muted">Invoice resmi, termasuk pajak (PPN / PPh), diterbitkan dan ditentukan team Finance Nuanu. Transport membuat permintaan berisi rincian sewa sesuai agreement, lalu mengisi nomor invoice dari Finance. Setiap permintaan otomatis tercatat di Income (nilai sewa sebelum pajak) sebagai Belum dibayar.</div></div>
+          <button class="btn" style="margin:0" id="btn-inv-new" data-edit onclick="openInv()">+ Buat permintaan</button>
+        </div>
+        <div class="filters">
+          <input type="month" id="inv-per" onchange="renderInv()" title="Periode">
+          <select id="inv-f" onchange="renderInv()"><option value="">Semua status</option><option value="tunggu">Menunggu invoice Finance</option><option value="belum">Belum dibayar</option><option value="lewat">Lewat jatuh tempo</option><option value="lunas">Lunas</option></select>
+        </div>
+        <div class="tablewrap"><table>
+          <thead><tr><th>No. permintaan / invoice Finance</th><th>Ditagihkan ke</th><th>Periode</th><th>Jatuh tempo</th><th class="num">Nilai sewa (sebelum pajak)</th><th>Status</th><th></th></tr></thead>
+          <tbody id="inv-body"><tr><td colspan="7" class="muted">Belum dimuat</td></tr></tbody>
+        </table></div>
+        <div class="muted" style="margin-top:8px">Setelah Finance konfirmasi pembayaran masuk, tandai lunas dari tombol Bayar.</div>
+        <div id="inv-todo" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <div class="sub hidden" data-g="agr" data-s="cek">
+      <div class="card">
+        <h2>Kecocokan agreement dengan Alokasi EV</h2>
+        <div class="muted">Unit yang kode unitnya tercantum di agreement aktif ditagih lewat invoice dengan harga agreement, dan tidak ikut tagihan sewa departemen dari alokasi (mulai Nov 2026). Isi kolom <b>Kode unit</b> di agreement supaya unitnya terhubung.</div>
+        <div id="agrcek-body" style="margin-top:12px"><div class="muted">Memuat...</div></div>
+      </div>
     </div>
   </section>
 
@@ -1660,6 +1712,49 @@ body.viewer [data-edit]{display:none!important}
 </div>
 
 <!-- MODAL BATCH PEMBELIAN (MASA GUNA) -->
+<div class="modal hidden" id="inv-modal" onclick="if (event.target === this) closeInv()">
+  <div class="modal-box" style="max-width:720px">
+    <div class="modal-head"><b id="inv-title">Buat permintaan invoice</b><button class="btn sec sm" onclick="closeInv()">Tutup</button></div>
+    <label>Agreement</label>
+    <select id="iv2-agr" onchange="invAgrPick()"></select>
+    <div class="row">
+      <div><label>Periode tagihan</label><input type="month" id="iv2-per" onchange="invAgrPick(true)"></div>
+      <div><label>Tanggal permintaan</label><input type="date" id="iv2-tgl"></div>
+    </div>
+    <div class="muted" id="iv2-note" style="margin:4px 0 8px"></div>
+    <label>Rincian tagihan</label>
+    <div id="iv2-lines"></div>
+    <button class="btn sec sm" onclick="invLineAdd()">+ Tambah baris</button>
+    <div class="send-file" style="display:block;margin-top:10px" id="iv2-sum"></div>
+    <label>Catatan untuk Finance (opsional)</label>
+    <input type="text" id="iv2-cat" placeholder="Mis. periode 18 Nov – 17 Des 2026, kirim ke email pelanggan">
+    <details style="margin-top:10px" id="iv2-fin-w"><summary style="cursor:pointer;font-weight:600">Invoice dari Finance (isi setelah diterbitkan)</summary>
+      <div class="row3">
+        <div><label>No. invoice Finance</label><input type="text" id="iv2-nofin" placeholder="Nomor dari Finance"></div>
+        <div><label>Tanggal invoice</label><input type="date" id="iv2-tglfin" onchange="if(!$('iv2-due').value && this.value) $('iv2-due').value = addWorkDays(this.value, 7)"></div>
+        <div><label>Jatuh tempo</label><input type="date" id="iv2-due"></div>
+      </div>
+    </details>
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-iv2-save" onclick="saveInv()">Simpan</button>
+      <button class="btn sec" style="margin:0" onclick="saveInv(true)">Simpan &amp; PDF</button>
+      <button class="btn danger hidden" style="margin:0" id="btn-iv2-del" onclick="delInv()">Hapus</button>
+    </div>
+  </div>
+</div>
+<div class="modal hidden" id="invfin-modal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-head"><b>Invoice dari Finance</b><button class="btn sec sm" onclick="$('invfin-modal').classList.add('hidden')">Tutup</button></div>
+    <div class="send-file" style="display:block"><div id="if-title" style="font-weight:600">-</div><div class="muted" id="if-sub"></div></div>
+    <label>No. invoice Finance</label><input type="text" id="if-no" placeholder="Nomor invoice yang diterbitkan Finance">
+    <div class="row">
+      <div><label>Tanggal invoice</label><input type="date" id="if-tgl" onchange="if(!$('if-due').value && this.value) $('if-due').value = addWorkDays(this.value, 7)"></div>
+      <div><label>Jatuh tempo</label><input type="date" id="if-due"></div>
+    </div>
+    <div class="muted">Jatuh tempo terisi otomatis 7 hari kerja setelah tanggal invoice (sesuai agreement). Ubah bila Finance menetapkan lain.</div>
+    <div class="btns" style="margin-top:14px"><button class="btn" style="margin:0" id="btn-if" onclick="saveInvFin()">Simpan</button></div>
+  </div>
+</div>
 <div class="modal hidden" id="notif-modal" onclick="if (event.target === this) this.classList.add('hidden')">
   <div class="modal-box" style="max-width:520px">
     <div class="modal-head"><b>Notifikasi di perangkat ini</b><button class="btn sec sm" onclick="$('notif-modal').classList.add('hidden')">Tutup</button></div>
@@ -1830,6 +1925,12 @@ body.viewer [data-edit]{display:none!important}
         </select>
       </div>
     </div>
+    <div class="row3">
+      <div><label>Nominal dilunasi</label><input type="text" inputmode="numeric" id="py-part" oninput="pyNum(this);pyPart()"></div>
+      <div><label>Diterima di rekening</label><input type="text" inputmode="numeric" id="py-terima" oninput="pyNum(this)" placeholder="opsional"></div>
+      <div><label>Potongan pajak</label><input type="text" inputmode="numeric" id="py-pph" oninput="pyNum(this)" placeholder="info Finance, opsional"></div>
+    </div>
+    <div class="muted" id="py-part-note"></div>
     <label id="py-bukti-l">Bukti pembayaran (foto / PDF, opsional)</label>
     <input type="file" id="py-bukti" accept="image/*,application/pdf">
     <div class="muted" id="py-so-note" style="margin-top:4px"></div>
@@ -2456,6 +2557,8 @@ function setSub(group, name) {
   document.querySelectorAll(`.sub[data-g="${group}"]`).forEach(el => el.classList.toggle('hidden', el.dataset.s !== name));
   try { localStorage.setItem('tf-sub-' + group, name); } catch (e) {}
   if (group === 'income' && name === 'rental') renderRentChart();
+  if (group === 'agr' && name === 'invoice') showInvTab();
+  if (group === 'agr' && name === 'cek') ensureAgr().then(renderAgrCek);
   redrawCharts();
 }
 
@@ -3070,6 +3173,9 @@ function openIncome(id) {
     ...(!lang && r.Cara_Bayar !== 'Transfer' ? [['Sales Order', soDetail(r)]] : []),
     ...(!lang && r.Metode_Bayar ? [['Metode bayar', esc(r.Metode_Bayar)]] : []),
     ...(!lang && r.Catatan_Bayar ? [['Catatan bayar', esc(r.Catatan_Bayar)]] : []),
+    ...(r.Diterima !== '' && r.Diterima != null ? [['Diterima di rekening', rp(r.Diterima)]] : []),
+    ...(r.PPh23 ? [['Potongan pajak', rp(r.PPh23)]] : []),
+    ...(r.Induk_ID ? [['Catatan', 'Sisa dari pembayaran sebagian']] : []),
     ...(!lang ? [['Ubah', `<div class="btns" style="justify-content:flex-start"><button class="btn sec sm" style="margin:0" onclick="closeModal(); editIncome('${esc(r.Income_ID)}')">Edit</button>` +
       (r.Status === 'Lunas' ? `<button class="btn sec sm" style="margin:0" onclick="unpayIncome('${esc(r.Income_ID)}')">Batalkan lunas</button>` : '') + '</div>']] : []),
     ['Sumber data', esc(r.Sumber_Data)]
@@ -3836,6 +3942,7 @@ function alSameDept(a, b) {
 }
 
 async function loadAlloc() {
+  ensureAgr().then(() => { if (ALLOC_LOADED && typeof renderAlloc === 'function') renderAlloc(); });
   $('al-body').innerHTML = '<tr><td colspan="8" class="muted">Memuat dari sheet Buggy Allocation...</td></tr>';
   try {
     setAlloc(await apiGet({ action: 'allocList' }));
@@ -4413,6 +4520,7 @@ async function loadAgr(force) {
     AGR = d.rows || [];
     AGR_LOADED = true;
     renderAgr();
+    loadInv(force).then(() => { const t = invTodo().length; const b = $('inv-badge'); if (b && !$('inv-body').closest('.sub').classList.contains('hidden')) renderInv(); else if (b) { b.textContent = t; b.classList.toggle('hidden', !t); } });
   } catch (e) {
     $('agr-body').innerHTML = `<tr><td colspan="7" class="muted">Gagal memuat: ${esc(e.message)}</td></tr>`;
   }
@@ -4439,6 +4547,7 @@ function renderAgr() {
         ${r.File ? `<a class="btn sec sm" style="text-decoration:none" href="${esc(r.File)}" target="_blank" rel="noopener">File</a>` : ''}
         <button class="btn sec sm" onclick="openAgr('${esc(r.Agr_ID)}')">Detail</button>
         ${r.Template ? `<button class="btn sec sm" onclick="agrPdf('${esc(r.Agr_ID)}')">Dokumen</button>` : ''}
+        ${agrActiveIn(r, curYm()) && r.Nilai_Bulan > 0 ? `<button class="btn sec sm" data-edit onclick="setSub('agr','invoice');openInv(null,'${esc(r.Agr_ID)}')">Minta invoice</button>` : ''}
         <button class="btn sec sm" onclick="agrExtend('${esc(r.Agr_ID)}')" title="Buat adendum perpanjangan">Perpanjang</button>
       </div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">Tidak ada agreement</td></tr>';
 }
@@ -4897,6 +5006,305 @@ async function testNotif() {
     toast('Notifikasi tes dikirim');
   } catch (e) { toast('Gagal: ' + e.message); }
   renderNotifSet();
+}
+
+// ---------- AGREEMENT ↔ ALOKASI (harga agreement) ----------
+// Sama dengan agrPriceMap_ di Code.gs: unit yang kodenya tercantum di agreement aktif ditagih lewat invoice agreement.
+const AGR_OFF = s => ['Draft', 'Diganti', 'Dihentikan'].includes(String(s || ''));
+const agrCodesOf = r => String(r.Kode_Unit || '').split(/[,;\n]+/).map(x => x.trim()).filter(Boolean);
+const ymLast = ym => ym + '-' + String(new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0).getDate()).padStart(2, '0');
+const agrActiveIn = (a, ym) => !AGR_OFF(a.Status) && a.Mulai && a.Selesai && a.Mulai <= ymLast(ym) && a.Selesai >= ym + '-01';
+function agrUnitClass(t) {
+  t = String(t || '').toLowerCase();
+  if (/motor|bike|tyran|vfly|volta|alva|scooter/.test(t)) return 'motor';
+  if (/\b(1[3-9]|2\d)\b|bus|coaster/.test(t)) return 'bus';
+  if (/cargo|box|pick ?up|utility/.test(t)) return 'cargo';
+  return 'buggy';
+}
+function agrPickItem(items, type) {
+  if (!items.length) return null;
+  const words = x => String(x || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 1 && !/^(unit|listrik|electric|kursi|seat|seats|seater|ev)$/.test(w));
+  const tw = words(type), cls = agrUnitClass(type);
+  let best = null, bs = -1;
+  items.forEach(it => {
+    const sc = words(it.nama).filter(w => tw.includes(w)).length * 2 + (agrUnitClass(it.nama) === cls ? 3 : 0) + (it.left > 0 ? 1 : 0);
+    if (sc > bs) { bs = sc; best = it; }
+  });
+  if (best && best.left > 0) best.left--;
+  return best;
+}
+let AGR_MAP_CACHE = {};
+function agrCodeMap(ym) {
+  const sig = ym + '|' + AGR.length + '|' + AGR.map(a => a.Diubah || a.Agr_ID).join(',') + '|' + (ALLOC_LOADED ? ALLOC.units.length : 0);
+  if (AGR_MAP_CACHE[ym] && AGR_MAP_CACHE[ym].sig === sig) return AGR_MAP_CACHE[ym].map;
+  const type = {};
+  if (ALLOC_LOADED) ALLOC.units.forEach(u => { type[ucKey(u.Code)] = u.Type; });
+  const out = {};
+  AGR.forEach(a => {
+    if (!agrActiveIn(a, ym)) return;
+    const items = (agrDetail(a).items || []).map(x => ({ nama: x.nama, harga: Number(x.harga) || 0, left: Number(x.qty) || 0 }));
+    agrCodesOf(a).forEach(c => {
+      const k = ucKey(c);
+      if (out[k]) return;
+      const it = agrPickItem(items, type[k] || '');
+      out[k] = { id: a.Agr_ID, no: a.No, pihak: a.Pihak, harga: it ? it.harga : 0, item: it ? it.nama : '' };
+    });
+  });
+  AGR_MAP_CACHE[ym] = { sig, map: out };
+  return out;
+}
+const agrUnitAt = (code, ym) => (ym || curYm()) >= RENT_AGR_FROM ? agrCodeMap(ym || curYm())[ucKey(code)] || null : null;
+const RENT_AGR_FROM = '2026-11';
+async function ensureAgr() {
+  if (AGR_LOADED) return;
+  try { const d = await apiGet({ action: 'agrList' }); AGR = d.rows || []; AGR_LOADED = true; } catch (e) {}
+}
+
+// ---------- CEK ALOKASI ----------
+function renderAgrCek() {
+  if (!ALLOC_LOADED) { $('agrcek-body').innerHTML = '<div class="muted">Memuat data alokasi...</div>'; loadAlloc().then(renderAgrCek).catch(() => {}); return; }
+  const ym = curYm(), map = agrCodeMap(ym);
+  const byCode = {};
+  ALLOC.units.forEach(u => { byCode[ucKey(u.Code)] = u; });
+  const act = AGR.filter(a => agrActiveIn(a, ym) || (!AGR_OFF(a.Status) && a.Mulai > ymLast(ym)));
+  let warn = 0;
+  const html = act.map(a => {
+    const items = agrDetail(a).items || [], need = items.reduce((x, it) => x + (Number(it.qty) || 0), 0), codes = agrCodesOf(a);
+    const iss = [];
+    if (codes.length < need) iss.push(`Kode unit baru ${codes.length} dari ${need} unit. Isi kode unit yang belum ada di agreement.`);
+    const rows = codes.map(c => {
+      const u = byCode[ucKey(c)], m = map[ucKey(c)];
+      const deptOk = !u || !a.Departemen || alSameDept(u.Department, a.Departemen);
+      if (!u) iss.push(`Kode ${c} tidak ditemukan di Alokasi EV.`);
+      else if (!deptOk) iss.push(`${c} di alokasi tercatat di ${u.Department || '(tanpa departemen)'}, agreement di ${a.Departemen}.`);
+      const rule = u ? rentRule(u.Code, u.Type, u.Department, u.Status, ym) : null;
+      return `<tr><td><span class="al-code">${esc(c)}</span></td><td>${u ? esc(u.Type) : '<span class="neg">tidak ada</span>'}</td><td>${u ? esc(u.Department || '-') : '-'}</td>
+        <td>${m ? esc(m.item) : '-'}</td><td class="num">${m ? rp(m.harga) : '-'}</td><td class="num muted">${rule ? (rule.harga ? rp(rule.harga) : 'gratis') : '-'}</td></tr>`;
+    }).join('');
+    warn += iss.length;
+    return `<div class="card" style="margin:0 0 10px;box-shadow:none;border:1px solid var(--line,#e5e7eb)">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>${esc(a.Pihak)}</b> <span class="muted">· ${esc(a.No || a.Judul || '')}</span><div class="al-sub">${esc(fmtTgl(a.Mulai))} – ${esc(fmtTgl(a.Selesai))}${a.Departemen ? ' · alokasi ' + esc(a.Departemen) : ''} · ${esc(a.Unit || '')}</div></div>
+      <button class="btn sec sm" data-edit onclick="openAgr('${esc(a.Agr_ID)}')">Edit kode unit</button></div>
+      ${iss.length ? `<div class="warn-text" style="margin:8px 0">${iss.map(esc).join('<br>')}</div>` : '<div class="pos" style="margin:8px 0;font-size:13px">Semua unit terhubung.</div>'}
+      ${codes.length ? `<div class="tablewrap"><table><thead><tr><th>Kode</th><th>Jenis di alokasi</th><th>Departemen</th><th>Item agreement</th><th class="num">Harga agreement</th><th class="num">Harga aturan*</th></tr></thead><tbody>${rows}</tbody></table></div>` : ''}
+    </div>`;
+  }).join('');
+  $('agrcek-body').innerHTML = (html || '<div class="muted">Tidak ada agreement aktif.</div>') + '<div class="muted" style="margin-top:6px">*Harga aturan = yang akan ditagih lewat alokasi seandainya unit tidak terhubung ke agreement. Sekarang unit yang terhubung ditagih dengan harga agreement.</div>';
+  const b = $('agrcek-badge');
+  b.textContent = warn; b.classList.toggle('hidden', !warn);
+}
+
+// ---------- INVOICE ----------
+let INV = [], INV_LOADED = false, INV_EDIT = null;
+async function loadInv(force) {
+  if (INV_LOADED && !force) return;
+  try { const d = await apiGet({ action: 'invList' }); INV = d.rows || []; INV_LOADED = true; } catch (e) { if (force) toast('Gagal memuat invoice: ' + e.message); }
+}
+function invStatus(iv) {
+  const inc = (INCOME || []).find(x => x.Income_ID === iv.Income_ID);
+  if (inc && inc.Status !== 'Lunas' && !iv.No_Finance) return { k: 'tunggu', t: 'Menunggu invoice Finance', cls: 's2', inc };
+  if (!inc) return INCOME_LOADED ? { k: 'hilang', t: 'Income tidak ada', cls: 's0' } : { k: 'belum', t: '...', cls: 's0' };
+  const sisa = (INCOME || []).filter(x => x.Induk_ID === inc.Income_ID && x.Status !== 'Lunas');
+  if (inc.Status === 'Lunas') return sisa.length ? { k: 'belum', t: 'Sebagian, sisa ' + rp(sumNom(sisa)), cls: 's1', inc, sisa } : { k: 'lunas', t: 'Lunas ' + fmtTgl(String(inc.Tgl_Bayar || '').slice(0, 10)), cls: 's3', inc };
+  if (iv.Jatuh_Tempo && iv.Jatuh_Tempo < today()) return { k: 'lewat', t: 'Lewat jatuh tempo', cls: 's0', red: true, inc };
+  return { k: 'belum', t: 'Belum dibayar', cls: 's1', inc };
+}
+function invTodo() {
+  const ym = curYm();
+  return AGR.filter(a => agrActiveIn(a, ym) && Number(a.Nilai_Bulan) > 0 && !INV.some(v => v.Agr_ID === a.Agr_ID && v.Periode === ym));
+}
+async function showInvTab() {
+  $('inv-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+  await Promise.all([ensureAgr(), loadInv(), INCOME_LOADED ? null : loadIncome()]);
+  renderInv();
+}
+function renderInv() {
+  const per = $('inv-per').value, f = $('inv-f').value;
+  const list = INV.map(v => Object.assign({ st: invStatus(v) }, v));
+  const open = list.filter(v => ['belum', 'lewat', 'tunggu'].includes(v.st.k));
+  const wait = list.filter(v => v.st.k === 'tunggu');
+  const late = list.filter(v => v.st.k === 'lewat');
+  const ym = curYm(), thisM = list.filter(v => v.Periode === ym);
+  $('inv-stats').innerHTML = `<div class="stat"><div class="l">Tagihan ${esc(fmtPeriode(ym))}</div><div class="v">${rp(thisM.reduce((a, v) => a + v.Total, 0))}</div><div class="muted">${thisM.length} permintaan, sebelum pajak</div></div>
+    <div class="stat"><div class="l">Menunggu invoice Finance</div><div class="v ${wait.length ? 'neg' : ''}">${wait.length}</div><div class="muted">${wait.length ? 'nomor invoice belum diisi' : 'semua sudah'}</div></div>
+    <div class="stat"><div class="l">Belum dibayar</div><div class="v">${rp(open.reduce((a, v) => a + v.Total, 0))}</div><div class="muted">${open.length} tagihan</div></div>
+    <div class="stat"><div class="l">Lewat jatuh tempo</div><div class="v ${late.length ? 'neg' : ''}">${late.length}</div><div class="muted">${late.length ? rp(late.reduce((a, v) => a + v.Total, 0)) : 'tidak ada'}</div></div>`;
+  const rows = list.filter(v => (!per || v.Periode === per) && (!f || v.st.k === f));
+  $('inv-body').innerHTML = rows.map(v => `<tr>
+      <td>${v.No_Finance ? `<b>${esc(v.No_Finance)}</b><div class="al-sub">Finance ${esc(fmtTgl(v.Tgl_Finance))} · ${esc(v.No)}</div>` : `<b>${esc(v.No)}</b><div class="al-sub">permintaan ${esc(fmtTgl(v.Tanggal))}</div>`}</td>
+      <td>${esc(v.Pihak)}<div class="al-sub">${esc(((AGR.find(a => a.Agr_ID === v.Agr_ID) || {}).No) || '')}</div></td>
+      <td>${esc(fmtPeriode(v.Periode))}</td>
+      <td class="nw ${v.st.red ? 'neg' : ''}">${v.Jatuh_Tempo ? esc(fmtTgl(v.Jatuh_Tempo)) : '<span class="muted">-</span>'}</td>
+      <td class="num">${rp(v.Subtotal)}</td>
+      <td><span class="kd-st ${v.st.cls}" style="${v.st.red ? 'color:#dc2626' : ''}">${esc(v.st.t)}</span></td>
+      <td><div class="btns" style="flex-wrap:wrap;gap:6px;width:190px">
+        <button class="btn sec sm" onclick="invPdf('${esc(v.Inv_ID)}')">PDF</button>
+        <button class="btn ${v.No_Finance ? 'sec' : ''} sm" data-edit onclick="openInvFin('${esc(v.Inv_ID)}')">${v.No_Finance ? 'No. Finance' : 'Isi no. Finance'}</button>
+        ${v.st.k !== 'lunas' && v.st.inc && v.st.inc.Status !== 'Lunas' ? `<button class="btn ok sm" data-edit onclick="payIncome('${esc(v.Income_ID)}')">Bayar</button><button class="btn sec sm" data-edit onclick="openInv('${esc(v.Inv_ID)}')">Edit</button>` : ''}
+        ${v.st.sisa && v.st.sisa.length ? `<button class="btn ok sm" data-edit onclick="payIncome('${esc(v.st.sisa[0].Income_ID)}')">Bayar sisa</button>` : ''}
+      </div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">Belum ada permintaan invoice</td></tr>';
+  const todo = invTodo();
+  $('inv-todo').innerHTML = todo.length ? `<div class="warn-text" style="margin-bottom:6px"><b>Belum dibuatkan permintaan invoice ${esc(fmtPeriode(ym))}:</b></div>` +
+    todo.map(a => `<div class="rm-line" style="cursor:default"><span class="rm-dot" style="background:#c2410c"></span><div class="rm-t"><b>${esc(a.Pihak)}</b><div class="muted">${esc(a.No || '')} · ${rp(a.Nilai_Bulan)}/bulan</div></div><button class="btn sm" data-edit onclick="openInv(null,'${esc(a.Agr_ID)}')">Buat permintaan</button></div>`).join('') : '';
+  const b = $('inv-badge');
+  b.textContent = todo.length + late.length + wait.length; b.classList.toggle('hidden', !(todo.length + late.length + wait.length));
+}
+function openInvFin(id) {
+  const v = INV.find(x => x.Inv_ID === id);
+  if (!v) return;
+  INV_EDIT = id;
+  $('if-title').textContent = v.Pihak + ' · ' + fmtPeriode(v.Periode);
+  $('if-sub').textContent = 'Permintaan ' + v.No + ' · nilai sewa ' + rp(v.Subtotal);
+  $('if-no').value = v.No_Finance || '';
+  $('if-tgl').value = v.Tgl_Finance || '';
+  $('if-due').value = v.Jatuh_Tempo || '';
+  $('invfin-modal').classList.remove('hidden');
+}
+async function saveInvFin() {
+  const b = $('btn-if');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const r = await apiPost('setInvFinance', { Inv_ID: INV_EDIT, No_Finance: $('if-no').value.trim(), Tgl_Finance: $('if-tgl').value, Jatuh_Tempo: $('if-due').value });
+    INV = r.rows || INV; if (r.income) setIncome(r.income);
+    $('invfin-modal').classList.add('hidden');
+    renderInv();
+    toast('Nomor invoice Finance disimpan');
+  } catch (e) { toast('Gagal: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Simpan'; }
+}
+// form
+function invLineRow(x) {
+  x = x || {};
+  return `<div class="row3 iv2-line" style="grid-template-columns:2.2fr .6fr 1fr auto;align-items:end">
+    <div><input type="text" class="iv2-ket" placeholder="Keterangan" value="${esc(x.ket || '')}" oninput="invSum()"></div>
+    <div><input type="number" class="iv2-qty" min="0" step="any" placeholder="Qty" value="${esc(x.qty == null ? 1 : x.qty)}" oninput="invSum()"></div>
+    <div><input type="text" inputmode="numeric" class="iv2-harga" placeholder="Harga / unit" value="${x.harga ? Math.round(x.harga).toLocaleString('id-ID') : ''}" oninput="pyNum(this);invSum()"></div>
+    <div><button class="btn sec sm" style="margin:0 0 8px" onclick="this.closest('.iv2-line').remove();invSum()">Hapus</button></div>
+  </div>`;
+}
+function invLineAdd(x) { $('iv2-lines').insertAdjacentHTML('beforeend', invLineRow(x)); invSum(); }
+function invLines() {
+  return [...document.querySelectorAll('#iv2-lines .iv2-line')].map(el => ({ ket: el.querySelector('.iv2-ket').value.trim(), qty: Number(el.querySelector('.iv2-qty').value) || 0, harga: Number(el.querySelector('.iv2-harga').value.replace(/[^\d]/g, '')) || 0 })).filter(x => x.ket && x.qty > 0);
+}
+function invCalc(lines, mode, pph) {
+  const sub = lines.reduce((a, x) => a + Math.round(x.qty * x.harga), 0);
+  let dpp = sub, ppn = 0, total = sub;
+  if (mode === 'exclude') { ppn = Math.round(sub * 0.11); total = sub + ppn; }
+  else if (mode === 'include') { dpp = Math.round(sub / 1.11); ppn = sub - dpp; total = sub; }
+  return { sub, dpp, ppn, total, pph23: pph ? Math.round(dpp * 0.02) : 0 };
+}
+function invSum() {
+  const c = invCalc(invLines(), 'none', false);
+  $('iv2-sum').innerHTML = `<div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px"><span>Nilai sewa</span><span>${rp(c.sub)}</span></div>
+    <div class="muted" style="margin-top:4px">Sebelum pajak. PPN / PPh ditentukan team Finance saat menerbitkan invoice. Nilai ini yang tercatat di Income.</div>`;
+}
+function addWorkDays(ymd, n) { const t = new Date(ymd + 'T00:00'); while (n > 0) { t.setDate(t.getDate() + 1); if (t.getDay() !== 0 && t.getDay() !== 6) n--; } return isoOf(t); }
+
+function invAgrPick(keepLines) {
+  const a = AGR.find(x => x.Agr_ID === $('iv2-agr').value);
+  if (!a) return;
+  const ym = $('iv2-per').value || curYm();
+  const pj = String(a.Pajak || '');
+  const first = ym + '-01', last = ymLast(ym), dim = Number(last.slice(8));
+  const s0 = a.Mulai > first ? a.Mulai : first, e0 = a.Selesai < last ? a.Selesai : last;
+  const days = s0 > e0 ? 0 : Math.round((new Date(e0 + 'T00:00') - new Date(s0 + 'T00:00')) / 864e5) + 1;
+  const pr = days > 0 && days < dim;
+  $('iv2-note').innerHTML = `${esc(a.Pihak)} · ${esc(a.No || '')} · masa sewa ${esc(fmtTgl(a.Mulai))} – ${esc(fmtTgl(a.Selesai))}${pj ? ' · catatan pajak di agreement: ' + esc(pj) : ''}` +
+    (days === 0 ? '<br><span class="neg">Agreement tidak aktif di periode ini.</span>' : pr ? `<br><span class="neg">Periode ini hanya ${days} dari ${dim} hari, harga dihitung prorata. Ubah bila perlu.</span>` : '');
+  if (!keepLines || !INV_EDIT) {
+    $('iv2-lines').innerHTML = '';
+    (agrDetail(a).items || []).forEach(it => invLineAdd({ ket: it.nama + (pr ? ` (prorata ${days}/${dim} hari)` : ''), qty: it.qty, harga: pr ? Math.round(it.harga * days / dim) : it.harga }));
+    if (!$('iv2-lines').children.length) invLineAdd();
+  }
+  invSum();
+}
+async function openInv(id, agrId) {
+  await Promise.all([ensureAgr(), loadInv()]);
+  const v = id ? INV.find(x => x.Inv_ID === id) : null;
+  INV_EDIT = v ? v.Inv_ID : null;
+  $('inv-title').textContent = v ? 'Edit permintaan ' + v.No : 'Buat permintaan invoice';
+  const ym = v ? v.Periode : curYm();
+  const cand = AGR.filter(a => !AGR_OFF(a.Status) && Number(a.Nilai_Bulan) > 0).sort((x, y) => String(x.Pihak).localeCompare(String(y.Pihak)));
+  $('iv2-agr').innerHTML = cand.map(a => `<option value="${esc(a.Agr_ID)}">${esc(a.Pihak + (a.No ? ' · ' + a.No : ''))}${agrActiveIn(a, ym) ? '' : ' (tidak aktif bulan ini)'}</option>`).join('');
+  $('iv2-agr').disabled = !!v;
+  $('iv2-agr').value = v ? v.Agr_ID : agrId || (invTodo()[0] || cand[0] || {}).Agr_ID || '';
+  $('iv2-per').value = ym;
+  $('iv2-per').disabled = !!v;
+  $('iv2-tgl').value = v ? v.Tanggal : today();
+  $('iv2-due').value = v ? v.Jatuh_Tempo || '' : '';
+  $('iv2-nofin').value = v ? v.No_Finance || '' : '';
+  $('iv2-tglfin').value = v ? v.Tgl_Finance || '' : '';
+  $('iv2-fin-w').open = !!(v && v.No_Finance);
+  $('iv2-cat').value = v ? v.Catatan || '' : '';
+  if (v) {
+    $('iv2-lines').innerHTML = '';
+    v.Rincian.forEach(x => invLineAdd(x));
+    invAgrPick(true);
+  } else invAgrPick();
+  $('btn-iv2-del').classList.toggle('hidden', !v || !document.body.classList.contains('head'));
+  $('inv-modal').classList.remove('hidden');
+}
+function closeInv() { $('inv-modal').classList.add('hidden'); }
+async function saveInv(pdf) {
+  const d = { Inv_ID: INV_EDIT || '', Agr_ID: $('iv2-agr').value, Periode: $('iv2-per').value, Tanggal: $('iv2-tgl').value, Jatuh_Tempo: $('iv2-due').value,
+    Rincian: invLines(), Catatan: $('iv2-cat').value.trim(), No_Finance: $('iv2-nofin').value.trim(), Tgl_Finance: $('iv2-tglfin').value };
+  if (!d.Agr_ID) return toast('Pilih agreement');
+  if (!d.Periode) return toast('Isi periode');
+  if (!d.Rincian.length) return toast('Isi rincian tagihan');
+  const b = $('btn-iv2-save');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const r = await apiPost('saveInvoice', d);
+    INV = r.rows || INV; INV_LOADED = true;
+    if (r.income) setIncome(r.income);
+    closeInv();
+    toast('Permintaan invoice disimpan dan tercatat di Income');
+    renderInv();
+    if (pdf) invPdf(r.id);
+  } catch (e) { toast('Gagal: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Simpan'; }
+}
+async function delInv() {
+  const v = INV.find(x => x.Inv_ID === INV_EDIT);
+  if (!v || !confirm(`Hapus permintaan invoice ${v.No}? Tagihan di Income ikut dihapus.`)) return;
+  try { const r = await apiPost('deleteInvoice', { Inv_ID: v.Inv_ID }); INV = r.rows || []; if (r.income) setIncome(r.income); closeInv(); renderInv(); toast('Invoice dihapus'); }
+  catch (e) { toast('Gagal: ' + e.message); }
+}
+// PDF permintaan invoice ke Finance (bahasa Inggris)
+function invPdf(id) {
+  const v = INV.find(x => x.Inv_ID === id);
+  if (!v) return toast('Permintaan invoice tidak ditemukan');
+  const a = AGR.find(x => x.Agr_ID === v.Agr_ID) || {};
+  const per = (() => { const [y, m] = v.Periode.split('-').map(Number); return BULAN_EN[m - 1] + ' ' + y; })();
+  const words = n => (enWords(n) + ' Rupiah').replace(/\s+/g, ' ').replace(/^./, c => c.toUpperCase());
+  $('print-area').innerHTML = `<div class="iv2-doc">
+    <div class="iv2-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:30px"><div class="iv2-h" style="font-size:20px">INVOICE REQUEST</div></div>
+    <div class="iv2-from"><b>To:</b> Finance Department, PT Wooden Fish Village<br><b>From:</b> Transport Department<br>Please issue an invoice to the customer below for the electric vehicle rental under the referenced agreement.</div>
+    <table class="iv2-meta"><tr>
+      <td><div class="lb">Customer (bill to)</div><b>${esc(v.Pihak)}</b>${a.Alamat ? '<br>' + esc(a.Alamat) : ''}${a.Wakil && a.Bentuk !== 'Perorangan' ? '<br>Attn: ' + esc(a.Wakil) + (a.Jabatan ? ', ' + esc(agrJabEN(a.Jabatan)) : '') : ''}${a.Email ? '<br>' + esc(a.Email) : ''}</td>
+      <td class="r"><table class="iv2-kv">
+        <tr><td>Request No.</td><td><b>${esc(v.No)}</b></td></tr>
+        <tr><td>Request date</td><td>${esc(tglEN(v.Tanggal))}</td></tr>
+        <tr><td>Billing period</td><td>${esc(per)}</td></tr>
+        ${a.Mulai ? `<tr><td>Rental term</td><td>${esc(tglEN(a.Mulai))} – ${esc(tglEN(a.Selesai))}</td></tr>` : ''}
+        ${a.No ? `<tr><td>Agreement ref.</td><td>${esc(a.No)}</td></tr>` : ''}
+      </table></td></tr></table>
+    <table class="iv2-items"><thead><tr><th style="width:28px">No</th><th>Description</th><th class="n" style="width:50px">Qty</th><th class="n" style="width:120px">Unit price (IDR)</th><th class="n" style="width:130px">Amount (IDR)</th></tr></thead>
+      <tbody>${v.Rincian.map((x, i) => `<tr><td>${i + 1}</td><td>Electric vehicle rental – ${esc(agrUnitEN(x.ket))}<div class="sub">${esc(per)}</div></td><td class="n">${x.qty}</td><td class="n">${Math.round(x.harga).toLocaleString('en-US')}</td><td class="n">${Math.round(x.qty * x.harga).toLocaleString('en-US')}</td></tr>`).join('')}</tbody>
+    </table>
+    <table class="iv2-tot">
+      <tr class="g"><td>TOTAL RENTAL FEE</td><td>IDR ${v.Subtotal.toLocaleString('en-US')}</td></tr>
+      <tr><td colspan="2" style="text-align:right;color:#6b7280;font-size:10px;padding-top:0">Note: The price is exclude tax</td></tr>
+    </table>
+    <div class="iv2-words">In words: <i>${esc(words(v.Subtotal))}</i></div>
+    ${v.Catatan ? `<div class="iv2-words">Note: ${esc(v.Catatan)}</div>` : ''}
+    <table class="iv2-sign"><tr>
+      <td>Requested by,<div class="s">${TTD_ADMIN_SVG}</div><b>${INV_PREP_NAME}</b><br>${INV_PREP_TITLE}</td>
+      <td>Approved by,<div class="s">${TTD_HEAD_SVG}</div><b>${INV_HEAD_NAME}</b><br>${INV_HEAD_TITLE}</td>
+    </tr></table>
+  </div>`;
+  setPageSize('A4 portrait');
+  printAs('Invoice Request ' + v.No.replace(/\//g, '-') + ' ' + v.Pihak);
 }
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
@@ -5927,6 +6335,8 @@ const RENT_NOCHARGE_DEPT = /^\s*luna\s*resident|^\s*npg\b|mr\.?\s*serg|site\s*op
 const RENT_RENT_ONLY_DEPT = /^\s*nre\s*$/i;
 function rentTariff(code, type, dept, status, ym) {
   ym = ym || curYm();
+  const ag = agrUnitAt(code, ym);
+  if (ag) return { harga: 0, src: 'agr', agr: ag, note: 'Ditagih lewat invoice agreement ' + (ag.no || ag.pihak) + ' (' + rp(ag.harga) + '/bulan)' };
   const man = sewaManual(code, dept, ym);
   if (man) return man;
   const r = rentRule(code, type, dept, status, ym);
@@ -6208,6 +6618,8 @@ function sewaVal(u) {
     since: !SEWA_DIRTY[k] && saved && !moved && String(saved.Mulai || '') !== AL_YM ? (saved.Mulai || '*') : '' };
 }
 function sewaEff(u) {
+  const ag = agrUnitAt(u.Code, AL_YM);
+  if (ag) return { harga: 0, man: false, agr: ag };
   const v = sewaVal(u);
   if (v.e) {
     if (v.bayar === 'Tidak') return { harga: 0, man: true };
@@ -6250,6 +6662,9 @@ function renderSewa() {
       const v = sewaVal(u), key = ucKey(u.Code), r = rentRule(u.Code, u.Type, u.Department, u.Status, AL_YM);
       if (v.bayar === 'Ya') nYa++; else if (v.bayar === 'Tidak') nNo++; else if (v.harga === '') nKosong++;
       const ph = r ? (r.harga ? 'aturan: ' + r.harga.toLocaleString('id-ID') : 'aturan: gratis') : 'belum ada tarif';
+      const ag = agrUnitAt(u.Code, AL_YM);
+      if (ag) return `<tr data-k="${esc(key)}" class="sewa-agr"><td><span class="al-code">${esc(u.Code)}</span></td><td>${esc(u.Type)}</td><td>${alStatusTag(u.Status)}</td><td>${esc(u.PIC) || '<span class="muted">-</span>'}</td>
+        <td colspan="4"><span class="kd-st s2">Agreement</span> Ditagih lewat invoice <b>${esc(ag.pihak)}</b>${ag.no ? ' (' + esc(ag.no) + ')' : ''}: ${rp(ag.harga)}/bulan · tidak masuk tagihan departemen</td></tr>`;
       const ka = esc(key).replace(/'/g, "\\'"), dis = ed ? '' : 'disabled';
       return `<tr data-k="${esc(key)}" class="${SEWA_DIRTY[key] ? 'sewa-dirty' : ''}">
         <td><span class="al-code">${esc(u.Code)}</span>${u.Sticker ? `<div class="al-sub">Stiker ${esc(u.Sticker)}</div>` : ''}${v.moved ? `<div class="al-sub neg">Harga diisi saat di ${esc(v.saved.Departemen)}</div>` : ''}</td>
@@ -6262,7 +6677,8 @@ function renderSewa() {
         <td><input type="text" value="${esc(v.cat)}" ${dis} oninput="sewaEdit('${ka}', 'Catatan', this)" placeholder="${r && r.note && !v.cat ? esc(r.note) : ''}" style="margin:0"></td>
       </tr>`;
     }).join('');
-    return `<tr class="sewa-grp"><td colspan="8"><b>${esc(k)}</b> <span class="muted">· ${us.length} unit</span><span style="float:right" data-sub="${esc(k)}">${sub ? '<b>' + rp(sub) + '</b> / bulan' : '<span class="muted">tidak bayar</span>'}</span></td></tr>` + lines;
+    const agN = us.filter(u => agrUnitAt(u.Code, AL_YM)).length;
+    return `<tr class="sewa-grp"><td colspan="8"><b>${esc(k)}</b> <span class="muted">· ${us.length} unit${agN ? ' · ' + agN + ' lewat agreement' : ''}</span><span style="float:right" data-sub="${esc(k)}">${sub ? '<b>' + rp(sub) + '</b> / bulan' : '<span class="muted">' + (agN === us.length ? 'ditagih lewat invoice agreement' : 'tidak bayar') + '</span>'}</span></td></tr>` + lines;
   }).join('');
   $('al-sewa-body').innerHTML = html ? html + `<tr class="total"><td colspan="4">${rows.length} unit · ${keys.length} departemen · ${esc(fmtPeriode(AL_YM))}</td><td style="text-align:right">${rp(all)}</td><td colspan="3">per bulan</td></tr>` : '<tr><td colspan="8" class="muted">Tidak ada data</td></tr>';
   $('al-sewa-stats').innerHTML = `<div class="stat"><div class="l">Total sewa / bulan</div><div class="v">${rp(all)}</div><div class="muted">${esc(fmtPeriode(AL_YM))}, termasuk unit yang ikut aturan</div></div>
@@ -6680,7 +7096,21 @@ function payIncome(id) {
   $('py-bukti').value = '';
   pyMetode();
   $('py-cat').value = '';
+  $('py-part').value = Math.round(r.Nominal).toLocaleString('id-ID');
+  $('py-terima').value = '';
+  $('py-pph').value = '';
+  pyPart();
   $('pay-modal').classList.remove('hidden');
+}
+const pyVal = id => { const v = $(id).value.replace(/[^\d]/g, ''); return v === '' ? '' : Number(v); };
+function pyNum(el) { const v = el.value.replace(/[^\d]/g, ''); el.value = v === '' ? '' : Number(v).toLocaleString('id-ID'); }
+function pyPart() {
+  const r = INCOME.find(x => x.Income_ID === PAY_ID) || {}, p = pyVal('py-part');
+  const canSplit = !r.Auto || r.Agr;
+  $('py-part').disabled = !canSplit;
+  $('py-part-note').innerHTML = !canSplit ? 'Tagihan otomatis hanya bisa dilunasi penuh.'
+    : p !== '' && p < r.Nominal ? `<span class="neg">Bayar sebagian:</span> ${rp(p)} ditandai lunas, sisa <b>${rp(r.Nominal - p)}</b> tetap tercatat sebagai tagihan belum dibayar.`
+    : 'Nilai tagihan (sebelum pajak). Isi lebih kecil bila pembayaran baru sebagian. Diterima dan potongan pajak diisi sesuai info Finance.';
 }
 
 function closePay() { $('pay-modal').classList.add('hidden'); }
@@ -6706,7 +7136,12 @@ async function doPay() {
   try {
     const f = $('py-bukti').files[0];
     if (!f && butuhBukti($('py-metode').value)) { b.disabled = false; b.textContent = 'Simpan Lunas'; return toast('Lampirkan bukti transfer dulu'); }
-    const d = { Income_ID: PAY_ID, Tgl_Bayar: tgl, Metode_Bayar: $('py-metode').value, Catatan_Bayar: $('py-cat').value.trim() };
+    const d = { Income_ID: PAY_ID, Tgl_Bayar: tgl, Metode_Bayar: $('py-metode').value, Catatan_Bayar: $('py-cat').value.trim(), Diterima: pyVal('py-terima'), PPh23: pyVal('py-pph') };
+    const part = pyVal('py-part');
+    if (part !== '' && part !== Math.round(r.Nominal)) {
+      if (!(part > 0) || part > r.Nominal) { b.disabled = false; b.textContent = 'Simpan Lunas'; return toast('Nominal dilunasi tidak valid'); }
+      d.Nominal_Lunas = part;
+    }
     if (f) { b.textContent = 'Mengunggah bukti...'; d.Bukti = await readFile(f); }
     setIncome(await apiPost('payIncome', d));
     try { if (!/^Cost/.test(d.Metode_Bayar)) localStorage.setItem('tf-metode', d.Metode_Bayar); } catch (e) {}
