@@ -686,6 +686,7 @@ body.viewer [data-edit]{display:none!important}
 #print-area .mr-pb{break-after:page;page-break-after:always;height:0}
 #print-area .mr-foot{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #eee;padding-top:6px}
 
+#al-tabs .badge.hidden{display:none}
 #al-tabs .badge{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10.5px;font-weight:700;text-align:center;vertical-align:1px}
 #print-area .bs-doc p{margin:8px 0;text-align:justify}
 #print-area .bs-kv{margin:8px 0 12px 0;border-collapse:collapse}#print-area .bs-kv td{border:0;padding:2px 14px 2px 0;text-align:left}#print-area .bs-kv td:first-child{color:#6b7280;width:150px}
@@ -1308,6 +1309,7 @@ body.viewer [data-edit]{display:none!important}
         <select id="al-cond" onchange="renderAlloc()"><option value="">Semua kondisi</option></select>
         <input type="text" id="al-cari" placeholder="Cari kode / PIC / stiker / catatan" oninput="renderAlloc()">
       </div>
+      <div id="al-seed-note" class="hidden"></div>
       <div id="al-list">
         <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
           <div class="muted">Data kendaraan tanpa harga / tagihan. Download mengikuti filter di atas.</div>
@@ -4195,6 +4197,7 @@ async function loadAlloc() {
 function setAlloc(d) {
   ALLOC = d || { units: [], sections: [] };
   ALLOC_LOADED = true;
+  showChassisSeed(ALLOC.chassisSeed);
   if (!AL_YM) AL_YM = curYm();
   document.querySelectorAll('.al-ym').forEach(x => x.value = AL_YM);
   if (d && d.url) $('al-sheet').href = d.url;
@@ -5944,7 +5947,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '12 Nov 2026 · ID/EN';
+const APP_VER = '12 Nov 2026 · no rangka';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
@@ -7212,6 +7215,20 @@ async function availPdf() {
   } finally {
     b.disabled = false; b.textContent = 'Download PDF';
   }
+}
+
+// Hasil pengisian no rangka & no mesin dari data aset Finance (sekali jalan di server), ditampilkan sekali per perangkat
+function showChassisSeed(r) {
+  const box = $('al-seed-note');
+  if (!box || !r) return;
+  try { if (localStorage.getItem('tf-chassis-seed-seen')) return; } catch (e) {}
+  const n = new Set(r.filled.map(x => x.split(' ')[0])).size;
+  const li = (t, a) => a.length ? `<div style="margin-top:6px"><b>${t} (${a.length})</b><div class="muted" style="max-height:110px;overflow:auto">${a.map(esc).join('<br>')}</div></div>` : '';
+  box.innerHTML = `<div class="login-banner" style="display:block;background:#ecfdf5;border-color:#a7f3d0;color:#065f46">
+    <b>No rangka &amp; no mesin terisi untuk ${n} unit</b> dari data aset Finance (Data Kendaraan Operasional, 11 Nov 2026). Kolom yang sudah terisi di sheet tidak ditimpa.
+    ${li('Berbeda dengan data aset, dibiarkan seperti di sheet', r.diff)}${li('Kode tidak ditemukan di sheet Buggy Allocation', r.notFound)}${li('Bagian sheet tanpa kolom No rangka / No mesin', r.noCol)}
+    <div style="margin-top:8px"><button class="btn sec sm" style="margin:0" onclick="$('al-seed-note').classList.add('hidden');try{localStorage.setItem('tf-chassis-seed-seen','1')}catch(e){}">Tutup</button></div></div>`;
+  box.classList.remove('hidden');
 }
 
 // ---------- DOWNLOAD DATA KENDARAAN (tanpa harga / tagihan) ----------
