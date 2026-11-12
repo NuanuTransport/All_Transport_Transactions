@@ -634,6 +634,11 @@ body.viewer [data-edit]{display:none!important}
 #print-area .mr-leg{font-size:9.5px;color:#555;margin:2px 0 6px}#print-area .mr-leg span{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px}
 #print-area .mr-pb{break-after:page;page-break-after:always;height:0}
 #print-area .mr-foot{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #eee;padding-top:6px}
+
+#al-tabs .badge{display:inline-block;min-width:17px;height:17px;line-height:17px;padding:0 5px;margin-left:5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10.5px;font-weight:700;text-align:center;vertical-align:1px}
+#print-area .bs-doc p{margin:8px 0;text-align:justify}
+#print-area .bs-kv{margin:8px 0 12px 0;border-collapse:collapse}#print-area .bs-kv td{border:0;padding:2px 14px 2px 0;text-align:left}#print-area .bs-kv td:first-child{color:#6b7280;width:150px}
+#print-area .bs-sign .s{height:60px}#print-area .bs-sign .ln{border-bottom:1px solid #333;width:70%;margin:0 auto 4px}
 </style>
 <style id="page-size"></style>
 </head>
@@ -1237,6 +1242,7 @@ body.viewer [data-edit]{display:none!important}
         <button data-m="cost" onclick="setAlMode('cost')">Biaya per unit</button>
         <button data-m="hist" onclick="setAlMode('hist')">Riwayat pemindahan</button>
         <button data-m="life" onclick="setAlMode('life')">Masa guna</button>
+        <button data-m="bast" onclick="setAlMode('bast')">BAST<span class="badge hidden" id="bast-badge"></span></button>
       </div>
       <div class="filters" id="al-filters">
         <select id="al-cat" onchange="renderAlloc()"><option value="">Semua kategori</option></select>
@@ -1328,6 +1334,22 @@ body.viewer [data-edit]{display:none!important}
           </table></div>
         </div>
         <div class="muted" style="margin-top:8px" id="al-life-note"></div>
+      </div>
+      <div id="al-bast" class="hidden">
+        <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div class="muted">Berita Acara Serah Terima kendaraan Transport yang disewa atau dipinjam departemen lain dalam jangka waktu lama, beserta pengembaliannya.</div>
+          <button class="btn" style="margin:0" id="btn-bast-new" onclick="openBast()">+ Buat BAST</button>
+        </div>
+        <div class="stats" id="bast-stats"></div>
+        <div class="filters">
+          <select id="bast-f" onchange="renderBast()"><option value="aktif">Masih di departemen</option><option value="lewat">Lewat tanggal kembali</option><option value="kembali">Sudah dikembalikan</option><option value="">Semua</option></select>
+          <select id="bast-j" onchange="renderBast()"><option value="">Sewa &amp; pinjam</option><option>Sewa</option><option>Pinjam</option></select>
+          <input type="text" id="bast-cari" placeholder="Cari nomor / departemen / penerima / kode unit" oninput="renderBast()">
+        </div>
+        <div class="tablewrap"><table>
+          <thead><tr><th>No. BAST</th><th>Jenis</th><th>Departemen / penerima</th><th>Kendaraan</th><th>Periode</th><th>Status</th><th></th></tr></thead>
+          <tbody id="bast-body"><tr><td colspan="7" class="muted">Memuat...</td></tr></tbody>
+        </table></div>
       </div>
       <div id="al-avail" class="hidden">
         <div class="card-head" style="margin-bottom:8px;flex-wrap:wrap;gap:8px">
@@ -1736,6 +1758,70 @@ body.viewer [data-edit]{display:none!important}
 </div>
 
 <!-- MODAL BATCH PEMBELIAN (MASA GUNA) -->
+<div class="modal hidden" id="bast-modal" onclick="if (event.target === this) closeBast()">
+  <div class="modal-box" style="max-width:760px">
+    <div class="modal-head"><b id="bast-title">BAST kendaraan</b><button class="btn sec sm" onclick="closeBast()">Tutup</button></div>
+    <div class="row3">
+      <div><label>Jenis</label><select id="bs-Jenis"><option>Pinjam</option><option>Sewa</option></select></div>
+      <div><label>Tanggal serah terima</label><input type="date" id="bs-Tanggal"></div>
+      <div><label>No. BAST</label><input type="text" id="bs-No" disabled placeholder="otomatis"></div>
+    </div>
+    <div class="row3">
+      <div><label>Departemen penerima</label><input type="text" id="bs-Departemen" list="bs-dept-list" autocomplete="off"><datalist id="bs-dept-list"></datalist></div>
+      <div><label>Nama penerima</label><input type="text" id="bs-Penerima"></div>
+      <div><label>Jabatan penerima</label><input type="text" id="bs-Jabatan_Penerima"></div>
+    </div>
+    <div class="row3">
+      <div><label>Kontak penerima</label><input type="text" id="bs-Kontak" placeholder="No. HP / email"></div>
+      <div><label>Diserahkan oleh</label><input type="text" id="bs-Penyerah"></div>
+      <div><label>Jabatan</label><input type="text" id="bs-Jabatan_Penyerah"></div>
+    </div>
+    <div class="row3">
+      <div><label>Mulai dipakai</label><input type="date" id="bs-Mulai"></div>
+      <div><label>Rencana kembali</label><input type="date" id="bs-Selesai"></div>
+      <div><label>Keperluan</label><input type="text" id="bs-Keperluan" placeholder="Mis. operasional harian kebun"></div>
+    </div>
+    <div class="muted" style="margin:-2px 0 6px">Kosongkan rencana kembali bila belum ditentukan (sampai pemberitahuan lebih lanjut).</div>
+    <label>Kendaraan</label>
+    <div id="bs-units"></div>
+    <datalist id="bs-code-list"></datalist>
+    <button class="btn sec sm" onclick="bastUnitAdd()">+ Tambah kendaraan</button>
+    <div class="muted" id="bs-warn" style="margin-top:6px"></div>
+    <label>Kelengkapan yang diserahkan</label>
+    <div id="bs-kel" style="display:flex;flex-wrap:wrap;gap:6px 16px"></div>
+    <input type="text" id="bs-kel-lain" placeholder="Kelengkapan lain, pisahkan dengan koma" style="margin-top:6px">
+    <label>Catatan / ketentuan tambahan</label>
+    <textarea id="bs-Catatan" rows="2" placeholder="Mis. penerima bertanggung jawab atas kerusakan karena kelalaian, servis rutin tetap oleh Mechanic Transport"></textarea>
+    <label>File BAST yang sudah ditandatangani (opsional)</label>
+    <div class="muted" id="bs-file-now"></div>
+    <input type="file" id="bs-File" accept="application/pdf,image/*">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-bs-save" onclick="saveBast()">Simpan</button>
+      <button class="btn sec" style="margin:0" onclick="saveBast(true)">Simpan &amp; PDF</button>
+      <button class="btn danger hidden" style="margin:0" id="btn-bs-del" onclick="delBast()">Hapus</button>
+    </div>
+  </div>
+</div>
+<div class="modal hidden" id="bastret-modal" onclick="if (event.target === this) this.classList.add('hidden')">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-head"><b>Pengembalian kendaraan</b><button class="btn sec sm" onclick="$('bastret-modal').classList.add('hidden')">Tutup</button></div>
+    <div class="send-file" style="display:block"><div id="br-title" style="font-weight:600">-</div><div class="muted" id="br-sub"></div></div>
+    <div class="row">
+      <div><label>Tanggal kembali</label><input type="date" id="br-tgl"></div>
+      <div><label>Diterima kembali oleh (Transport)</label><input type="text" id="br-oleh"></div>
+    </div>
+    <label>Kondisi saat dikembalikan</label>
+    <div id="br-units"></div>
+    <label>Catatan pengembalian</label>
+    <textarea id="br-cat" rows="2" placeholder="Mis. kelengkapan lengkap, ban depan aus"></textarea>
+    <label>File BAST pengembalian yang sudah ditandatangani (opsional)</label>
+    <input type="file" id="br-file" accept="application/pdf,image/*">
+    <div class="btns" style="margin-top:14px">
+      <button class="btn" style="margin:0" id="btn-br" onclick="saveBastRet()">Simpan pengembalian</button>
+      <button class="btn sec" style="margin:0" onclick="saveBastRet(true)">Simpan &amp; PDF</button>
+    </div>
+  </div>
+</div>
 <div class="modal hidden" id="inv-modal" onclick="if (event.target === this) closeInv()">
   <div class="modal-box" style="max-width:720px">
     <div class="modal-head"><b id="inv-title">Buat permintaan invoice</b><button class="btn sec sm" onclick="closeInv()">Tutup</button></div>
@@ -2747,7 +2833,7 @@ async function init() {
     $('pic-list').innerHTML = (MASTER.pic || []).map(p => `<option value="${esc(p)}">`).join('');
     restoreSubs();
     if (isSvc()) { show('alloc'); setAlMode('sewa'); }
-    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); setTimeout(checkAgrNotif, 2500); setInterval(() => { checkKdMaker(true); checkAgrNotif(true); }, 30 * 60 * 1000); }
+    else { show('summary'); loadList(); setTimeout(checkKdMaker, 1500); setTimeout(checkAgrNotif, 2500); setTimeout(() => apiGet({ action: 'bastList' }).then(d => { BAST = d.rows || []; BAST_LOADED = true; renderBast(); dashRefresh(); }).catch(() => {}), 3500); setInterval(() => { checkKdMaker(true); checkAgrNotif(true); }, 30 * 60 * 1000); }
   } catch (e) {
     toast('Gagal memuat: ' + e.message);
   }
@@ -4017,6 +4103,9 @@ function setAlMode(m) {
   $('al-life').classList.toggle('hidden', m !== 'life');
   $('al-sewa').classList.toggle('hidden', m !== 'sewa');
   $('al-avail').classList.toggle('hidden', m !== 'avail');
+  $('al-bast').classList.toggle('hidden', m !== 'bast');
+  $('al-filters').classList.toggle('hidden', m === 'bast');
+  if (m === 'bast') loadBast();
   ['al-dept', 'al-status'].forEach(id => $(id).classList.toggle('hidden', m === 'avail'));
   if (m === 'cost' && !UC) loadUnitCost();
   if (m === 'hist') loadUnitHist();
@@ -5032,6 +5121,207 @@ async function testNotif() {
   renderNotifSet();
 }
 
+// ---------- BAST KENDARAAN (serah terima ke departemen lain) ----------
+let BAST = [], BAST_LOADED = false, BAST_EDIT = null;
+const BAST_KEL = ['Kunci', 'Charger', 'Helm', 'STNK', 'Kartu / QR akses', 'Jas hujan', 'Toolkit'];
+const BAST_KOND = ['Baik', 'Baik, ada lecet ringan', 'Perlu perbaikan', 'Rusak'];
+const BAST_KOND_EN = { 'Baik': 'Good', 'Baik, ada lecet ringan': 'Good, minor scratches', 'Perlu perbaikan': 'Needs repair', 'Rusak': 'Damaged' };
+const BAST_KEL_EN = { 'Kunci': 'Key', 'Charger': 'Charger', 'Helm': 'Helmet', 'STNK': 'Vehicle registration (STNK)', 'Kartu / QR akses': 'Access card / QR', 'Jas hujan': 'Raincoat', 'Toolkit': 'Toolkit' };
+async function loadBast(force) {
+  if (!BAST_LOADED || force) {
+    $('bast-body').innerHTML = '<tr><td colspan="7" class="muted">Memuat...</td></tr>';
+    try { const d = await apiGet({ action: 'bastList' }); BAST = d.rows || []; BAST_LOADED = true; }
+    catch (e) { $('bast-body').innerHTML = `<tr><td colspan="7" class="muted">Gagal memuat: ${esc(e.message)}</td></tr>`; return; }
+  }
+  renderBast();
+}
+const bastLate = r => r.Status === 'Aktif' && r.Selesai && r.Selesai < today();
+function renderBast() {
+  const f = $('bast-f').value, j = $('bast-j').value, q = $('bast-cari').value.trim().toLowerCase();
+  const act = BAST.filter(r => r.Status === 'Aktif'), late = act.filter(bastLate);
+  const nU = act.reduce((a, r) => a + r.Units.length, 0);
+  $('bast-stats').innerHTML = `<div class="stat"><div class="l">BAST aktif</div><div class="v">${act.length}</div><div class="muted">${act.filter(r => r.Jenis === 'Sewa').length} sewa · ${act.filter(r => r.Jenis === 'Pinjam').length} pinjam</div></div>
+    <div class="stat"><div class="l">Kendaraan di departemen lain</div><div class="v">${nU}</div><div class="muted">${esc([...new Set(act.map(r => r.Departemen))].join(', ') || '-')}</div></div>
+    <div class="stat"><div class="l">Lewat tanggal kembali</div><div class="v ${late.length ? 'neg' : ''}">${late.length}</div><div class="muted">${late.length ? esc(late.map(r => r.Departemen).join(', ')) : 'tidak ada'}</div></div>`;
+  const rows = BAST.filter(r => (!f || (f === 'aktif' ? r.Status === 'Aktif' : f === 'lewat' ? bastLate(r) : r.Status === 'Dikembalikan')) && (!j || r.Jenis === j) &&
+    (!q || [r.No, r.Departemen, r.Penerima, r.Keperluan, ...r.Units.map(u => u.code + ' ' + u.type)].join(' ').toLowerCase().includes(q)));
+  $('bast-body').innerHTML = rows.map(r => `<tr>
+      <td><b>${esc(r.No)}</b><div class="al-sub">${esc(fmtTgl(r.Tanggal))}</div></td>
+      <td><span class="kd-st ${r.Jenis === 'Sewa' ? 's2' : 's3'}">${esc(r.Jenis)}</span></td>
+      <td><b>${esc(r.Departemen)}</b><div class="al-sub">${esc(r.Penerima)}${r.Jabatan_Penerima ? ' · ' + esc(r.Jabatan_Penerima) : ''}</div></td>
+      <td>${r.Units.map(u => `<span class="al-code">${esc(u.code)}</span>`).join(' ')}<div class="al-sub">${esc([...new Set(r.Units.map(u => u.type).filter(Boolean))].join(', '))}</div></td>
+      <td class="nw">${esc(fmtTgl(r.Mulai))} –<br>${r.Selesai ? esc(fmtTgl(r.Selesai)) : '<span class="muted">belum ditentukan</span>'}</td>
+      <td>${r.Status === 'Dikembalikan' ? `<span class="kd-st s0">Kembali ${esc(fmtTgl(r.Tgl_Kembali))}</span>` : bastLate(r) ? '<span class="kd-st s1" style="color:#dc2626">Lewat tanggal kembali</span>' : '<span class="kd-st s3">Di departemen</span>'}</td>
+      <td><div class="btns" style="flex-wrap:wrap;gap:6px;width:200px">
+        <button class="btn sec sm" onclick="bastPdf('${esc(r.BAST_ID)}')">PDF</button>
+        ${r.File ? `<a class="btn sec sm" style="text-decoration:none" href="${esc(r.File)}" target="_blank" rel="noopener">File</a>` : ''}
+        ${r.Status === 'Aktif' ? `<button class="btn ok sm" data-edit onclick="openBastRet('${esc(r.BAST_ID)}')">Kembalikan</button><button class="btn sec sm" data-edit onclick="openBast('${esc(r.BAST_ID)}')">Edit</button>`
+          : `<button class="btn sec sm" onclick="bastPdf('${esc(r.BAST_ID)}', true)">PDF kembali</button>${r.File_Kembali ? `<a class="btn sec sm" style="text-decoration:none" href="${esc(r.File_Kembali)}" target="_blank" rel="noopener">File kembali</a>` : ''}`}
+      </div></td></tr>`).join('') || '<tr><td colspan="7" class="muted">Tidak ada BAST</td></tr>';
+  const b = $('bast-badge');
+  b.textContent = late.length; b.classList.toggle('hidden', !late.length);
+}
+function bastUnitRow(u) {
+  u = u || {};
+  return `<div class="row3 bs-unit" style="grid-template-columns:1fr 1.3fr 1.2fr 1.6fr auto;align-items:end">
+    <div><input type="text" class="bs-code" list="bs-code-list" placeholder="Kode unit" value="${esc(u.code || '')}" onchange="bastCodePick(this)"></div>
+    <div><input type="text" class="bs-type" placeholder="Jenis" value="${esc(u.type || '')}"></div>
+    <div><select class="bs-kond">${BAST_KOND.map(k => `<option ${k === (u.kondisi || 'Baik') ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+    <div><input type="text" class="bs-cat" placeholder="Catatan kondisi (opsional)" value="${esc(u.catatan || '')}"></div>
+    <div><button class="btn sec sm" style="margin:0 0 8px" onclick="this.closest('.bs-unit').remove();bastWarn()">Hapus</button></div>
+  </div>`;
+}
+function bastUnitAdd(u) { $('bs-units').insertAdjacentHTML('beforeend', bastUnitRow(u)); }
+function bastCodePick(el) {
+  const u = ALLOC_LOADED && ALLOC.units.find(x => ucKey(x.Code) === ucKey(el.value));
+  const row = el.closest('.bs-unit');
+  if (u) {
+    el.value = u.Code;
+    if (!row.querySelector('.bs-type').value) row.querySelector('.bs-type').value = u.Type || '';
+    const c = alCond(u.Condition);
+    row.querySelector('.bs-kond').value = c === 'Maintenance' ? 'Perlu perbaikan' : c === 'Broken' ? 'Rusak' : 'Baik';
+  }
+  bastWarn();
+}
+function bastUnits() {
+  return [...document.querySelectorAll('#bs-units .bs-unit')].map(el => ({ code: el.querySelector('.bs-code').value.trim(), type: el.querySelector('.bs-type').value.trim(), kondisi: el.querySelector('.bs-kond').value, catatan: el.querySelector('.bs-cat').value.trim() })).filter(u => u.code);
+}
+function bastWarn() {
+  const dept = $('bs-Departemen').value.trim(), w = [];
+  bastUnits().forEach(x => {
+    const u = ALLOC_LOADED && ALLOC.units.find(y => ucKey(y.Code) === ucKey(x.code));
+    if (!u) w.push(`${x.code} tidak ada di Alokasi EV`);
+    else if (dept && u.Department && !alSameDept(u.Department, dept)) w.push(`${x.code} di alokasi tercatat di ${u.Department}`);
+    const other = BAST.find(r => r.Status === 'Aktif' && r.BAST_ID !== BAST_EDIT && r.Units.some(y => ucKey(y.code) === ucKey(x.code)));
+    if (other) w.push(`${x.code} masih tercatat di ${other.No} (${other.Departemen})`);
+  });
+  $('bs-warn').innerHTML = w.length ? '<span class="neg">' + w.map(esc).join('<br>') + '</span><br>Perpindahan unit di Alokasi EV tetap diubah lewat Daftar unit.' : '';
+}
+async function openBast(id) {
+  if (!ALLOC_LOADED) await loadAlloc();
+  if (!BAST_LOADED) await loadBast();
+  const r = id ? BAST.find(x => x.BAST_ID === id) : null;
+  BAST_EDIT = r ? r.BAST_ID : null;
+  $('bast-title').textContent = r ? 'Edit ' + r.No : 'BAST kendaraan baru';
+  let last = {};
+  try { last = JSON.parse(localStorage.getItem('tf-bast-penyerah') || '{}'); } catch (e) {}
+  const v = r || { Jenis: 'Pinjam', Tanggal: today(), Mulai: today(), Penyerah: last.n || (USER && USER.nama) || '', Jabatan_Penyerah: last.j || '' };
+  ['Jenis', 'Tanggal', 'No', 'Departemen', 'Penerima', 'Jabatan_Penerima', 'Kontak', 'Penyerah', 'Jabatan_Penyerah', 'Mulai', 'Selesai', 'Keperluan', 'Catatan'].forEach(k => { const el = $('bs-' + k); if (el) el.value = v[k] || ''; });
+  $('bs-dept-list').innerHTML = [...new Set(ALLOC.units.map(u => String(u.Department || '').trim()).filter(Boolean))].sort().map(x => `<option value="${esc(x)}">`).join('');
+  $('bs-code-list').innerHTML = ALLOC.units.map(u => `<option value="${esc(u.Code)}">${esc((u.Type || '') + (u.Department ? ' · ' + u.Department : ''))}</option>`).join('');
+  $('bs-units').innerHTML = '';
+  (r ? r.Units : [{}]).forEach(u => bastUnitAdd(u));
+  const kel = r ? r.Kelengkapan : ['Kunci', 'Charger'];
+  $('bs-kel').innerHTML = BAST_KEL.map(k => `<label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" value="${esc(k)}" style="width:auto;margin:0" ${kel.includes(k) ? 'checked' : ''}> ${esc(k)}</label>`).join('');
+  $('bs-kel-lain').value = kel.filter(k => !BAST_KEL.includes(k)).join(', ');
+  $('bs-File').value = '';
+  $('bs-file-now').innerHTML = r && r.File ? `File sekarang: <a href="${esc(r.File)}" target="_blank" rel="noopener">buka</a> (upload baru untuk mengganti)` : '';
+  $('btn-bs-del').classList.toggle('hidden', !r || !document.body.classList.contains('head'));
+  bastWarn();
+  $('bast-modal').classList.remove('hidden');
+}
+function closeBast() { $('bast-modal').classList.add('hidden'); }
+async function saveBast(pdf) {
+  const d = { BAST_ID: BAST_EDIT || '', Units: bastUnits(),
+    Kelengkapan: [...document.querySelectorAll('#bs-kel input:checked')].map(x => x.value).concat($('bs-kel-lain').value.split(',').map(x => x.trim()).filter(Boolean)) };
+  ['Jenis', 'Tanggal', 'Departemen', 'Penerima', 'Jabatan_Penerima', 'Kontak', 'Penyerah', 'Jabatan_Penyerah', 'Mulai', 'Selesai', 'Keperluan', 'Catatan'].forEach(k => d[k] = $('bs-' + k).value.trim());
+  if (!d.Departemen) return toast('Isi departemen penerima');
+  if (!d.Penerima) return toast('Isi nama penerima');
+  if (!d.Units.length) return toast('Isi minimal satu kendaraan');
+  const b = $('btn-bs-save');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('bs-File').files[0];
+    if (f) { b.textContent = 'Mengunggah file...'; d.File = await readFile(f, 15); }
+    const r = await apiPost('saveBast', d);
+    BAST = r.rows || BAST;
+    try { localStorage.setItem('tf-bast-penyerah', JSON.stringify({ n: d.Penyerah, j: d.Jabatan_Penyerah })); } catch (e) {}
+    closeBast(); renderBast(); toast('BAST disimpan');
+    if (pdf) bastPdf(r.id);
+  } catch (e) { toast('Gagal: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Simpan'; }
+}
+async function delBast() {
+  const r = BAST.find(x => x.BAST_ID === BAST_EDIT);
+  if (!r || !confirm(`Hapus ${r.No}?`)) return;
+  try { const res = await apiPost('deleteBast', { BAST_ID: r.BAST_ID }); BAST = res.rows || []; closeBast(); renderBast(); toast('BAST dihapus'); }
+  catch (e) { toast('Gagal: ' + e.message); }
+}
+function openBastRet(id) {
+  const r = BAST.find(x => x.BAST_ID === id);
+  if (!r) return;
+  BAST_EDIT = id;
+  $('br-title').textContent = r.No + ' · ' + r.Departemen;
+  $('br-sub').textContent = r.Jenis + ' sejak ' + fmtTgl(r.Mulai) + ' · penerima ' + r.Penerima;
+  $('br-tgl').value = today();
+  $('br-oleh').value = (USER && USER.nama) || '';
+  $('br-cat').value = '';
+  $('br-file').value = '';
+  $('br-units').innerHTML = r.Units.map((u, i) => `<div class="row3 br-unit" data-i="${i}" style="grid-template-columns:1.4fr 1.2fr 1.6fr;align-items:end">
+    <div><b>${esc(u.code)}</b><div class="al-sub">${esc(u.type)} · saat diserahkan: ${esc(u.kondisi)}</div></div>
+    <div><select class="br-kond">${BAST_KOND.map(k => `<option ${k === u.kondisi ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+    <div><input type="text" class="br-cat" placeholder="Catatan kondisi (opsional)"></div></div>`).join('');
+  $('bastret-modal').classList.remove('hidden');
+}
+async function saveBastRet(pdf) {
+  const r = BAST.find(x => x.BAST_ID === BAST_EDIT);
+  if (!r) return;
+  const units = r.Units.map((u, i) => { const el = document.querySelector(`#br-units .br-unit[data-i="${i}"]`); return Object.assign({}, u, { kondisiKembali: el.querySelector('.br-kond').value, catatanKembali: el.querySelector('.br-cat').value.trim() }); });
+  const d = { BAST_ID: r.BAST_ID, Tgl_Kembali: $('br-tgl').value, Penerima_Kembali: $('br-oleh').value.trim(), Catatan_Kembali: $('br-cat').value.trim(), Units: units };
+  if (!d.Tgl_Kembali) return toast('Isi tanggal kembali');
+  const b = $('btn-br');
+  b.disabled = true; b.textContent = 'Menyimpan...';
+  try {
+    const f = $('br-file').files[0];
+    if (f) { b.textContent = 'Mengunggah file...'; d.File_Kembali = await readFile(f, 15); }
+    const res = await apiPost('returnBast', d);
+    BAST = res.rows || BAST;
+    $('bastret-modal').classList.add('hidden'); renderBast(); toast('Pengembalian dicatat');
+    if (pdf) bastPdf(r.BAST_ID, true);
+  } catch (e) { toast('Gagal: ' + e.message); }
+  finally { b.disabled = false; b.textContent = 'Simpan pengembalian'; }
+}
+// PDF BAST (bahasa Inggris, judul juga dalam bahasa Indonesia)
+function bastPdf(id, ret) {
+  const r = BAST.find(x => x.BAST_ID === id);
+  if (!r) return toast('BAST tidak ditemukan');
+  const kd = k => BAST_KOND_EN[k] || k || '-';
+  const jenisEN = r.Jenis === 'Sewa' ? 'rental' : 'loan';
+  const sign = (a, b) => `<table class="iv2-sign bs-sign"><tr>
+      <td>${a[0]}<div class="s"></div><div class="ln"></div><b>${esc(a[1] || '')}</b><br>${esc(a[2] || '')}</td>
+      <td>${b[0]}<div class="s"></div><div class="ln"></div><b>${esc(b[1] || '')}</b><br>${esc(b[2] || '')}</td></tr></table>`;
+  const head = `<div class="mr-top"><img src="${BQ_LOGO}" alt="Nuanu" style="height:26px"><div style="text-align:right"><div class="mr-h" style="font-size:15px">${ret ? 'VEHICLE RETURN REPORT' : 'VEHICLE HANDOVER REPORT'}</div><div class="mr-s">Berita Acara Serah Terima${ret ? ' (Pengembalian)' : ''} Kendaraan · No. ${esc(r.No)}</div></div></div>`;
+  const meta = `<table class="iv2-kv bs-kv">
+      <tr><td>Handover type</td><td><b>${r.Jenis === 'Sewa' ? 'Rental' : 'Loan'}</b> (${esc(r.Jenis)})</td></tr>
+      <tr><td>${ret ? 'Return date' : 'Handover date'}</td><td>${esc(tglEN(ret ? r.Tgl_Kembali : r.Tanggal))}</td></tr>
+      <tr><td>Receiving department</td><td>${esc(r.Departemen)}</td></tr>
+      <tr><td>Period of use</td><td>${esc(tglEN(r.Mulai))} – ${r.Selesai ? esc(tglEN(r.Selesai)) : 'until further notice'}</td></tr>
+      ${r.Keperluan ? `<tr><td>Purpose</td><td>${esc(r.Keperluan)}</td></tr>` : ''}
+    </table>`;
+  const units = `<table class="iv2-items"><thead><tr><th style="width:26px">No</th><th style="width:90px">Unit code</th><th>Vehicle type</th><th style="width:${ret ? 110 : 130}px">Condition at handover</th>${ret ? '<th style="width:110px">Condition at return</th>' : ''}<th>Notes</th></tr></thead><tbody>
+      ${r.Units.map((u, i) => `<tr><td>${i + 1}</td><td><b>${esc(u.code)}</b></td><td>${esc(agrUnitEN(u.type) || '-')}</td><td>${esc(kd(u.kondisi))}</td>${ret ? `<td>${esc(kd(u.kondisiKembali))}</td>` : ''}<td>${esc([u.catatan, ret ? u.catatanKembali : ''].filter(Boolean).join(' · '))}</td></tr>`).join('')}
+    </tbody></table>`;
+  const kel = r.Kelengkapan.length ? `<div class="iv2-words"><b>Accessories handed over:</b> ${r.Kelengkapan.map(k => esc(BAST_KEL_EN[k] || k)).join(', ')}</div>` : '';
+  const body = ret
+    ? `<p>On ${esc(tglEN(r.Tgl_Kembali))}, the vehicle(s) listed below, previously handed over to the ${esc(r.Departemen)} department under handover report No. ${esc(r.No)} dated ${esc(tglEN(r.Tanggal))}, were returned to the Transport Department in the condition stated below.</p>${meta}${units}${kel}
+       ${r.Catatan_Kembali ? `<div class="iv2-words"><b>Return notes:</b> ${esc(r.Catatan_Kembali)}</div>` : ''}
+       <p>With the signing of this report, the responsibility of the ${esc(r.Departemen)} department for the vehicle(s) above ends, except for any damage noted above that is still to be settled.</p>
+       ${sign(['Returned by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen], ['Received by,', r.Penerima_Kembali, 'Transport Department'])}`
+    : `<p>On ${esc(tglEN(r.Tanggal))}, the Transport Department hands over the vehicle(s) listed below to the ${esc(r.Departemen)} department as a ${jenisEN}, and the receiving party accepts them in the condition stated below.</p>${meta}${units}${kel}
+       <div class="iv2-pay"><b>Terms</b><ol style="margin:4px 0 0 16px;padding:0">
+         <li>The vehicle(s) remain the property of the Transport Department and may only be used for the operations of the ${esc(r.Departemen)} department within the Nuanu area.</li>
+         <li>The receiving department is responsible for the proper use and safekeeping of the vehicle(s) and accessories, and for any loss or damage caused by negligence.</li>
+         <li>The vehicle(s) may not be transferred or lent to another party without written approval from the Transport Department.</li>
+         <li>Routine maintenance is carried out by the Transport Mechanic team; any damage or problem must be reported to the Transport Department as soon as possible.</li>
+         ${r.Jenis === 'Sewa' ? '<li>The rental fee is charged to the receiving department each month in accordance with the Transport rental rates.</li>' : '<li>This is a loan; no rental fee is charged unless agreed otherwise in writing.</li>'}
+         <li>The vehicle(s) must be returned ${r.Selesai ? 'by ' + esc(tglEN(r.Selesai)) : 'when requested by the Transport Department'} in the same condition as at handover, apart from normal wear, and recorded in a return report.</li>
+       </ol>${r.Catatan ? `<div style="margin-top:4px"><b>Additional notes:</b> ${esc(r.Catatan)}</div>` : ''}</div>
+       ${sign(['Handed over by,', r.Penyerah, (r.Jabatan_Penyerah ? r.Jabatan_Penyerah + ', ' : '') + 'Transport Department'], ['Received by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen])}`;
+  $('print-area').innerHTML = `<div class="mr-doc bs-doc">${head}${body}<div class="mr-foot">Contact: ${esc(r.Kontak || '-')} · Generated from Transport Finance.</div></div>`;
+  setPageSize('A4 portrait');
+  printAs((ret ? 'BAST Return ' : 'BAST ') + r.No.replace(/\//g, '-') + ' ' + r.Departemen);
+}
+
 // ---------- AGREEMENT ↔ ALOKASI (harga agreement) ----------
 // Sama dengan agrPriceMap_ di Code.gs: unit yang kodenya tercantum di agreement aktif ditagih lewat invoice agreement.
 const AGR_OFF = s => ['Draft', 'Diganti', 'Dihentikan'].includes(String(s || ''));
@@ -5431,8 +5721,9 @@ function drawSparks(m) {
 function remindData() {
   const agr = AGR_REMIND || [], kd = KD_REMIND || [];
   const ca = (LIST || []).filter(r => r.Overdue);
+  const bast = (BAST || []).filter(bastLate);
   const inc = (INCOME || []).filter(r => r.Status === 'Belum dibayar' && !isLangsung(r) && !r.Berjalan && r.Umur > 30).sort((a, b) => b.Umur - a.Umur);
-  return { agr, kd, ca, inc, n: agr.length + kd.length + ca.length };
+  return { agr, kd, ca, inc, bast, n: agr.length + kd.length + ca.length + bast.length };
 }
 const kdSum = a => rp(Math.round(a.reduce((x, o) => x + (o.net || 0), 0)));
 const agrWhen = x => x.left < 0 ? `berakhir ${-x.left} hari lalu` : x.left === 0 ? 'berakhir hari ini' : `${x.left} hari lagi`;
@@ -5450,6 +5741,7 @@ function dashRefresh() {
       line('#c2410c', 'Agreement mau / sudah berakhir', R.agr.length, R.agr.length ? esc(R.agr.slice(0, 2).map(x => x.r.Pihak + ' (' + agrWhen(x) + ')').join(', ')) : 'Tidak ada', "show('remind')") +
       line('#1d4ed8', 'Maker KDAB belum dibuat', R.kd.length, R.kd.length ? R.kd.length + ' laporan · ' + kdSum(R.kd) : 'Semua sudah di-maker', "show('remind')") +
       line('#be123c', 'Cash Advance lewat batas settle', R.ca.length, R.ca.length ? esc(R.ca.slice(0, 3).map(r => r.PIC || r.CA_ID).join(', ')) : 'Tidak ada', "show('remind')") +
+      (R.bast.length ? line('#0f766e', 'Kendaraan lewat tanggal kembali (BAST)', R.bast.length, esc(R.bast.map(r => r.Departemen + ' (' + r.Units.map(u => u.code).join(', ') + ')').join('; ')), "show('alloc');setAlMode('bast')") : '') +
       line('#7c3aed', 'Tagihan belum dibayar > 30 hari', R.inc.length, R.inc.length ? rp(sumNom(R.inc)) : (INCOME_LOADED ? 'Tidak ada' : 'Memuat...'), "show('remind')");
   }
   // transaksi terbaru
@@ -5485,6 +5777,8 @@ function renderRemind() {
     card('Cash Advance lewat batas', 'CA yang sudah lewat batas waktu dan belum settlement', '<th>CA</th><th>PIC</th><th>Periode</th><th class="num">Saldo admin</th><th></th>',
       R.ca.map(r => `<tr><td>${esc(r.CA_ID)}</td><td>${esc(r.PIC)}</td><td>${esc(fmtPeriode(r.Periode))}</td><td class="num">${rpCls(r.Saldo_Admin)}</td><td><button class="btn sec sm" onclick="openDetail('${esc(r.CA_ID)}')">Buka</button></td></tr>`),
       'Tidak ada CA yang lewat batas.') +
+    (R.bast.length ? card('Kendaraan lewat tanggal kembali', 'BAST yang sudah lewat rencana tanggal kembali dan belum dicatat pengembaliannya', '<th>No. BAST</th><th>Departemen</th><th>Kendaraan</th><th>Rencana kembali</th><th></th>',
+      R.bast.map(r => `<tr><td>${esc(r.No)}</td><td>${esc(r.Departemen)}<div class="al-sub">${esc(r.Penerima)}</div></td><td>${r.Units.map(u => esc(u.code)).join(', ')}</td><td class="neg">${esc(fmtTgl(r.Selesai))}</td><td><button class="btn sec sm" onclick="show('alloc');setAlMode('bast')">Buka BAST</button></td></tr>`), '') : '') +
     card('Tagihan belum dibayar > 30 hari', 'Diurutkan dari yang paling lama', '<th>Periode</th><th>Ditagihkan ke</th><th>Divisi</th><th class="num">Nominal</th><th>Umur</th><th></th>',
       R.inc.slice(0, 50).map(r => `<tr><td>${esc(fmtPeriode(periodeOf(r)))}</td><td>${esc(r.Pelanggan || '-')}</td><td>${esc(r.Divisi || '')}</td><td class="num">${rp(r.Nominal)}</td><td><span class="kd-st ${r.Umur > 60 ? 's0' : 's1'}" style="${r.Umur > 60 ? 'color:#dc2626' : ''}">${r.Umur} hari</span></td><td><button class="btn sec sm" onclick="show('income');openIncome('${esc(r.Income_ID)}')">Buka</button></td></tr>`),
       INCOME_LOADED ? 'Tidak ada tagihan yang lewat 30 hari.' : 'Memuat...');
