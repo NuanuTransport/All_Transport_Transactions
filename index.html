@@ -5416,6 +5416,8 @@ async function saveBastRet(pdf) {
   finally { b.disabled = false; b.textContent = 'Simpan pengembalian'; }
 }
 // PDF BAST (bahasa Inggris, judul juga dalam bahasa Indonesia)
+// Free full maintenance bulanan (SAMA dengan freeMtType_ di Code.gs): buggy & EV bike, bukan cooty / scooter / bus
+function freeMtCat(type) { const c = alCat(type); return c === 'Buggy' || c === 'EV Bike / Motor'; }
 function bastPdf(id, ret) {
   const r = BAST.find(x => x.BAST_ID === id);
   if (!r) return toast('BAST tidak ditemukan');
@@ -5447,6 +5449,7 @@ function bastPdf(id, ret) {
          <li>The receiving department is responsible for the proper use and safekeeping of the vehicle(s) and accessories, and for any loss or damage caused by negligence.</li>
          <li>The vehicle(s) may not be transferred or lent to another party without written approval from the Transport Department.</li>
          <li>Routine maintenance is carried out by the Transport Mechanic team; any damage or problem must be reported to the Transport Department as soon as possible.</li>
+         ${r.Units.some(u => freeMtCat(u.type)) ? '<li>Buggy and EV bike units receive one free full maintenance per month, including vehicle washing, carried out by the Transport Mechanic team on request. Any spare parts replaced are charged to the receiving department. Additional services and repairs within the same month are charged at the Transport Mechanic rates. Cooty / scooter units are not included.</li>' : ''}
          ${r.Jenis === 'Sewa' ? '<li>The rental fee is charged to the receiving department each month in accordance with the Transport rental rates.</li>' : '<li>This is a loan; no rental fee is charged unless agreed otherwise in writing.</li>'}
          <li>The vehicle(s) must be returned ${r.Selesai ? 'by ' + esc(tglEN(r.Selesai)) : 'when requested by the Transport Department'} in the same condition as at handover, apart from normal wear, and recorded in a return report.</li>
        </ol>${r.Catatan ? `<div style="margin-top:4px"><b>Additional notes:</b> ${esc(r.Catatan)}</div>` : ''}</div>
@@ -5947,7 +5950,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '12 Nov 2026 · no rangka';
+const APP_VER = '12 Nov 2026 · free maintenance';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
