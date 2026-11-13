@@ -5286,6 +5286,9 @@ async function testNotif() {
 
 // ---------- BAST KENDARAAN (serah terima ke departemen lain) ----------
 let BAST = [], BAST_LOADED = false, BAST_EDIT = null;
+// Penandatangan BAST dari Transport (tanda tangan otomatis di PDF)
+const BAST_SIGNER = { name: 'I Gde Agus Veryanto', title: 'Internal Transport Supervisor' };
+const BAST_SIGNER_RX = /agus\s*ver/i;
 const BAST_KEL = ['Kunci', 'Charger', 'Helm', 'Fotokopi STNK', 'Kartu / QR akses', 'Jas hujan', 'Toolkit'];
 const BAST_KOND = ['Baik', 'Baik, ada lecet ringan', 'Perlu perbaikan', 'Rusak'];
 const BAST_KOND_EN = { 'Baik': 'Good', 'Baik, ada lecet ringan': 'Good, minor scratches', 'Perlu perbaikan': 'Needs repair', 'Rusak': 'Damaged' };
@@ -5400,7 +5403,7 @@ async function openBast(id) {
   $('bast-title').textContent = r ? 'Edit ' + r.No : 'BAST kendaraan baru';
   let last = {};
   try { last = JSON.parse(localStorage.getItem('tf-bast-penyerah') || '{}'); } catch (e) {}
-  const v = r || { Jenis: 'Pinjam', Tanggal: today(), Mulai: today(), Penyerah: last.n || (USER && USER.nama) || '', Jabatan_Penyerah: last.j || '' };
+  const v = r || { Jenis: 'Pinjam', Tanggal: today(), Mulai: today(), Penyerah: BAST_SIGNER.name, Jabatan_Penyerah: BAST_SIGNER.title };
   ['Jenis', 'Tanggal', 'No', 'Departemen', 'Penerima', 'Jabatan_Penerima', 'Kontak', 'Penyerah', 'Jabatan_Penyerah', 'Mulai', 'Selesai', 'Keperluan', 'Catatan'].forEach(k => { const el = $('bs-' + k); if (el) el.value = v[k] || ''; });
   $('bs-dept-list').innerHTML = [...new Set(ALLOC.units.map(u => String(u.Department || '').trim()).filter(Boolean))].sort().map(x => `<option value="${esc(x)}">`).join('');
   $('bs-code-list').innerHTML = ALLOC.units.map(u => `<option value="${esc(u.Code)}">${esc((u.Type || '') + (u.Department ? ' · ' + u.Department : ''))}</option>`).join('');
@@ -5449,7 +5452,7 @@ function openBastRet(id) {
   $('br-title').textContent = r.No + ' · ' + r.Departemen;
   $('br-sub').textContent = r.Jenis + ' sejak ' + fmtTgl(r.Mulai) + ' · penerima ' + r.Penerima;
   $('br-tgl').value = today();
-  $('br-oleh').value = (USER && USER.nama) || '';
+  $('br-oleh').value = BAST_SIGNER.name;
   $('br-cat').value = '';
   $('br-file').value = '';
   $('br-units').innerHTML = r.Units.map((u, i) => `<div class="row3 br-unit" data-i="${i}" style="grid-template-columns:1.4fr 1.1fr 1fr 1.5fr;align-items:end">
@@ -5485,9 +5488,11 @@ function bastPdf(id, ret) {
   if (!r) return toast('BAST tidak ditemukan');
   const kd = k => BAST_KOND_EN[k] || k || '-';
   const jenisEN = r.Jenis === 'Sewa' ? 'rental' : 'loan';
+  // Tanda tangan Pak Agus otomatis bila pihak Transport adalah I Gde Agus Veryanto
+  const ttd = n => BAST_SIGNER_RX.test(String(n || '')) ? MECH_SUP_SVG : '';
   const sign = (a, b) => `<table class="iv2-sign bs-sign"><tr>
-      <td>${a[0]}<div class="s"></div><div class="ln"></div><b>${esc(a[1] || '')}</b><br>${esc(a[2] || '')}</td>
-      <td>${b[0]}<div class="s"></div><div class="ln"></div><b>${esc(b[1] || '')}</b><br>${esc(b[2] || '')}</td></tr></table>`;
+      <td>${a[0]}<div class="s">${a[3] || ''}</div><div class="ln"></div><b>${esc(a[1] || '')}</b><br>${esc(a[2] || '')}</td>
+      <td>${b[0]}<div class="s">${b[3] || ''}</div><div class="ln"></div><b>${esc(b[1] || '')}</b><br>${esc(b[2] || '')}</td></tr></table>`;
   const head = `<div class="mr-top">${logoTag().replace('class="doc-logo"', 'class="doc-logo" style="height:26px;width:auto;margin:0"')}<div style="text-align:right"><div class="mr-h" style="font-size:15px">${ret ? 'VEHICLE RETURN REPORT' : 'VEHICLE HANDOVER REPORT'}</div><div class="mr-s">Berita Acara Serah Terima${ret ? ' (Pengembalian)' : ''} Kendaraan · No. ${esc(r.No)}</div></div></div>`;
   const meta = `<table class="iv2-kv bs-kv">
       <tr><td>Handover type</td><td><b>${r.Jenis === 'Sewa' ? 'Rental' : 'Loan'}</b> (${esc(r.Jenis)})</td></tr>
@@ -5522,7 +5527,7 @@ function bastPdf(id, ret) {
     ? `<p>On ${esc(tglEN(r.Tgl_Kembali))}, the vehicle(s) listed below, previously handed over to the ${esc(r.Departemen)} department under handover report No. ${esc(r.No)} dated ${esc(tglEN(r.Tanggal))}, were returned to the Transport Department in the condition stated below.</p>${parties}${meta}${units}${kel}
        ${r.Catatan_Kembali ? `<div class="iv2-words"><b>Return notes:</b> ${esc(r.Catatan_Kembali)}</div>` : ''}
        <p>With the signing of this report, the responsibility of the ${esc(r.Departemen)} department for the vehicle(s) above ends, except for any damage noted above that is still to be settled.</p>
-       ${sign(['Returned by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen], ['Received by,', r.Penerima_Kembali, 'Transport Department'])}`
+       ${sign(['Returned by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen], ['Received by,', r.Penerima_Kembali, 'Transport Department', ttd(r.Penerima_Kembali)])}`
     : `<p>On ${esc(tglEN(r.Tanggal))}, the Transport Department hands over the vehicle(s) listed below to the ${esc(r.Departemen)} department as a ${jenisEN}, and the receiving party accepts them in the condition stated below.</p>${parties}${meta}${units}${kel}
        <div class="iv2-pay"><b>Terms</b><ol style="margin:4px 0 0 16px;padding:0">
          <li>The vehicle(s) remain the property of the Transport Department and may only be used for the operations of the ${esc(r.Departemen)} department within the Nuanu area${otrs.length ? ', except as stated in the next point' : ''}.</li>
@@ -5534,7 +5539,7 @@ function bastPdf(id, ret) {
          ${r.Jenis === 'Sewa' ? '<li>The rental fee is charged to the receiving department each month in accordance with the Transport rental rates.</li>' : '<li>This is a loan; no rental fee is charged unless agreed otherwise in writing.</li>'}
          <li>The vehicle(s) must be returned ${r.Selesai ? 'by ' + esc(tglEN(r.Selesai)) : 'when requested by the Transport Department'} in the same condition as at handover, apart from normal wear, and recorded in a return report.</li>
        </ol>${r.Catatan ? `<div style="margin-top:4px"><b>Additional notes:</b> ${esc(r.Catatan)}</div>` : ''}</div>
-       ${sign(['Handed over by,', r.Penyerah, (r.Jabatan_Penyerah ? r.Jabatan_Penyerah + ', ' : '') + 'Transport Department'], ['Received by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen])}`;
+       ${sign(['Handed over by,', r.Penyerah, (r.Jabatan_Penyerah ? r.Jabatan_Penyerah + ', ' : '') + 'Transport Department', ttd(r.Penyerah)], ['Received by,', r.Penerima, (r.Jabatan_Penerima ? r.Jabatan_Penerima + ', ' : '') + r.Departemen])}`;
   $('print-area').innerHTML = `<div class="mr-doc bs-doc">${head}${body}<div class="mr-foot">Contact: ${esc(r.Kontak || '-')} · Generated from Transport Finance.</div></div>`;
   setPageSize('A4 portrait');
   printAs((ret ? 'BAST Return ' : 'BAST ') + r.No.replace(/\//g, '-') + ' ' + r.Departemen);
@@ -6033,7 +6038,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '13 Nov 2026 · BAST on the road + STNK';
+const APP_VER = '13 Nov 2026 · ttd BAST';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
