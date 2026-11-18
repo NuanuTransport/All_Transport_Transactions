@@ -5505,6 +5505,8 @@ async function saveBastRet(pdf) {
 }
 // PDF BAST (bahasa Inggris, judul juga dalam bahasa Indonesia)
 // Jasa servis gratis unit alokasi departemen (SAMA dengan freeMtType_ di Code.gs): buggy & EV bike, bukan cooty / scooter / bus
+// Sama dengan FREE_MT_ON di Code.gs: false = tagihan mekanik disamakan dengan Mechanic App (jasa servis ditagih)
+const FREE_MT_ON = false;
 function freeMtCat(type) { const c = alCat(type); return c === 'Buggy' || c === 'EV Bike / Motor'; }
 function bastPdf(id, ret) {
   const r = BAST.find(x => x.BAST_ID === id);
@@ -5560,7 +5562,7 @@ function bastPdf(id, ret) {
          <li>The receiving department is responsible for the proper use and safekeeping of the vehicle(s) and accessories, and for any loss or damage caused by negligence.</li>
          <li>The vehicle(s) may not be transferred or lent to another party without written approval from the Transport Department.</li>
          <li>Routine maintenance is carried out by the Transport Mechanic team; any damage or problem must be reported to the Transport Department as soon as possible.</li>
-         ${r.Units.some(u => freeMtCat(u.type)) ? '<li>Maintenance and washing of buggy and EV bike units are carried out by the Transport Mechanic team on request. The service fee is free of charge; any spare parts replaced are charged to the receiving department. Cooty / scooter units are not included and are charged at the Transport Mechanic rates.</li>' : ''}
+         ${!FREE_MT_ON ? '<li>Maintenance and washing are carried out by the Transport Mechanic team on request and are charged to the receiving department at the Transport Mechanic rates (service fee and spare parts).</li>' : r.Units.some(u => freeMtCat(u.type)) ? '<li>Maintenance and washing of buggy and EV bike units are carried out by the Transport Mechanic team on request. The service fee is free of charge; any spare parts replaced are charged to the receiving department. Cooty / scooter units are not included and are charged at the Transport Mechanic rates.</li>' : ''}
          ${r.Jenis === 'Sewa' ? '<li>The rental fee is charged to the receiving department each month in accordance with the Transport rental rates.</li>' : '<li>This is a loan; no rental fee is charged unless agreed otherwise in writing.</li>'}
          <li>The vehicle(s) must be returned ${r.Selesai ? 'by ' + esc(tglEN(r.Selesai)) : 'when requested by the Transport Department'} in the same condition as at handover, apart from normal wear, and recorded in a return report.</li>
        </ol>${r.Catatan ? `<div style="margin-top:4px"><b>Additional notes:</b> ${esc(r.Catatan)}</div>` : ''}</div>
@@ -6065,7 +6067,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '13 Nov 2026 · unit pengganti';
+const APP_VER = '18 Nov 2026 · tagihan = Mechanic App';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
