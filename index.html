@@ -2877,10 +2877,10 @@ function finRender() {
   const tbl = (head, rows) => rows.length ? `<div class="tablewrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>` : '<div class="muted" style="padding:12px 0">Tidak ada data.</div>';
   if (FIN_TAB === 'full') {
     B.innerHTML = `<div class="btns" style="margin:8px 0"><label style="display:flex;gap:6px;align-items:center;font-weight:400;margin:0"><input type="checkbox" id="fin-all" style="width:auto;margin:0" checked onchange="document.querySelectorAll('.fin-cb').forEach(c=>c.checked=this.checked)"> Pilih semua</label>
-      <button class="btn" style="margin:0" onclick="finApply()">Tandai lunas yang dipilih</button><span class="muted" style="align-self:center">Metode: cost transfer · tanggal bayar = tanggal posting Finance · No SO ikut diisi</span></div>` +
+      <button class="btn" style="margin:0" onclick="finApply()">Tandai lunas yang dipilih</button><span class="muted" style="align-self:center">Nominal tetap mengikuti aplikasi. Yang diubah hanya No SO dan status lunas (cost transfer, tanggal posting Finance).</span></div>` +
       tbl(['', 'Periode', 'Sumber', 'Pelanggan', 'Tagihan app', 'Dibayar Finance', 'Komponen', 'No SO', 'Tgl posting'], full.map((x, i) => `<tr><td><input type="checkbox" class="fin-cb" data-i="${FIN.cocok.indexOf(x)}" checked style="width:auto;margin:0"></td>
         <td>${esc(x.ym)}</td><td>${esc(finSrcLbl[x.src] || x.src)}</td><td><b>${esc(x.pelanggan)}</b><div class="al-sub">${esc(x.ket)}</div></td>
-        <td class="num">${rp(x.nominal)}</td><td class="num">${rp(x.paid)}${Math.abs(x.paid - x.nominal) > 1000 ? `<div class="al-sub" style="color:#b45309">selisih ${rp(x.paid - x.nominal)}</div>` : ''}</td>
+        <td class="num">${rp(x.nominal)}</td><td class="num">${rp(x.paid)}${Math.abs(x.paid - x.nominal) > 1000 ? `<div class="al-sub">nominal Finance beda, tagihan app tetap ${rp(x.nominal)}</div>` : ''}</td>
         <td>${x.komponen ? x.komponenBayar + '/' + x.komponen : '-'}</td><td class="al-sub" style="max-width:220px">${esc(x.sos.slice(0, 6).join(', '))}${x.sos.length > 6 ? ' +' + (x.sos.length - 6) : ''}</td><td>${esc(fmtTgl(x.tgl))}</td></tr>`));
   } else if (FIN_TAB === 'part') {
     B.innerHTML = `<div class="hint">Sebagian booking / WO sudah ada cost transfer-nya. Sisanya belum dibayar atau belum punya nomor SO, perlu ditagih ulang ke departemen. Tidak ditandai lunas otomatis.</div>` +
@@ -6221,7 +6221,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '19 Nov 2026 · cek Finance';
+const APP_VER = '19 Nov 2026 · cek Finance v2';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
