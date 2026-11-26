@@ -2341,6 +2341,7 @@ body.viewer [data-edit]{display:none!important}
     </div>
     <div id="jp-list-w" class="hidden">
       <div style="display:flex;gap:8px;align-items:center;margin:4px 0 6px;flex-wrap:wrap">
+        <label style="display:flex;gap:6px;align-items:center;margin:0;cursor:pointer;white-space:nowrap;font-size:13px;color:var(--text)"><input type="checkbox" id="jp-all" style="width:auto;margin:0" onchange="jpAll(this.checked)"> Pilih semua</label>
         <input type="text" id="jp-cari" placeholder="Cari tanggal / unit / nama / pekerjaan" oninput="jpRender()" style="flex:1;min-width:180px">
         <span class="muted" id="jp-sel">0 dipilih</span>
       </div>
@@ -6433,7 +6434,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '26 Nov 2026 · tanda tangan JC hanya di ringkasan bulanan';
+const APP_VER = '26 Nov 2026 · pilih semua di JC';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
@@ -8810,9 +8811,17 @@ function jpMode() {
   $('jp-list-w').classList.toggle('hidden', !item);
   if (item) jpRender();
 }
-function jpRender() {
+// Item yang tampil (mengikuti kotak cari); "Pilih semua" berlaku untuk item yang tampil
+function jpVisible() {
   const q = $('jp-cari').value.trim().toLowerCase();
-  const items = jpItems().filter(x => !q || [fmtTgl(x.tgl), x.label, x.sub].join(' ').toLowerCase().includes(q));
+  return jpItems().filter(x => !q || [fmtTgl(x.tgl), x.label, x.sub].join(' ').toLowerCase().includes(q));
+}
+function jpAll(on) {
+  jpVisible().forEach(x => { if (on) JP.sel.add(String(x.key)); else JP.sel.delete(String(x.key)); });
+  jpRender();
+}
+function jpRender() {
+  const items = jpVisible();
   $('jp-list').innerHTML = items.length ? items.map(x => `<label class="jp-row"><input type="checkbox" ${JP.sel.has(String(x.key)) ? 'checked' : ''} onchange="jpToggle('${esc(String(x.key))}', this.checked)">
       <span class="jp-main"><b>${esc(x.tgl ? fmtTgl(x.tgl) : '')}</b>${x.tgl ? ' · ' : ''}${esc(x.label)}<div class="muted">${esc(x.sub || '')}</div></span>
       <span class="jp-amt">${rp(x.amt)}</span></label>`).join('') : '<div class="muted" style="padding:12px">Tidak ada data</div>';
@@ -8824,6 +8833,8 @@ function jpToggle(key, on) { if (on) JP.sel.add(key); else JP.sel.delete(key); j
 function jpSelInfo() {
   const sel = jpItems().filter(x => JP.sel.has(String(x.key)));
   $('jp-sel').textContent = `${sel.length} dipilih · ${rp(sel.reduce((a, x) => a + x.amt, 0))}`;
+  const vis = jpVisible(), all = $('jp-all');
+  if (all) { const n = vis.filter(x => JP.sel.has(String(x.key))).length; all.checked = !!vis.length && n === vis.length; all.indeterminate = n > 0 && n < vis.length; }
 }
 
 // Cetak sesuai pilihan; dipakai juga oleh mode kirim (JC_CAPTURE)
