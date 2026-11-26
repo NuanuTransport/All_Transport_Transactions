@@ -6433,7 +6433,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '23 Nov 2026 · import Odoo sembunyikan yang sudah ada';
+const APP_VER = '26 Nov 2026 · JC bulanan 1 approval';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
@@ -8967,7 +8967,7 @@ async function printInvoice(id, comp, toYm, pick) {
           <table><tr><td>Bank</td><td>${esc(INV_BANK.bank)}</td></tr>
           <tr><td>Account No.</td><td><b>${esc(INV_BANK.no)}</b></td></tr>
           <tr><td>Account name</td><td>${esc(INV_BANK.name)}</td></tr></table></div>` : ''}
-        ${jcSign('TAXI', billTo)}
+        ${jcSign('TAXI', billTo, !pick)}
         <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Nuanu Taxi Service</div>
       </div>`;
 
@@ -9014,8 +9014,13 @@ function jcTop(title, sub, no, period, so) {
     </div>`;
 }
 
-function jcSign(kind, receivedBy) {
+// JC bulanan (rekap): cukup 1 approval (Head of Transport) + penerima. JC per WO / per transaksi tetap supervisor + Head.
+function jcSign(kind, receivedBy, monthly) {
   const sup = jcSupOf(kind);
+  if (monthly) return `<div class="sign" style="grid-template-columns:1fr 1fr">
+      <div>Approved by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
+      <div>Received by<br>${esc(receivedBy)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
+    </div>`;
   return `<div class="sign">
       <div>Approved by<br>${esc(sup.title)}<div class="sig-box">${sup.svg()}</div><div class="line">${esc(sup.name)}</div></div>
       <div>Approved by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
@@ -9117,7 +9122,7 @@ async function printWorkJC(all, woId) {
     <div class="inv-end">
       <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
       <div class="inv-note">${esc(mech ? NOTE_MECH : NOTE_WO)}</div>
-      ${jcSign(all.kind, dept)}
+      ${jcSign(all.kind, dept, true)}
       <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: ${esc(mech ? 'Mechanic Apps' : 'Work Order Bot')}</div>
     </div>`;
   await waitImages();
@@ -9153,7 +9158,7 @@ async function printRentJC(all) {
     <div class="inv-end">
       <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
       <div class="inv-note">${esc(NOTE_RENT)}</div>
-      ${jcSign('RENT', req || dept)}
+      ${jcSign('RENT', req || dept, true)}
       <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Bill of Quantities (EV rental)</div>
     </div>`;
   await waitImages();
@@ -9188,8 +9193,12 @@ function mechHead(title, rightHtml) {
   </div>`;
 }
 
-function mechSign(requester, dept) {
+function mechSign(requester, dept, monthly) {
   const sup = JC_SUP.internal;
+  if (monthly) return `<div class="mj-sign" style="grid-template-columns:1fr 1fr">
+    <div><b>${esc(INV_HEAD_TITLE)}</b><div class="sig-box">${TTD_HEAD_SVG}</div><div class="mj-line">${esc(INV_HEAD_NAME)}</div></div>
+    <div><b>Received by</b><div class="sig-box"></div><div class="mj-line">${esc(requester || dept)}</div></div>
+  </div>`;
   return `<div class="mj-sign">
     <div><b>${esc(sup.title)}</b><div class="sig-box">${sup.svg()}</div><div class="mj-line">${esc(sup.name)}</div></div>
     <div><b>${esc(INV_HEAD_TITLE)}</b><div class="sig-box">${TTD_HEAD_SVG}</div><div class="mj-line">${esc(INV_HEAD_NAME)}</div></div>
@@ -9198,7 +9207,7 @@ function mechSign(requester, dept) {
 }
 
 // Satu halaman Job Completion per work order
-function mechPage(r, dept, withPhotos) {
+function mechPage(r, dept, withPhotos, inRecap) {   // inRecap: halaman WO di dalam JC bulanan, tanpa tanda tangan (sudah di ringkasan)
   const parts = r.Parts || [];
   const fees = (r.FeeLines || []).length ? r.FeeLines : (r.Fee ? [{ name: 'Service', qty: 1, price: r.Fee, total: r.Fee }] : []);
   const notes = [r.Catatan, r.Findings].filter(Boolean).join('\n');
@@ -9233,7 +9242,7 @@ function mechPage(r, dept, withPhotos) {
       <tr><td>Service fee</td><td class="num">${rp(r.Fee)}</td></tr>
       <tr class="mj-total"><td>Total</td><td class="num">${rp(r.Total)}</td></tr>
     </table>
-    ${mechSign(r.Requester, dept)}
+    ${inRecap ? '' : mechSign(r.Requester, dept)}
     ${photos.length ? `<div class="mj-photo-page">
       ${mechHead('JOB COMPLETION - PHOTOS', `${esc(r.Id)}${okSO(r.SO) ? '<br>' + esc(String(r.SO).toUpperCase()) : ''}<br>${esc(fmtTgl(r.Selesai || r.Tanggal))}`)}
       <div class="mj-sub" style="margin-bottom:8px">${esc(dept)} &middot; ${esc(r.Kendaraan || '-')} &middot; ${photos.length} photo${photos.length === 1 ? '' : 's'}</div>
@@ -9242,7 +9251,7 @@ function mechPage(r, dept, withPhotos) {
 }
 
 // Halaman ringkasan JOB COMPLETION REPORT (tabel WO, terbilang, catatan, approval)
-function mechSummary(rows, dept, no, perEn, soNo) {
+function mechSummary(rows, dept, no, perEn, soNo, monthly) {
   const sum = k => rows.reduce((a, r) => a + Number(r[k] || 0), 0);
   const total = sum('Total');
   return `${mechHead('JOB COMPLETION REPORT', `${esc(no)}<br>${esc(perEn)}${soNo ? '<br>' + esc(soNo) : ''}<br>${rows.length} job${rows.length === 1 ? '' : 's'}`)}
@@ -9254,7 +9263,7 @@ function mechSummary(rows, dept, no, perEn, soNo) {
     </table>
     <div class="inv-words">Amount in words: <i>${esc(amountWords(total))}</i></div>
     <div class="inv-note">${esc(NOTE_MECH)}</div>
-    ${mechSign(dept, dept)}
+    ${mechSign(dept, dept, monthly)}
     <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Mechanic Apps</div>`;
 }
 
@@ -9297,8 +9306,8 @@ async function printMechJC(all, woId) {
   if (withPages && nPhotos) await loadMechPhotos(rows.reduce((a, r) => a.concat(r.Photos || []), []), progress);
 
   $('print-area').innerHTML = `<div class="mj">
-    ${mechSummary(rows, dept, no.trim() || noDef, perEn, all.soNo || '')}
-    ${withPages ? rows.map(r => `<div class="mj-page">${mechPage(r, dept, true)}</div>`).join('') : ''}
+    ${mechSummary(rows, dept, no.trim() || noDef, perEn, all.soNo || '', true)}
+    ${withPages ? rows.map(r => `<div class="mj-page">${mechPage(r, dept, true, true)}</div>`).join('') : ''}
   </div>`;
   await waitImages();
   setPageSize('A4');
