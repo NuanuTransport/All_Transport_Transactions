@@ -6445,7 +6445,7 @@ function langBtns() {
 
 // ---------- MENU SAMPING, DASHBOARD & PENGINGAT ----------
 document.body.classList.add('has-sb');
-const APP_VER = '26 Nov 2026 · import PO lengkap 2023-2026';
+const APP_VER = '27 Nov 2026 · JC Guest Mobility prepared by Angie';
 if ($('sb-ver')) $('sb-ver').textContent = 'Versi ' + APP_VER;
 setTimeout(() => { langBtns(); if (LANG === 'en') i18nStart(); }, 0);
 function toggleNav(on) {
@@ -8955,7 +8955,7 @@ async function printInvoice(id, comp, toYm, pick) {
       <div class="inv-to">
         <div class="muted-p">Bill to</div>
         <div class="inv-to-name">${esc(billTo)}</div>
-        ${entity ? `<div class="muted-p">${all.direct || all.payLater ? esc(entity) : 'Payment / billing entity: ' + esc(entity)}</div>` : ''}
+        ${entity ? `<div class="muted-p">${all.direct || all.payLater ? esc(entity) : 'Billing entity: ' + esc(entity)}</div>` : ''}
         <div class="muted-p">Guest Mobility transport services, ${tripLine} in ${esc(perEn)}${nBatal ? ` &middot; ${nBatal} cancelled booking${nBatal === 1 ? '' : 's'} (not charged)` : ''}${flat ? ' &middot; monthly flat fee as per agreement' : ''}</div>
       </div>
 
@@ -8989,7 +8989,7 @@ async function printInvoice(id, comp, toYm, pick) {
           <table><tr><td>Bank</td><td>${esc(INV_BANK.bank)}</td></tr>
           <tr><td>Account No.</td><td><b>${esc(INV_BANK.no)}</b></td></tr>
           <tr><td>Account name</td><td>${esc(INV_BANK.name)}</td></tr></table></div>` : ''}
-        ${jcSign('TAXI', billTo)}
+        ${gmSign(billTo)}
         <div class="p-foot">Printed ${esc(printedAt())} &middot; Data source: Nuanu Taxi Service</div>
       </div>`;
 
@@ -9036,6 +9036,14 @@ function jcTop(title, sub, no, period, so) {
     </div>`;
 }
 
+// JC Guest Mobility (format aplikasi Guest Mobility): Prepared by External Transport Supervisor (Angie), Acknowledged by Head, Received by company
+function gmSign(receivedBy) {
+  return `<div class="sign">
+      <div>Prepared by<br>${esc(JC_SUP.external.title)}<div class="sig-box">${JC_SUP.external.svg()}</div><div class="line">${esc(JC_SUP.external.name)}</div></div>
+      <div>Acknowledged by<br>${esc(INV_HEAD_TITLE)}<div class="sig-box">${TTD_HEAD_SVG}</div><div class="line">${esc(INV_HEAD_NAME)}</div></div>
+      <div>Received by<br>${esc(receivedBy)}<div class="sig-box"></div><div class="line">&nbsp;</div></div>
+    </div>`;
+}
 function jcSign(kind, receivedBy) {
   const sup = jcSupOf(kind);
   return `<div class="sign">
